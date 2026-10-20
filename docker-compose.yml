@@ -1,0 +1,28 @@
+# Только инфраструктура для разработки. Приложения (api, web) запускаются напрямую на хосте.
+services:
+  postgres:
+    image: postgres:16-alpine   # версия должна совпадать с продом
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-school}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-school}
+      POSTGRES_DB: ${POSTGRES_DB:-school}
+    ports:
+      - "127.0.0.1:5432:5432"   # только localhost, не всем в сети
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1025:1025"   # SMTP, сюда api отправляет письма
+      - "127.0.0.1:8025:8025"   # веб-интерфейс: http://localhost:8025
+
+volumes:
+  pgdata:
