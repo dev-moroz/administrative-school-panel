@@ -1,36 +1,36 @@
-# CLAUDE.md — Админка школы английского (MVP)
+# CLAUDE.md — English School Admin Panel (MVP)
 
-**Порядок работы в сессии:** сначала прочитай `STATUS.md`. В конце — обнови его. `PLAN.md` и `docs/DECISIONS.md` читай только нужным разделом, не целиком.
-**Не записывай в документы то, что Anatoly не подтвердил.**
+**Session workflow:** read `STATUS.md` first. Update it at the end. Read `PLAN.md` and `docs/DECISIONS.md` only by the relevant section, not in full.
+**Do not write into the documents anything Anatoly has not confirmed.**
 
-## Режим работы
-- Учебный проект: React/Next.js + NestJS. Anatoly пишет ключевые куски сам, Claude проектирует, объясняет, ревьюит и берёт рутину. Не вайбкодить всё подряд.
-- Токены ограничены: работать этапами, по одной сессии на этап, узкие запросы, не перечитывать лишнее.
-- Язык общения: русский.
+## Working mode
+- Learning project: React/Next.js + NestJS. Anatoly writes the key parts himself; Claude designs, explains, reviews and takes the routine work. No vibe-coding everything.
+- Tokens are limited: work in stages, one session per stage, narrow requests, don't re-read unnecessarily.
+- Communication language: Russian.
 
-## Продукт
-Админка школы английского (индивидуальные занятия): ученики, занятия и календарь, остаток занятий, платежи в разных валютах, заморозка и перенос, аудит.
+## Product
+Admin panel for an English school (one-on-one lessons): students, lessons and calendar, remaining lesson balance, payments in different currencies, freezes and rescheduling, audit.
 
-## Стек
-- Монорепо pnpm: `apps/api` (NestJS + Prisma + PostgreSQL 16), `apps/web` (Next.js App Router, `output: 'standalone'`, Tailwind, shadcn/ui, next-intl, TanStack Query).
-- Auth: email + пароль, JWT в httpOnly-cookie. **Роль и разрешения только в БД**, не в токене; guard читает их на каждом запросе.
-- Календарь: FullCalendar. Письма: Mailpit в dev, SMTP в проде.
-- Dev: Postgres и Mailpit — `docker compose up -d`; api и web запускаются напрямую, не в Docker. Образы проверить один раз после этапа 1.
+## Stack
+- pnpm monorepo: `apps/api` (NestJS + Prisma + PostgreSQL 16), `apps/web` (Next.js App Router, `output: 'standalone'`, Tailwind, shadcn/ui, next-intl, TanStack Query).
+- Auth: email + password, JWT in an httpOnly cookie. **Role and permissions live only in the DB**, not in the token; the guard reads them on every request.
+- Calendar: FullCalendar. Email: Mailpit in dev, SMTP in production.
+- Dev: Postgres and Mailpit via `docker compose up -d`; api and web run directly, not in Docker. Check the images once after stage 1.
 
-## Ключевые решения
-- Роли в MVP: `admin` и `student`. Права настраиваемые (роль = набор разрешений, как в Strapi); `teacher`/`manager` позже, без изменений схемы.
-- Баланс — журнал операций (остаток = SUM(delta)), записи не правятся. Может быть отрицательным.
-- Платежи хранят исходную сумму и валюту, без конвертации; платёж и начисление занятий создаются в одной транзакции.
-- Неявка: списывать или нет — галочка на занятии. Заморозка отменяет запланированные занятия, баланс сохраняется.
-- Аудит с самого начала. i18n-каркас (next-intl) есть, пока только английский; другие языки добавим позже.
+## Key decisions
+- Roles in the MVP: `admin` and `student`. Permissions are configurable (role = a set of permissions, like in Strapi); `teacher`/`manager` later, without schema changes.
+- Balance is an operations ledger (balance = SUM(delta)); entries are never edited. It may be negative.
+- Payments store the original amount and currency, no conversion; a payment and the lesson credit are created in a single transaction.
+- No-show: whether to charge is a checkbox on the lesson. A freeze cancels scheduled lessons; the balance is kept.
+- Audit from the very start. The i18n scaffold (next-intl) is in place, English only for now; other languages will be added later.
 
-## Безопасность (приоритет)
-Запрет по умолчанию; проверка владельца данных; ответы только через DTO; тесты «роль × эндпоинт». Подробно — `PLAN.md`, раздел 4.
+## Security (priority)
+Deny by default; data ownership checks; responses only through DTOs; "role × endpoint" tests. Details — `PLAN.md`, section 4.
 
-## Не делаем в MVP
-Уведомления, самостоятельная регистрация, кабинет учителя, группы/курсы, автоконвертация валют, персональные цены.
+## Not in the MVP
+Notifications, self-registration, teacher cabinet, groups/courses, automatic currency conversion, personal prices.
 
-## Где что лежит
-- `STATUS.md` — текущий этап, что сделано, что дальше.
-- `PLAN.md` — структура, модель данных, этапы с критериями готовности, безопасность.
-- `docs/DECISIONS.md` — полная история решений. `README.md` — запуск.
+## Where things live
+- `STATUS.md` — current stage, what is done, what is next.
+- `PLAN.md` — structure, data model, stages with done criteria, security.
+- `docs/DECISIONS.md` — full decision history. `README.md` — how to run.

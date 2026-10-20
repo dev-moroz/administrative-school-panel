@@ -1,9 +1,9 @@
-# PLAN.md — план разработки MVP
+# PLAN.md — MVP development plan
 
-Контекст и принятые решения — в `CLAUDE.md`. Здесь: структура, модель данных, этапы.
-Легенда: **[Ты]** — пишешь сам (ключевая практика), **[Я]** — делаю я (рутина/каркас), **[Вместе]** — ты пишешь, я ревьюю.
+Context and accepted decisions are in `CLAUDE.md`. Here: structure, data model, stages.
+Legend: **[You]** — you write it yourself (key practice), **[Me]** — I do it (routine/scaffolding), **[Together]** — you write, I review.
 
-## 1. Структура репозитория
+## 1. Repository structure
 
 ```
 english-school-admin/
@@ -15,77 +15,77 @@ english-school-admin/
   CLAUDE.md, PLAN.md
 ```
 
-Модули Nest (по одному на предметную область): `auth`, `users`, `roles` (роли и разрешения), `students`, `lessons`, `freezes`, `ledger` (баланс), `payments`, `files` (подтверждения платежей), `audit`, `mail`, `settings`.
+Nest modules (one per domain area): `auth`, `users`, `roles` (roles and permissions), `students`, `lessons`, `freezes`, `ledger` (balance), `payments`, `files` (payment proofs), `audit`, `mail`, `settings`.
 
-## 2. Модель данных (черновик Prisma, на согласование)
+## 2. Data model (Prisma draft, pending approval)
 
-- **User**: email (unique), passwordHash, locale (по умолчанию en; остальные языки позже), isActive, mustChangePassword, roleId.
-- **RefreshToken**: userId, tokenHash (хэш, не сам токен), expiresAt, revokedAt?, createdAt. Отзыв при смене пароля/роли.
-- **Role** / **Permission** / **RolePermission**: роль = набор разрешений вида `students.read`, `payments.create`. Права проверяются по разрешению, не по имени роли. Системные роли: `admin`, `student` (`manager`, `teacher` — потом, без изменений схемы).
-- **Student**: userId (unique), ФИО, телефон, telegram, whatsapp, уровень английского, комментарий менеджера, дата начала, часовой пояс.
-- **Teacher**: userId, ФИО. В MVP одна запись (у админа), UI нет.
-- **Lesson**: teacherId, startsAt, durationMin, status (`SCHEDULED | COMPLETED | CANCELLED | NO_SHOW`), chargeOnNoShow (галочка «списывать»), rescheduledFromId, cancelReason, notes.
-- **LessonParticipant**: lessonId + studentId (unique). Сейчас один ученик, потом группы без миграции связей.
-- **Freeze**: studentId, startsAt, endsAt, reason, createdById. При создании запланированные занятия периода переводятся в `CANCELLED`.
-- **LedgerEntry** (журнал баланса): studentId, delta (±int), type (`PURCHASE | LESSON_CHARGE | LESSON_REVERSAL | MANUAL_ADJUSTMENT`), lessonId?, paymentId?, comment (обязателен для ручной корректировки), createdById, createdAt. **Остаток = SUM(delta)**, записи не правятся и не удаляются — только компенсирующие.
-- **Payment**: studentId, amount (Decimal), currency (код: EUR/USD/BTC…), paidAt, method (`CASH | CARD | TRANSFER | CRYPTO`), comment, proofUrl?, proofFileId?, lessonsGranted (int), createdById. При создании в той же транзакции пишется `LedgerEntry(PURCHASE, +lessonsGranted)`.
-- **AuditLog**: actorId, entity, entityId, action, before (Json), after (Json), reason?, createdAt. Пишется для занятий, журнала баланса и платежей.
-- **Setting**: ключ-значение; цена одного занятия (сумма + валюта).
+- **User**: email (unique), passwordHash, locale (default en; other languages later), isActive, mustChangePassword, roleId.
+- **RefreshToken**: userId, tokenHash (a hash, not the token itself), expiresAt, revokedAt?, createdAt. Revoked on password/role change.
+- **Role** / **Permission** / **RolePermission**: role = a set of permissions such as `students.read`, `payments.create`. Access is checked by permission, not by role name. System roles: `admin`, `student` (`manager`, `teacher` — later, without schema changes).
+- **Student**: userId (unique), full name, phone, telegram, whatsapp, English level, manager comment, start date, time zone.
+- **Teacher**: userId, full name. One record in the MVP (the admin's), no UI.
+- **Lesson**: teacherId, startsAt, durationMin, status (`SCHEDULED | COMPLETED | CANCELLED | NO_SHOW`), chargeOnNoShow (the "charge" checkbox), rescheduledFromId, cancelReason, notes.
+- **LessonParticipant**: lessonId + studentId (unique). One student now; groups later without migrating relations.
+- **Freeze**: studentId, startsAt, endsAt, reason, createdById. On creation, the scheduled lessons in the period are moved to `CANCELLED`.
+- **LedgerEntry** (balance ledger): studentId, delta (±int), type (`PURCHASE | LESSON_CHARGE | LESSON_REVERSAL | MANUAL_ADJUSTMENT`), lessonId?, paymentId?, comment (required for a manual adjustment), createdById, createdAt. **Balance = SUM(delta)**; entries are never edited or deleted — only compensated.
+- **Payment**: studentId, amount (Decimal), currency (code: EUR/USD/BTC…), paidAt, method (`CASH | CARD | TRANSFER | CRYPTO`), comment, proofUrl?, proofFileId?, lessonsGranted (int), createdById. On creation, `LedgerEntry(PURCHASE, +lessonsGranted)` is written in the same transaction.
+- **AuditLog**: actorId, entity, entityId, action, before (Json), after (Json), reason?, createdAt. Written for lessons, the balance ledger and payments.
+- **Setting**: key-value; price of one lesson (amount + currency).
 
-Принципы: деньги — `Decimal`, не float; все изменения баланса и платежа — в транзакции вместе с записью аудита; время хранится в UTC, ученику показывается в его часовом поясе; в каком поясе планирует админ — решаем в начале этапа 5.
+Principles: money is `Decimal`, not float; every balance and payment change happens in a transaction together with its audit record; time is stored in UTC and shown to the student in their time zone; the time zone the admin plans in is decided at the start of stage 5.
 
-## 3. Этапы
+## 3. Stages
 
-**Этап 0 — каркас [Я]**: pnpm-монорепо, `docker-compose.yml` (PostgreSQL 16 + Mailpit) для разработки, README с командами запуска, `nest new`, Next.js (`output: 'standalone'`) + Tailwind + shadcn/ui + next-intl, Prisma, `.env.example`, линтеры. Тема tweakcn — ты вставляешь CSS-переменные сам.
-*Готово, когда:* Оба приложения запускаются (web :3000, api :4000), Postgres и Mailpit работают в Docker.
+**Stage 0 — scaffolding [Me]**: pnpm monorepo, `docker-compose.yml` (PostgreSQL 16 + Mailpit) for development, README with run commands, `nest new`, Next.js (`output: 'standalone'`) + Tailwind + shadcn/ui + next-intl, Prisma, `.env.example`, linters. The tweakcn theme — you paste the CSS variables yourself.
+*Done when:* both apps start (web :3000, api :4000), Postgres and Mailpit run in Docker.
 
-**Этап 1 — авторизация и права [Вместе]**: Prisma-схема User/Role/Permission; Nest: логин, JWT access + refresh, guard по разрешениям; Next: страница логина, защищённые маршруты (Next middleware: редирект без сессии; rewrites `/api` → Nest), хранение токенов (httpOnly-cookie), без переключателя языка (пока только EN); глобальный `ValidationPipe({ whitelist: true })` и `helmet`; модель `RefreshToken` в схеме. *React/Nest: роутинг, формы, валидация (react-hook-form + zod), guards, DTO, pipes.*
-*Готово, когда:* Вход/выход через httpOnly-cookie; guard по разрешениям из БД; e2e-тесты авторизации «роль × эндпоинт» проходят; без переключателя языка (пока только EN) работает.
+**Stage 1 — authentication and permissions [Together]**: Prisma schema User/Role/Permission; Nest: login, JWT access + refresh, permission guard; Next: login page, protected routes (Next middleware: redirect without a session; rewrites `/api` → Nest), token storage (httpOnly cookie), no language switcher (English only for now); global `ValidationPipe({ whitelist: true })` and `helmet`; `RefreshToken` model in the schema. *React/Nest: routing, forms, validation (react-hook-form + zod), guards, DTOs, pipes.*
+*Done when:* login/logout via httpOnly cookie works; the permission guard reads from the DB; the "role × endpoint" e2e auth tests pass; the interface is in English via next-intl.
 
-**Проверка Docker (после этапа 1) [Вместе]**: пробная сборка образов api и web, запуск в контейнерах, проверка env/архитектуры.
-*Готово, когда:* Образы api и web собираются и стартуют, логин работает в контейнерах.
+**Docker check (after stage 1) [Together]**: trial build of the api and web images, run in containers, check env/architecture.
+*Done when:* the api and web images build and start, login works in the containers.
 
-**Этап 2 — ученики и создание учёток [Вместе]**: CRUD учеников, создание пользователя с отправкой логина/пароля на почту (генерация пароля на сервере, Mailpit в dev). *Таблицы, фильтры, поиск, пагинация, серверное состояние (TanStack Query), оптимистичные обновления.*
-*Готово, когда:* Админ создаёт ученика; в Mailpit приходит письмо с логином и паролем; первый вход требует смены пароля; список с поиском и пагинацией.
+**Stage 2 — students and account creation [Together]**: student CRUD, user creation with the login/password sent by email (password generated on the server, Mailpit in dev). *Tables, filters, search, pagination, server state (TanStack Query), optimistic updates.*
+*Done when:* the admin creates a student; an email with login and password arrives in Mailpit; the first login requires a password change; the list has search and pagination.
 
-**Этап 3 — журнал баланса [Ты]**: `ledger`-модуль, расчёт остатка, ручная корректировка с комментарием. *Транзакции Prisma, сервисный слой, юнит-тесты.*
-*Готово, когда:* Остаток = SUM(delta); ручная корректировка требует комментарий; отрицательный баланс отображается как долг; юнит-тесты сервиса проходят.
+**Stage 3 — balance ledger [You]**: `ledger` module, balance calculation, manual adjustment with a comment. *Prisma transactions, service layer, unit tests.*
+*Done when:* balance = SUM(delta); a manual adjustment requires a comment; a negative balance is shown as debt; the service unit tests pass.
 
-**Этап 4 — платежи [Вместе]**: форма платежа (сумма, валюта, способ, подтверждение — файл или ссылка, число начисляемых занятий), история с мультивалютностью. *Сложные формы, загрузка файлов (multer), Decimal.*
-*Готово, когда:* Платёж создаётся одной транзакцией вместе с PURCHASE; история показывает разные валюты; подтверждение доступно только авторизованным.
+**Stage 4 — payments [Together]**: payment form (amount, currency, method, proof — file or link, number of lessons credited), history with multiple currencies. *Complex forms, file upload (multer), Decimal.*
+*Done when:* a payment is created in one transaction together with PURCHASE; the history shows different currencies; the proof is available only to authorized users.
 
-**Этап 5 — занятия и календарь [Вместе]**: *Первым делом решить часовой пояс планирования (см. «Открытые вопросы»).* CRUD занятий, FullCalendar (просмотр, создание/правка по клику), статусы и их влияние на баланс (проведено −1, неявка по галочке, отмена 0), перенос, заморозка. *Сложное состояние, интеграция сторонней библиотеки, бизнес-правила на бэке.*
-*Готово, когда:* Занятия создаются и правятся в календаре; статусы корректно меняют баланс; перенос и заморозка работают.
+**Stage 5 — lessons and calendar [Together]**: *First decide the scheduling time zone (see "Open questions").* Lesson CRUD, FullCalendar (view, create/edit on click), statuses and their effect on the balance (completed −1, no-show by checkbox, cancelled 0), rescheduling, freeze. *Complex state, integrating a third-party library, business rules on the backend.*
+*Done when:* lessons are created and edited in the calendar; statuses change the balance correctly; rescheduling and freeze work.
 
-**Этап 6 — дашборд и страница ученика [Вместе]**: ключевые цифры у админа; у ученика одна страница «остаток занятий + ближайшие занятия».
-*Готово, когда:* У админа дашборд с цифрами и списком «в минусе»; ученик видит только свой остаток и ближайшие занятия.
+**Stage 6 — dashboard and student page [Together]**: key figures for the admin; for the student, one page "remaining lessons + upcoming lessons".
+*Done when:* the admin has a dashboard with figures and a "negative balance" list; the student sees only their own balance and upcoming lessons.
 
-**Этап 7 — аудит [Вместе]**: интерцептор/сервис записи аудита, просмотр истории изменений.
-*Готово, когда:* Изменения баланса, платежей и занятий пишутся в AuditLog и видны в просмотре.
+**Stage 7 — audit [Together]**: interceptor/service that records the audit, change history view.
+*Done when:* balance, payment and lesson changes are written to AuditLog and visible in the view.
 
-**Этап 8 — упаковка [Я + ты]**: Dockerfile для api и web (web — standalone-сборка), nginx только для HTTPS и проброса на web, prod `docker-compose`, лёгкий образ под 1 ядро / 2 ГБ, деплой на VPS, обратный прокси + HTTPS, ежедневный `pg_dump` в cron с ротацией.
-*Готово, когда:* Образы собираются; prod-compose стартует на сервере по HTTPS; бэкап создаётся по расписанию и восстанавливается (проверено).
+**Stage 8 — packaging [Me + you]**: Dockerfiles for api and web (web — standalone build), nginx only for HTTPS and proxying to web, prod `docker-compose`, a light image for 1 core / 2 GB, VPS deployment, reverse proxy + HTTPS, daily `pg_dump` in cron with rotation.
+*Done when:* the images build; the prod compose starts on the server over HTTPS; the backup is created on schedule and restores correctly (verified).
 
 
-## 4. Безопасность разделения ролей (обязательные правила)
+## 4. Role separation security (mandatory rules)
 
-1. **Запрет по умолчанию.** Глобальный guard: эндпоинт без явного `@RequirePermission(...)` или пометки `@Public()` недоступен. Забыть защиту нельзя.
-2. **Проверка владельца (object-level).** Права недостаточно: ученик с правом «видеть своё» получает данные только по своему `studentId`, взятому из сессии, а не из URL/тела. Админские эндпоинты (`/students/:id/...`) и ученические (`/me/...`) разделены.
-3. **Ответы через DTO.** Наружу уходят только явно перечисленные поля; `passwordHash`, внутренние комментарии менеджера и чужие данные никогда не попадают в ответ студенту.
-4. **Подтверждения платежей** (скрины) отдаются только через авторизованный эндпоинт с проверкой владельца, не как публичная статика.
-5. **Пароли:** argon2 (или bcrypt), временный пароль из письма с обязательной сменой (`mustChangePassword`), ограничение числа попыток входа (rate limit).
-6. **Куки:** httpOnly, `Secure`, `SameSite`, защита от CSRF; refresh-токены хранятся в БД (можно отозвать при смене пароля/роли).
-7. **Next middleware — не граница безопасности**, только удобство (редиректы). Настоящая проверка — на бэке.
-8. **Тесты авторизации:** e2e-матрица «роль × эндпоинт» (admin, student, аноним, ученик A против данных ученика B). Падение теста = блокировка этапа.
-9. **Аудит:** смены ролей/прав, платежи и ручные корректировки баланса пишутся в `AuditLog`.
-10. **Секреты и логи:** `.env` вне git, в логи не пишем пароли, токены и персональные данные.
+1. **Deny by default.** A global guard: an endpoint without an explicit `@RequirePermission(...)` or `@Public()` mark is unavailable. Forgetting protection is impossible.
+2. **Ownership check (object-level).** A permission is not enough: a student with the "see own" permission gets data only for their own `studentId`, taken from the session, not from the URL/body. Admin endpoints (`/students/:id/...`) and student endpoints (`/me/...`) are separate.
+3. **Responses through DTOs.** Only explicitly listed fields go out; `passwordHash`, the manager's internal comments and other people's data never reach a student response.
+4. **Payment proofs** (screenshots) are served only through an authorized endpoint with an ownership check, not as public static files.
+5. **Passwords:** argon2 (or bcrypt), a temporary password from the email with a mandatory change (`mustChangePassword`), login attempt rate limit.
+6. **Cookies:** httpOnly, `Secure`, `SameSite`, CSRF protection; refresh tokens are stored in the DB (can be revoked on password/role change).
+7. **Next middleware is not a security boundary**, only a convenience (redirects). The real check is on the backend.
+8. **Authorization tests:** an e2e "role × endpoint" matrix (admin, student, anonymous, student A against student B's data). A failing test blocks the stage.
+9. **Audit:** role/permission changes, payments and manual balance adjustments are written to `AuditLog`.
+10. **Secrets and logs:** `.env` stays out of git; no passwords, tokens or personal data in logs.
 
-## 5. Открытые вопросы к этапам
+## 5. Open questions for the stages
 
-- ~~Хранение токенов~~ — решено: httpOnly-cookie (не localStorage). Реализация на этапе 1 (флаги `Secure`, `SameSite`, защита от CSRF для мутаций).
-- ~~Отрицательный баланс~~ — решено: **разрешён** (занятие проведено, оплаты ещё нет). Остаток = SUM(delta) может быть < 0, в UI показывается как долг/красным, в дашборде есть список «в минусе». Запрета на списание нет.
-- ~~Где хранить разрешения~~ — решено: только в БД, не в JWT; guard читает их при каждом запросе, кеш в памяти — только если понадобится.
-- Права: проверка по разрешениям (`payments.create` и т.п.), «своё» vs «чужое» — через область доступа (`students.read.own` / `students.read.all`). Подробности — на этапе 1.
-- Откат статуса занятия (проведено → отменено) пишет `LESSON_REVERSAL`. Правило «одно списание на занятие» пока обеспечиваем в коде. **Обсудить на этапе 3:** защита от гонки (двойной клик/ретрай). Простой `UNIQUE(lessonId) WHERE type='LESSON_CHARGE'` не подходит: после отката занятие можно списать повторно. Варианты — индекс с учётом отката (например, `reversedAt`) или блокировка строки занятия в транзакции (`SELECT … FOR UPDATE`).
-- Хранилище файлов подтверждений: локальная папка в dev; в проде — том Docker (облако позже).
-- **Часовой пояс планирования** (открыто, решить в начале этапа 5): в каком поясе админ планирует занятия и видит календарь — пояс школы (настройка в `Setting`) или пояс ученика. Ученику показываем в его поясе. На архитектуру не влияет (хранение в UTC).
+- ~~Token storage~~ — decided: httpOnly cookie (not localStorage). Implemented in stage 1 (`Secure`, `SameSite` flags, CSRF protection for mutations).
+- ~~Negative balance~~ — decided: **allowed** (the lesson was held, payment not yet made). Balance = SUM(delta) may be < 0, shown in the UI as debt/in red, and the dashboard has a "negative balance" list. There is no ban on charging.
+- ~~Where to store permissions~~ — decided: only in the DB, not in the JWT; the guard reads them on every request, an in-memory cache only if needed.
+- Permissions: checked by permission (`payments.create`, etc.), "own" vs "other's" — via an access scope (`students.read.own` / `students.read.all`). Details — in stage 1.
+- Rolling back a lesson status (completed → cancelled) writes `LESSON_REVERSAL`. The "one charge per lesson" rule is enforced in code for now. **Discuss in stage 3:** race protection (double click/retry). A simple `UNIQUE(lessonId) WHERE type='LESSON_CHARGE'` does not work: after a rollback the lesson can be charged again. Options — an index that accounts for the rollback (for example `reversedAt`) or locking the lesson row in the transaction (`SELECT … FOR UPDATE`).
+- Proof file storage: a local folder in dev; in production a Docker volume (cloud later).
+- **Scheduling time zone** (open, decide at the start of stage 5): which time zone the admin plans lessons and sees the calendar in — the school's (a `Setting`) or the student's. The student sees it in their own. Does not affect the architecture (storage in UTC).

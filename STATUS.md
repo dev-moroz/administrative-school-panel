@@ -1,22 +1,22 @@
 # STATUS.md
 
-Обновлять в конце каждой сессии (коротко).
+Update at the end of every session (briefly).
 
-**Текущий этап:** 0 завершён вместе с подготовкой web/api (2026-10-20); следующий — этап 1, авторизация и права.
+**Current stage:** stage 0 is complete together with the web/api preparation (2026-10-20); next is stage 1, authentication and permissions.
 
-## Сделано
-- Планирование завершено (`docs/DECISIONS.md`).
-- Созданы: `pnpm-workspace.yaml`, корневой `package.json` (есть `pnpm dev`), `docker-compose.yml`, `.env.example`, `env/*.env.example`, `.gitignore`, `README.md`.
-- 2026-10-20: этап 0 пройден — `apps/web` и `apps/api` созданы, `pnpm dev` поднимает инфраструктуру, api и web (подтверждено Anatoly).
-- 2026-10-20: подготовка закончена и проверена Anatoly — web: `output: 'standalone'`, rewrites `/api/*` → Nest (префикс срезается), shadcn/ui (radix-nova, тема из tweakcn), next-intl (язык в cookie, без префиксов в URL); api: `@nestjs/config`, Prisma 7 (`prisma.config.ts`, клиент в `src/generated/prisma`, `PrismaService` через `@prisma/adapter-pg`), шаблонный Observe убран.
-- 2026-10-20: решение Anatoly — интерфейс пока только на английском, RU и переключатель языка отложены (next-intl-каркас оставлен).
-- 2026-10-17: правки по внешнему аудиту — раздельные `.env`, порты Docker на 127.0.0.1, `RefreshToken` в схеме, бэкапы в этапе 8, `ValidationPipe`+`helmet` в этапе 1, исправлены противоречия в документах.
+## Done
+- Planning is complete (`docs/DECISIONS.md`).
+- Created: `pnpm-workspace.yaml`, root `package.json` (with `pnpm dev`), `docker-compose.yml`, `.env.example`, `env/*.env.example`, `.gitignore`, `README.md`.
+- 2026-10-20: stage 0 passed — `apps/web` and `apps/api` are created, `pnpm dev` starts the infrastructure, api and web (confirmed by Anatoly).
+- 2026-10-20: preparation finished and verified by Anatoly — web: `output: 'standalone'`, rewrites `/api/*` → Nest (prefix stripped), shadcn/ui (radix-nova, tweakcn theme), next-intl (locale in a cookie, no URL prefixes); api: `@nestjs/config`, Prisma 7 (`prisma.config.ts`, client in `src/generated/prisma`, `PrismaService` via `@prisma/adapter-pg`), template Observe removed.
+- 2026-10-20: Anatoly's decision — the interface is English only for now, RU and the language switcher are postponed (the next-intl scaffold is kept).
+- 2026-10-17: fixes after the external audit — separate `.env` files, Docker ports bound to 127.0.0.1, `RefreshToken` in the schema, backups in stage 8, `ValidationPipe`+`helmet` in stage 1, contradictions in the documents fixed.
 
-## Дальше
-1. Этап 1 — авторизация и права (`PLAN.md`, этап 1). Prisma-схема пока пустая (только generator/datasource).
+## Next
+1. Stage 1 — authentication and permissions (`PLAN.md`, stage 1). The Prisma schema is still empty (only generator/datasource).
 
-## Известные проблемы / заметки
-- 2026-10-20: `apps/web` создан, `pnpm dev` запускается. Ошибка Turbopack «Could not find next/package.json» была из-за вложенных `pnpm-lock.yaml`/`pnpm-workspace.yaml`/`.git`/`node_modules` от create-next-app в `apps/web` — убраны (лежат в `_to_delete/`, можно стереть), `pnpm install` из корня.
-- pnpm у Anatoly: не подтверждено. После `pnpm -v` добавить `packageManager` в корневой `package.json`.
-- Mailpit без пина версии — закрепить тег при первом `docker compose pull`.
-- Открытые вопросы: часовой пояс планирования (начало этапа 5), защита от двойного списания (этап 3).
+## Known issues / notes
+- 2026-10-20: `apps/web` is created, `pnpm dev` starts. The Turbopack error "Could not find next/package.json" was caused by nested `pnpm-lock.yaml`/`pnpm-workspace.yaml`/`.git`/`node_modules` from create-next-app in `apps/web` — removed (they were in `_to_delete/`, which can be erased), `pnpm install` from the root.
+- pnpm locally: not confirmed. After `pnpm -v`, add `packageManager` to the root `package.json`.
+- Mailpit is not version-pinned — pin the tag on the first `docker compose pull`.
+- Open questions: scheduling time zone (start of stage 5), protection against double charging (stage 3).

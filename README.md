@@ -1,25 +1,25 @@
-# Админка школы английского
+# English School Admin Panel
 
-Контекст и решения — `CLAUDE.md`, план — `PLAN.md`.
+Context and decisions — `CLAUDE.md`, plan — `PLAN.md`.
 
-## Первый запуск (этап 0)
+## First run (stage 0)
 
-Все команды — из корня проекта.
+All commands run from the project root.
 
-1. Проверь pnpm: `pnpm -v`. Если нет — `corepack enable` (или `npm i -g pnpm`).
-2. Корневые переменные (читает только Docker Compose): `cp .env.example .env`
-3. Подними Postgres и Mailpit: `docker compose up -d`
-   - Postgres: `localhost:5432`, Mailpit (письма): http://localhost:8025
-4. Создай приложения (один раз):
-   - Фронт: `pnpm create next-app@latest apps/web` — ответы: TypeScript — да, ESLint — да, Tailwind — да, `src/` — да, App Router — да, import alias — по умолчанию.
-   - Бэк: `cd apps && pnpm dlx @nestjs/cli new api --package-manager pnpm --skip-git --strict && cd ..`
-5. Порт Nest: в `apps/api/src/main.ts` замени `app.listen(process.env.PORT ?? 3000)` на `app.listen(process.env.PORT ?? 4000)` (3000 занимает Next).
-6. Переменные приложений (у каждого свой `.env`): `cp env/api.env.example apps/api/.env && cp env/web.env.example apps/web/.env`.
-   Перед этапом 1 замени `JWT_ACCESS_SECRET` и `JWT_REFRESH_SECRET` в `apps/api/.env` на длинные случайные строки (`openssl rand -base64 48`).
-7. Установи зависимости из корня: `pnpm install`
-8. Запуск одной командой: `pnpm dev` (поднимет Docker и оба приложения). Или по отдельности: `pnpm dev:api` (http://localhost:4000) и `pnpm dev:web` (http://localhost:3000).
+1. Check pnpm: `pnpm -v`. If it is missing — `corepack enable` (or `npm i -g pnpm`).
+2. Root variables (read only by Docker Compose): `cp .env.example .env`
+3. Start Postgres and Mailpit: `docker compose up -d`
+   - Postgres: `localhost:5432`, Mailpit (emails): http://localhost:8025
+4. Create the apps (once):
+   - Frontend: `pnpm create next-app@latest apps/web` — answers: TypeScript — yes, ESLint — yes, Tailwind — yes, `src/` — yes, App Router — yes, import alias — default.
+   - Backend: `cd apps && pnpm dlx @nestjs/cli new api --package-manager pnpm --skip-git --strict && cd ..`
+5. Nest port: in `apps/api/src/main.ts` replace `app.listen(process.env.PORT ?? 3000)` with `app.listen(process.env.PORT ?? 4000)` (3000 is taken by Next).
+6. App variables (each app has its own `.env`): `cp env/api.env.example apps/api/.env && cp env/web.env.example apps/web/.env`.
+   Before stage 1, replace `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` in `apps/api/.env` with long random strings (`openssl rand -base64 48`).
+7. Install dependencies from the root: `pnpm install`
+8. Start everything with one command: `pnpm dev` (starts Docker and both apps). Or separately: `pnpm dev:api` (http://localhost:4000) and `pnpm dev:web` (http://localhost:3000).
 
-После шагов 1–8 напиши Claude: он добавит `output: 'standalone'`, rewrites `/api` → Nest, shadcn/ui, next-intl и Prisma.
+After steps 1–8, tell Claude: he will add `output: 'standalone'`, rewrites `/api` → Nest, shadcn/ui, next-intl and Prisma.
 
-## Остановка
-`docker compose down` (данные сохраняются в томе `pgdata`; `docker compose down -v` удалит и данные).
+## Stopping
+`docker compose down` (data is kept in the `pgdata` volume; `docker compose down -v` also deletes the data).
