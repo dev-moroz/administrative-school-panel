@@ -1,13 +1,13 @@
 import { cookies } from "next/headers";
 import { getRequestConfig } from "next-intl/server";
 
-// Сейчас только английский. Новый язык: добавить код сюда и файл messages/<код>.json.
+// English only for now. To add a language: add its code here and a messages/<code>.json file.
 export const LOCALES = ["en"] as const;
 export type Locale = (typeof LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = "en";
 export const LOCALE_COOKIE = "NEXT_LOCALE";
 
-// Без i18n-роутинга: язык хранится в cookie, URL одинаковые для RU и EN.
+// No i18n routing: the locale lives in a cookie, so URLs are the same for every language.
 export default getRequestConfig(async () => {
   const value = (await cookies()).get(LOCALE_COOKIE)?.value;
   const locale: Locale = LOCALES.find((l) => l === value) ?? DEFAULT_LOCALE;

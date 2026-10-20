@@ -1,14 +1,14 @@
-# Только инфраструктура для разработки. Приложения (api, web) запускаются напрямую на хосте.
+# Development infrastructure only. The apps (api, web) run directly on the host.
 services:
   postgres:
-    image: postgres:16-alpine   # версия должна совпадать с продом
+    image: postgres:16-alpine   # keep in sync with production
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-school}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-school}
       POSTGRES_DB: ${POSTGRES_DB:-school}
     ports:
-      - "127.0.0.1:5432:5432"   # только localhost, не всем в сети
+      - "127.0.0.1:5432:5432"   # localhost only, not exposed to the network
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -21,8 +21,8 @@ services:
     image: axllent/mailpit
     restart: unless-stopped
     ports:
-      - "127.0.0.1:1025:1025"   # SMTP, сюда api отправляет письма
-      - "127.0.0.1:8025:8025"   # веб-интерфейс: http://localhost:8025
+      - "127.0.0.1:1025:1025"   # SMTP: the api sends mail here
+      - "127.0.0.1:8025:8025"   # web UI: http://localhost:8025
 
 volumes:
   pgdata:

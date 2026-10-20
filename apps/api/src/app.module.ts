@@ -6,7 +6,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
 
 @Module({
   imports: [
-    // .env подхватывает сам Node (флаг --env-file в скриптах), в проде — переменные окружения контейнера.
+    // Node loads .env itself (--env-file in the scripts); in production the container env is used.
     ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true }),
     PrismaModule,
   ],

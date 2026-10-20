@@ -2,14 +2,14 @@ import path from "node:path";
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
-// Читается при сборке: rewrites запекаются в routes-manifest (важно для Docker, этап 8).
+// Read at build time: rewrites are baked into routes-manifest (matters for Docker).
 const API_URL = process.env.API_URL ?? "http://localhost:4000";
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  // Корень монорепо: standalone-сборка должна подтянуть зависимости из корневого node_modules.
+  // Monorepo root, so the standalone build can trace dependencies from the root node_modules.
   outputFileTracingRoot: path.join(process.cwd(), "../.."),
-  // Браузер ходит на /api/*, Next проксирует в Nest (префикс /api срезается).
+  // The browser calls /api/*; Next proxies it to Nest with the /api prefix stripped.
   async rewrites() {
     return [{ source: "/api/:path*", destination: `${API_URL}/:path*` }];
   },

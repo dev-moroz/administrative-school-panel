@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   description: "English school admin panel",
 };
 
-// Язык берётся из cookie (динамически), поэтому провайдер лежит внутри Suspense (cacheComponents).
+// Locale comes from a cookie (dynamic), so the provider sits inside Suspense (cacheComponents).
 async function IntlProvider({ children }: { children: React.ReactNode }) {
   const [locale, messages] = await Promise.all([getLocale(), getMessages()]);
   return (
