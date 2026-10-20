@@ -1,0 +1,11 @@
+
+# NestJS Observe key pair
+.env
+/node_modules
+/src/generated/prisma
+
+#AI
+/.agents
+/.claude
+/.windsurf
+/skills-lock.json
