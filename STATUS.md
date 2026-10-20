@@ -10,6 +10,7 @@ Update at the end of every session (briefly).
 - 2026-10-20: stage 0 passed — `apps/web` and `apps/api` are created, `pnpm dev` starts the infrastructure, api and web (confirmed by Anatoly).
 - 2026-10-20: preparation finished and verified by Anatoly — web: `output: 'standalone'`, rewrites `/api/*` → Nest (prefix stripped), shadcn/ui (radix-nova, tweakcn theme), next-intl (locale in a cookie, no URL prefixes); api: `@nestjs/config`, Prisma 7 (`prisma.config.ts`, client in `src/generated/prisma`, `PrismaService` via `@prisma/adapter-pg`), template Observe removed.
 - 2026-10-20: Anatoly's decision — the interface is English only for now, RU and the language switcher are postponed (the next-intl scaffold is kept).
+- 2026-10-20: pnpm 12.14.0 confirmed by Anatoly; `packageManager` added to the root `package.json`.
 - 2026-10-17: fixes after the external audit — separate `.env` files, Docker ports bound to 127.0.0.1, `RefreshToken` in the schema, backups in stage 8, `ValidationPipe`+`helmet` in stage 1, contradictions in the documents fixed.
 
 ## Next
@@ -17,6 +18,5 @@ Update at the end of every session (briefly).
 
 ## Known issues / notes
 - 2026-10-20: `apps/web` is created, `pnpm dev` starts. The Turbopack error "Could not find next/package.json" was caused by nested `pnpm-lock.yaml`/`pnpm-workspace.yaml`/`.git`/`node_modules` from create-next-app in `apps/web` — removed (they were in `_to_delete/`, which can be erased), `pnpm install` from the root.
-- pnpm locally: not confirmed. After `pnpm -v`, add `packageManager` to the root `package.json`.
 - Mailpit is not version-pinned — pin the tag on the first `docker compose pull`.
 - Open questions: scheduling time zone (start of stage 5), protection against double charging (stage 3).
