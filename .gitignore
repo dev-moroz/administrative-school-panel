@@ -11,6 +11,4 @@ uploads
 *.tsbuildinfo
 .turbo
 
-PLAN.md
-STATUS.md
 _to_delete
