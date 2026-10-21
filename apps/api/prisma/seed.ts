@@ -1,22 +1,76 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
-import argon2 from "argon2";
 import { PrismaClient } from "../src/generated/prisma/client.js";
 import argon2 from "argon2";
+import { normalizeEmail} from "../src/helper/normalizeEmail.js";
 
-const PERMISSIONS = [
+const STUDENTS = [
     "students.read.all",
     "students.read.own",
     "students.create",
     "students.update",
-    "students.delete",
+    "students.delete"
+]
+
+const LESSONS = [
+    "lessons.read",
+    "lessons.create",
+    "lessons.update",
+    "lessons.delete",
+
+    "lesson-series.manage",
+    "freezes.manage",
+    "schedule-rules.manage"
+];
+
+const PAYMENTS = [
+    "payments.read",
+    "payments.create"
+]
+
+const BALANCE = [
+    "balance.read",
+    "balance.adjust"
+]
+
+const CURRENCIES = [
+    "currencies.read",
+    "currencies.create",
+    "currencies.update"
+]
+
+const AUDIT = [
+    "audit.read.business",
+    "audit.read.system"
+]
+
+const SYSTEM = [
     "users.manage",
-    "roles.manage"
+    "roles.manage",
+    "settings.manage",
+]
+
+const PERMISSIONS = [
+    ...STUDENTS,
+    ...LESSONS,
+    ...PAYMENTS,
+    ...BALANCE,
+    ...CURRENCIES,
+    ...AUDIT,
+    ...SYSTEM,
 ];
 
 const ROLES: Record<string, string[]> = {
     admin: PERMISSIONS,
     student: ["students.read.own"],
+    teacher: [
+        "students.read.all", "students.create", "students.update",
+        ...LESSONS,
+        ...PAYMENTS,
+        ...BALANCE,
+        "currencies.read",
+        "audit.read.business",
+    ],
 };
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
@@ -45,16 +99,20 @@ async function main() {
             throw new Error(`Unknown permission key in role "${name}"`);
         }
 
-        await prisma.rolePermission.createMany({
-            data: permissions.map((p) => ({
-                roleId: role.id,
-                permissionId: p.id,
-            })),
-            skipDuplicates: true,
-        });
+        const ids = permissions.map((p) => p.id)
+
+        await prisma.$transaction([
+            prisma.rolePermission.createMany({
+                data: ids.map((permissionId) => ({ roleId: role.id, permissionId })),
+                skipDuplicates: true,
+            }),
+            prisma.rolePermission.deleteMany({
+                where: {roleId: role.id, permissionId: { notIn: ids }}
+            })
+        ])
     }
 
-    const email = process.env.ADMIN_EMAIL;
+    const email = normalizeEmail(process.env.ADMIN_EMAIL as string);
     const password = process.env.ADMIN_PASSWORD;
     if (!email || !password) {
         throw new Error("ADMIN_EMAIL / ADMIN_PASSWORD are not set");
@@ -68,7 +126,7 @@ async function main() {
     await prisma.user.upsert({
         where: { email },
         update: {},
-        create: { email, passwordHash, roleId: adminRole.id },
+        create: { email: email, passwordHash, roleId: adminRole.id },
     });
 }
 
