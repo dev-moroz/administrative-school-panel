@@ -66,6 +66,8 @@ An admin panel for an English school (one-on-one lessons). The admin configures 
 
 **Student fields (confirmed):** full name, contacts, English level, manager comment, start date, time zone, Telegram/WhatsApp.
 
+**Password recovery (decided 2026-10-21):** "forgot password" is a planned capability: the user requests it, a confirmation code arrives by email, the user enters it and sets a new password. The schema provides for it from the start (`PasswordResetToken` model: hashed code, expiry, used-at, attempt counter), and `User.mustChangePassword` (default `false`; `true` only for accounts created with a temporary password). The endpoint and the UI are not required in the first versions, they are added later without schema changes.
+
 **Not in the MVP:** notifications, self-registration, teacher cabinet, groups/courses, automatic currency conversion, personal prices.
 
 ## Architectural foundations (Codex's recommendation, accepted in essence)
