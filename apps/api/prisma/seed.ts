@@ -2,7 +2,7 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client.js";
 import argon2 from "argon2";
-import { normalizeEmail} from "../src/helper/normalizeEmail.js";
+import { normalizeEmail } from "../src/helper/index.js";
 
 const STUDENTS = [
     "students.read.all",
