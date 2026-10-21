@@ -15,24 +15,27 @@ english-school-admin/
   CLAUDE.md, PLAN.md
 ```
 
-Nest modules (one per domain area): `auth`, `users`, `roles` (roles and permissions), `students`, `lessons`, `freezes`, `ledger` (balance), `payments`, `files` (payment proofs), `audit`, `mail`, `settings`.
+Nest modules (one per domain area): `auth`, `users`, `roles` (roles and permissions), `students`, `lessons`, `freezes`, `ledger` (balance), `payments`, `files` (payment proofs), `audit`, `mail`, `schedule` (recurring lessons), `telegram` (bot and notifications), `settings`.
 
 ## 2. Data model (Prisma draft, pending approval)
 
 - **User**: email (unique), passwordHash, locale (default en; other languages later), isActive, mustChangePassword, roleId.
 - **RefreshToken**: userId, tokenHash (a hash, not the token itself), expiresAt, revokedAt?, createdAt. Revoked on password/role change.
-- **Role** / **Permission** / **RolePermission**: role = a set of permissions such as `students.read`, `payments.create`. Access is checked by permission, not by role name. System roles: `admin`, `student` (`manager`, `teacher` — later, without schema changes).
-- **Student**: userId (unique), full name, phone, telegram, whatsapp, English level, manager comment, start date, time zone.
-- **Teacher**: userId, full name. One record in the MVP (the admin's), no UI.
-- **Lesson**: teacherId, startsAt, durationMin, status (`SCHEDULED | COMPLETED | CANCELLED | NO_SHOW`), chargeOnNoShow (the "charge" checkbox), rescheduledFromId, cancelReason, notes.
+- **Role** / **Permission** / **RolePermission**: role = a set of permissions such as `students.read`, `payments.create`. Access is checked by permission, not by role name. System roles: `admin`, `teacher`, `student` (`manager` — later, without schema changes). The split is in `docs/DECISIONS.md`, "Roles and access".
+- **Student**: userId (unique; optional while students have no web login, see open questions), full name, phone, telegramUsername, telegramChatId (set when the student starts the bot), whatsapp, English level, manager comment, start date, time zone (display only), defaultCurrency (references `Currency`), lessonPrice (Decimal, in the default currency; price history is not stored).
+- **Teacher**: userId, full name, timeZone (the base for the schedule and the cancellation rules, changeable), telegramChatId. One record in the MVP, linked to the teacher's user (role `teacher`); the admin has no `Teacher` record. No UI.
+- **Lesson**: teacherId, startsAt, durationMin, status (`SCHEDULED | COMPLETED | CANCELLED | NO_SHOW`), cancelledAt?, charged (the "charge" checkbox: for a no-show and for a late cancellation; the system suggests the value by the cancellation rules, the admin has the final say), seriesId?, rescheduledFromId, cancelReason, notes.
+- **LessonSeries**: teacherId, studentId, weekday, localStartTime (in the teacher's time zone), durationMin, startsOn, endsOn?. Generates the recurring lessons; one-off (floating) lessons are created without a series.
 - **LessonParticipant**: lessonId + studentId (unique). One student now; groups later without migrating relations.
 - **Freeze**: studentId, startsAt, endsAt, reason, createdById. On creation, the scheduled lessons in the period are moved to `CANCELLED`.
 - **LedgerEntry** (balance ledger): studentId, delta (±int), type (`PURCHASE | LESSON_CHARGE | LESSON_REVERSAL | MANUAL_ADJUSTMENT`), lessonId?, paymentId?, comment (required for a manual adjustment), createdById, createdAt. **Balance = SUM(delta)**; entries are never edited or deleted — only compensated.
-- **Payment**: studentId, amount (Decimal), currency (code: EUR/USD/BTC…), paidAt, method (`CASH | CARD | TRANSFER | CRYPTO`), comment, proofUrl?, proofFileId?, lessonsGranted (int), createdById. On creation, `LedgerEntry(PURCHASE, +lessonsGranted)` is written in the same transaction.
+- **Payment**: studentId, amount (Decimal), currency (code, references `Currency`; defaults to the student's currency, can be changed for a single payment), paidAt, method (`CASH | CARD | TRANSFER | CRYPTO`), comment, proofUrl?, proofFileId?, lessonsGranted (int), remainder (Decimal: the part of the amount not converted to lessons), createdById. On creation, `LedgerEntry(PURCHASE, +lessonsGranted)` is written in the same transaction.
 - **AuditLog**: actorId, entity, entityId, action, before (Json), after (Json), reason?, createdAt. Written for lessons, the balance ledger and payments.
-- **Setting**: key-value; price of one lesson (amount + currency).
+- **Setting**: key-value; cancellation rules (morning ends at 12:00, evening starts at 17:00, late window 1 hour), the low-balance threshold N (global or per student: open question). The lesson price lives in the student's profile; a payment keeps amount, currency, number of lessons credited and the remainder, so old payments do not change when the price changes.
+- **Currency**: code (unique), name, decimals, isActive. A table, not an enum, so the admin can add a currency without a migration (initially EUR, USDT, USDC). A currency used in payments can be deactivated but not deleted.
+- **Notification**: studentId?, type (`LOW_BALANCE`), channel (`TELEGRAM`), sentAt, balanceAtSend. So the same reminder is not sent twice.
 
-Principles: money is `Decimal`, not float; every balance and payment change happens in a transaction together with its audit record; time is stored in UTC and shown to the student in their time zone; the time zone the admin plans in is decided at the start of stage 5.
+Principles: money is `Decimal`, not float; every balance and payment change happens in a transaction together with its audit record; time is stored in UTC; the teacher's time zone is the base for the schedule and the cancellation rules (changeable in settings); the student's time zone only affects how time is displayed.
 
 ## 3. Stages
 
@@ -40,7 +43,8 @@ Principles: money is `Decimal`, not float; every balance and payment change happ
 *Done when:* both apps start (web :3000, api :4000), Postgres and Mailpit run in Docker.
 
 **Stage 1 — authentication and permissions [Together]**: Prisma schema User/Role/Permission; Nest: login, JWT access + refresh, permission guard; Next: login page, protected routes (Next middleware: redirect without a session; rewrites `/api` → Nest), token storage (httpOnly cookie), no language switcher (English only for now); global `ValidationPipe({ whitelist: true })` and `helmet`; `RefreshToken` model in the schema. *React/Nest: routing, forms, validation (react-hook-form + zod), guards, DTOs, pipes.*
-*Done when:* login/logout via httpOnly cookie works; the permission guard reads from the DB; the "role × endpoint" e2e auth tests pass; the interface is in English via next-intl.
+**High priority, part of stage 1 — the `teacher` role** (Anatoly does it in a separate chat; the split is in `docs/DECISIONS.md`, "Roles and access"): add the role and its permissions to the seed, a teacher user, and extend the "role × endpoint" tests with it.
+*Done when:* login/logout via httpOnly cookie works; the permission guard reads from the DB; the "role × endpoint" e2e auth tests pass; the interface is in English via next-intl; the `teacher` role exists in the seed and is covered by the tests.
 
 **Docker check (after stage 1) [Together]**: trial build of the api and web images, run in containers, check env/architecture.
 *Done when:* the api and web images build and start, login works in the containers.
@@ -51,19 +55,22 @@ Principles: money is `Decimal`, not float; every balance and payment change happ
 **Stage 3 — balance ledger [You]**: `ledger` module, balance calculation, manual adjustment with a comment. *Prisma transactions, service layer, unit tests.*
 *Done when:* balance = SUM(delta); a manual adjustment requires a comment; a negative balance is shown as debt; the service unit tests pass.
 
-**Stage 4 — payments [Together]**: payment form (amount, currency, method, proof — file or link, number of lessons credited), history with multiple currencies. *Complex forms, file upload (multer), Decimal.*
+**Stage 4 — payments [Together]**: payment form (amount, currency, method, proof — file or link, number of lessons credited), history with multiple currencies. The number of lessons is suggested as floor(amount ÷ the student's lesson price) when the payment currency equals the price currency; the remainder is shown next to the lessons (for example 6 lessons + 10 EUR). In another currency the number of lessons is entered by hand. The admin manages the list of currencies. *Complex forms, file upload (multer), Decimal.*
 *Done when:* a payment is created in one transaction together with PURCHASE; the history shows different currencies; the proof is available only to authorized users.
 
-**Stage 5 — lessons and calendar [Together]**: *First decide the scheduling time zone (see "Open questions").* Lesson CRUD, FullCalendar (view, create/edit on click), statuses and their effect on the balance (completed −1, no-show by checkbox, cancelled 0), rescheduling, freeze. *Complex state, integrating a third-party library, business rules on the backend.*
-*Done when:* lessons are created and edited in the calendar; statuses change the balance correctly; rescheduling and freeze work.
+**Stage 5 — lessons and calendar [Together]**: Lesson CRUD, recurring schedules (`LessonSeries`) plus one-off lessons, the cancellation rules in the teacher's time zone, FullCalendar (view, create/edit on click), statuses and their effect on the balance (completed −1, no-show and late cancellation by the "charge" checkbox prefilled by the rules, other cancellations 0), rescheduling, freeze. *Complex state, integrating a third-party library, business rules on the backend.*
+*Done when:* lessons are created and edited in the calendar; statuses change the balance correctly; recurring lessons are generated from a series; the checkbox is prefilled by the cancellation rules; rescheduling and freeze work.
 
-**Stage 6 — dashboard and student page [Together]**: key figures for the admin; for the student, one page "remaining lessons + upcoming lessons".
-*Done when:* the admin has a dashboard with figures and a "negative balance" list; the student sees only their own balance and upcoming lessons.
+**Stage 6 — dashboard and reports [Together]**: key figures for the admin, including students with few lessons left; a per-student report for a chosen period (lessons held, missed, cancelled and charged, payments, balance at the start and end), visible to the teacher for her students. The student web page is postponed (the bot replaces it in stage 7).
+*Done when:* the admin has a dashboard with figures and a "negative balance" list and a "few lessons left" list; the period report for a student shows the counts and the list of lesson dates.
 
-**Stage 7 — audit [Together]**: interceptor/service that records the audit, change history view.
+**Stage 7 — Telegram bot and notifications [Together]**: a bot for students (remaining lessons; upcoming lessons: to confirm) and notifications to the teacher. When a lesson is charged and the balance drops to the threshold N, a message goes to the student and to the teacher; one message per threshold crossing (`Notification`). Linking a student to a chat is decided at the start of the stage. *Webhooks/long polling, an external API, idempotency.*
+*Done when:* a student can get their balance in the bot; when the remaining lessons reach N, the student and the teacher get one message; a repeated charge does not duplicate it.
+
+**Stage 8 — audit [Together]**: interceptor/service that records the audit, change history view.
 *Done when:* balance, payment and lesson changes are written to AuditLog and visible in the view.
 
-**Stage 8 — packaging [Me + you]**: Dockerfiles for api and web (web — standalone build), nginx only for HTTPS and proxying to web, prod `docker-compose`, a light image for 1 core / 2 GB, VPS deployment, reverse proxy + HTTPS, daily `pg_dump` in cron with rotation.
+**Stage 9 — packaging [Me + you]**: Dockerfiles for api and web (web — standalone build), nginx only for HTTPS and proxying to web, prod `docker-compose`, a light image for 1 core / 2 GB, VPS deployment, reverse proxy + HTTPS, daily `pg_dump` in cron with rotation.
 *Done when:* the images build; the prod compose starts on the server over HTTPS; the backup is created on schedule and restores correctly (verified).
 
 
@@ -88,4 +95,7 @@ Principles: money is `Decimal`, not float; every balance and payment change happ
 - Permissions: checked by permission (`payments.create`, etc.), "own" vs "other's" — via an access scope (`students.read.own` / `students.read.all`). Details — in stage 1.
 - Rolling back a lesson status (completed → cancelled) writes `LESSON_REVERSAL`. The "one charge per lesson" rule is enforced in code for now. **Discuss in stage 3:** race protection (double click/retry). A simple `UNIQUE(lessonId) WHERE type='LESSON_CHARGE'` does not work: after a rollback the lesson can be charged again. Options — an index that accounts for the rollback (for example `reversedAt`) or locking the lesson row in the transaction (`SELECT … FOR UPDATE`).
 - Proof file storage: a local folder in dev; in production a Docker volume (cloud later).
-- **Scheduling time zone** (open, decide at the start of stage 5): which time zone the admin plans lessons and sees the calendar in — the school's (a `Setting`) or the student's. The student sees it in their own. Does not affect the architecture (storage in UTC).
+- ~~Scheduling time zone~~ — decided 2026-10-21: the teacher's time zone is the base (schedule and cancellation rules), changeable in settings; the student's zone is for display only; daylight saving time is not tracked separately. Open: what happens to existing recurring lessons if the teacher changes the zone.
+- **To discuss (separate chat):** monitoring is not in the plan yet: whether the app is up, whether the daily backup succeeded, whether Telegram notifications are delivered (a failed reminder must not pass silently). Decide before stage 7 and stage 9.
+- **To confirm:** the low-balance threshold N (global or per student); how a student is linked to a Telegram chat; whether students need a web login at all in the first version (if not, stage 2 account creation with email passwords is postponed and `Student.userId` stays empty); the list of payment methods; whether the bot also shows upcoming lessons.
+- Money remainder: it should be added to the next payment's calculation (confirmed 2026-10-21), but this is a side case and is done after the MVP; in the MVP the remainder is only shown. Open: what happens to it if the student's currency changes.
