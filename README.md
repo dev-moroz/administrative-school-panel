@@ -15,7 +15,7 @@ All commands run from the project root.
    - Backend: `cd apps && pnpm dlx @nestjs/cli new api --package-manager pnpm --skip-git --strict && cd ..`
 5. Nest port: in `apps/api/src/main.ts` replace `app.listen(process.env.PORT ?? 3000)` with `app.listen(process.env.PORT ?? 4000)` (3000 is taken by Next).
 6. App variables (each app has its own `.env`): `cp env/api.env.example apps/api/.env && cp env/web.env.example apps/web/.env`.
-   Before stage 1, replace `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` in `apps/api/.env` with long random strings (`openssl rand -base64 48`).
+   Before stage 1, replace `JWT_ACCESS_SECRET` in `apps/api/.env` with a long random string (`openssl rand -base64 48`).
 7. Install dependencies from the root: `pnpm install`
 8. Start everything with one command: `pnpm dev` (starts Docker and both apps). Or separately: `pnpm dev:api` (http://localhost:4000) and `pnpm dev:web` (http://localhost:3000).
 

@@ -6,6 +6,7 @@ import type { AuthUser } from './auth.types.js';
 import { LoginDto } from './dto/login.dto.js';
 
 const isProd = process.env.NODE_ENV === 'production';
+const REFRESH_COOKIE_PATH = process.env.REFRESH_COOKIE_PATH ?? '/auth';
 
 type Tokens = Awaited<ReturnType<AuthService['login']>>;
 
@@ -22,7 +23,7 @@ function setAuthCookies(res: Response, tokens: Tokens) {
     httpOnly: true,
     sameSite: 'lax',
     secure: isProd,
-    path: '/auth',
+    path: REFRESH_COOKIE_PATH,
     expires: tokens.expiresAt,
   });
 }
@@ -63,7 +64,7 @@ export class AuthController {
   ) {
     await this.authService.logout(req.cookies?.refresh_token);
     res.clearCookie('access_token', { path: '/' });
-    res.clearCookie('refresh_token', { path: '/auth' });
+    res.clearCookie('refresh_token', { path: REFRESH_COOKIE_PATH });
     return { ok: true };
   }
 
