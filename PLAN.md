@@ -84,7 +84,7 @@ Principles: money is `Decimal`, not float; every balance and payment change happ
 5. **Passwords:** argon2 (or bcrypt), a temporary password from the email with a mandatory change (`mustChangePassword`), login attempt rate limit.
 6. **Cookies:** httpOnly, `Secure`, `SameSite`, CSRF protection; refresh tokens are stored in the DB (can be revoked on password/role change).
 7. **Next middleware is not a security boundary**, only a convenience (redirects). The real check is on the backend.
-8. **Authorization tests:** an e2e "role × endpoint" matrix (admin, student, anonymous, student A against student B's data). A failing test blocks the stage.
+8. **Authorization tests:** an e2e "role × endpoint" matrix (admin, student, anonymous, student A against student B's data). A failing test blocks the stage. Expected results come from the documents (this section and `docs/DECISIONS.md`, "Roles and access"), not from the implementation.
 9. **Audit:** role/permission changes, payments and manual balance adjustments are written to `AuditLog`.
 10. **Secrets and logs:** `.env` stays out of git; no passwords, tokens or personal data in logs.
 
