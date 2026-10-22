@@ -1,14 +1,29 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module.js';
+import { OriginGuard } from './origin.guard.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
 @Module({
   imports: [
     // Node loads .env itself (--env-file in the scripts); in production the container env is used.
     ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true }),
+    // Soft global ceiling; stricter limits are set per route with @Throttle.
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        throttlers: [{ ttl: 60_000, limit: 100 }],
+        skipIf: () => config.get('THROTTLE_DISABLED') === 'true',
+      }),
+    }),
     PrismaModule,
     AuthModule,
+  ],
+  providers: [
+    { provide: APP_GUARD, useClass: OriginGuard },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule {}

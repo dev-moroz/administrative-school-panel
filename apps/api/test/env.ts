@@ -17,6 +17,8 @@ export const TEST_ENV = {
   JWT_ACCESS_SECRET: 'e2e-access-secret-not-for-production',
   JWT_ACCESS_TTL: '15m',
   JWT_REFRESH_TTL_DAYS: '14',
+  WEB_ORIGIN: 'http://localhost:3000',
+  THROTTLE_DISABLED: 'true',
   ADMIN_EMAIL: 'admin@e2e.test',
   ADMIN_PASSWORD: 'e2e-admin-password',
 };

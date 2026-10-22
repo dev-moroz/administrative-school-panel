@@ -8,6 +8,7 @@ import { setupApp } from '../src/setup-app.js';
 import { ProbeController } from './probe.controller.js';
 
 export const PASSWORD = 'e2e-user-password';
+export const TEST_ORIGIN = 'http://localhost:3000';
 
 export async function createTestApp() {
   const moduleRef = await Test.createTestingModule({
@@ -32,10 +33,10 @@ export async function ensureUser(app: INestApplication, email: string, roleName:
   });
 }
 
-// Returns a ready-to-send Cookie header value.
 export async function loginAs(app: INestApplication, email: string, password = PASSWORD) {
   const res = await request(app.getHttpServer())
     .post('/auth/login')
+    .set('Origin', TEST_ORIGIN)
     .send({ email, password })
     .expect(200);
   const setCookie = res.headers['set-cookie'] as unknown as string[];

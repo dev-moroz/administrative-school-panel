@@ -8,6 +8,8 @@ import { ConfigService } from "@nestjs/config";
 
 const DUMMY_HASH = await argon2.hash("dummy-passwoord");
 
+const MAX_SESSIONS = 5;
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function hashToken(token: string): string {
@@ -41,7 +43,23 @@ export class AuthService {
             throw new UnauthorizedException('Invalid credentials');
         }
 
-        return this.issueTokens(user.id)
+        return this.prisma.$transaction(async (tx) => {
+            // Drop expired rows, then keep at most MAX_SESSIONS - 1 live ones so the new login fits.
+            await this.purgeExpired(tx, user.id);
+            const excess = await tx.refreshToken.findMany({
+                where: { userId: user.id, revokedAt: null },
+                orderBy: { createdAt: 'desc' },
+                skip: MAX_SESSIONS - 1,
+                select: { id: true },
+            });
+            if (excess.length) {
+                await tx.refreshToken.updateMany({
+                    where: { id: { in: excess.map((t) => t.id) } },
+                    data: { revokedAt: new Date() },
+                });
+            }
+            return this.issueTokens(user.id, tx);
+        });
     }
 
     async refresh(rawToken: string | undefined): Promise<AuthTokens> {
@@ -71,6 +89,7 @@ export class AuthService {
         }
 
         return this.prisma.$transaction(async (tx) => {
+            await this.purgeExpired(tx, stored.userId);
             await tx.refreshToken.update({
                 where: { id: stored.id },
                 data: { revokedAt: new Date() },
@@ -85,6 +104,13 @@ export class AuthService {
         await this.prisma.refreshToken.updateMany({
             where: { tokenHash: hashToken(rawToken), revokedAt: null },
             data: { revokedAt: new Date() },
+        });
+    }
+
+    // Expired rows can no longer be replayed, so dropping them loses no reuse detection.
+    private purgeExpired(db: Pick<PrismaService, 'refreshToken'>, userId: string) {
+        return db.refreshToken.deleteMany({
+            where: { userId, expiresAt: { lt: new Date() } },
         });
     }
 
