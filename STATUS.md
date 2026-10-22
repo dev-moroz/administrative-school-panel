@@ -31,6 +31,7 @@ Update at the end of every session (briefly).
 ## Next
 - Working order (Anatoly's decision, 2026-10-22): alternate backend and frontend substeps instead of finishing the whole API first. After a backend part is done, the matching UI part follows before the next backend part.
 - Auth substep 4 (backend): `@nestjs/throttler` on login (5/min per IP), `Origin` check on mutations (the e2e tests will need the throttler overridden).
+- Frontend, next step (Anatoly's plan, confirmed 2026-10-22): (1) session: fetch wrapper, `getMe()` via `/api/auth/me`, `proxy.ts` redirect to `/login` without `access_token`; (2) admin shell in `app/(admin)/layout.tsx` (shadcn sidebar, menu by permissions from `/auth/me`: Students, Lessons, Payments as stubs for now; logout button; stub page `/`); (3) later: refresh on 401.
 - Auth substep 5 (frontend), remaining: `/auth/me` and redirect from `/login` when a session exists, Next middleware redirecting without a session, API client with refresh on 401. Next after that: the admin shell (layout, navigation by permissions, logout) — scope to be confirmed by Anatoly.
 0. `teacher` role, remaining parts: the teacher user (create later, via the admin UI or a test setup, not needed in the seed) and the "role × endpoint" tests for it (after the guard exists). Permission keys for later stages are added to the seed as the modules appear.
 1. Stage 1, remaining: auth module (login, JWT in an httpOnly cookie, guard reading role/permissions from the DB on every request), `ValidationPipe` + `helmet`, "role × endpoint" tests (`PLAN.md`, stage 1).
