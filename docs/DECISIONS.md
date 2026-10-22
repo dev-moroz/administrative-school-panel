@@ -108,6 +108,10 @@ Don't build "for growth", but lay down:
 
 Calendar (**in the MVP**, decided 2026-10-17): the only library mentioned in the dialogue is FullCalendar (there is no separate dialogue with a different recommendation: Anatoly's "ChatGPT" is this very Codex dialogue). The first version — viewing and creating/editing a lesson on click, without drag&drop. **Updated 2026-10-21:** recurring lessons are now in scope (most lessons repeat weekly, some are one-off).
 
+## Frontend structure (2026-10-22)
+- Full FSD is not used: it clashes with the Next App Router (`app/`, `pages/`) and is too heavy for a solo MVP.
+- Light feature-based layout instead: `features/<name>/{ui,model,api}` with a public `index.ts`; `app/` stays thin and only composes pages; shared code in `components/ui` and `lib`. Can grow into FSD later (`entities`, `shared`) if needed.
+
 ## Done
 
 - Discussion of requirements and stack, answers to two rounds of questions. Nothing else.
