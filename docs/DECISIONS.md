@@ -112,6 +112,15 @@ Calendar (**in the MVP**, decided 2026-10-17): the only library mentioned in the
 - Full FSD is not used: it clashes with the Next App Router (`app/`, `pages/`) and is too heavy for a solo MVP.
 - Light feature-based layout instead: `features/<name>/{ui,model,api}` with a public `index.ts`; `app/` stays thin and only composes pages; shared code in `components/ui` and `lib`. Can grow into FSD later (`entities`, `shared`) if needed.
 
+## Sessions and refresh (2026-10-22)
+- Refresh happens on the client: `apiFetch` calls `/auth/refresh` on a 401 (single flight, one retry, auth endpoints excluded). The refresh cookie path is `/api/auth`, so pages (and `proxy.ts`) never see it.
+- `proxy.ts` only redirects `/login` to `/` when `access_token` exists. It does not gate pages: an expired access cookie with a live refresh cookie must not send the user to `/login`.
+- `SessionGuard` wraps the whole admin layout and shows only a loader until `GET /auth/me` succeeds; nothing of the shell or the page is shown to a visitor without a session. On a failed refresh it calls logout and goes to `/login`.
+- The refresh window is sliding: every refresh issues a new token valid for `JWT_REFRESH_TTL_DAYS`. A user is logged out only after that long without activity.
+- Without `refresh_token` the session ends when the access token expires; there is no way to re-issue a refresh token except login.
+- Limit of live sessions: at most 5 per user (rows with `revokedAt = null` and not expired). A login over the limit revokes the oldest ones. Implemented in auth substep 4. Cleanup of old revoked/expired rows is still to be decided.
+- Known gap: two tabs refreshing at the same moment can trigger reuse detection (possible fix: `navigator.locks`).
+
 ## Done
 
 - Discussion of requirements and stack, answers to two rounds of questions. Nothing else.
