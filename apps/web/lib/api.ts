@@ -7,12 +7,34 @@ export class ApiError extends Error {
   }
 }
 
+// Auth endpoints own their 401s: wrong password, dead refresh token, logout.
+const NO_REFRESH_PATHS = ["/auth/login", "/auth/refresh", "/auth/logout"];
+
+let refreshing: Promise<boolean> | null = null;
+
+// Single flight: parallel 401s must not rotate the same refresh token twice (reuse detection revokes all).
+function refreshSession() {
+  refreshing ??= fetch("/api/auth/refresh", { method: "POST", credentials: "include" })
+    .then((res) => res.ok)
+    .catch(() => false)
+    .finally(() => {
+      refreshing = null;
+    });
+  return refreshing;
+}
+
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`/api${path}`, {
-    ...init,
-    credentials: "include",
-    headers: { "Content-Type": "application/json", ...init?.headers },
-  });
+  const send = () =>
+    fetch(`/api${path}`, {
+      ...init,
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...init?.headers },
+    });
+
+  let res = await send();
+  if (res.status === 401 && !NO_REFRESH_PATHS.includes(path) && (await refreshSession())) {
+    res = await send();
+  }
 
   if (!res.ok) throw new ApiError(res.status);
   return (await res.json()) as T;
