@@ -1,3 +1,5 @@
 export function normalizeEmail(email: string) {
-    return email.trim().toLowerCase();
+    return typeof email === 'string'
+        ? email.trim().toLowerCase()
+        : email;
 }
