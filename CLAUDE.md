@@ -7,6 +7,7 @@
 - Learning project: React/Next.js + NestJS. Anatoly writes the key parts himself; Claude designs, explains, reviews and takes the routine work. No vibe-coding everything.
 - Tokens are limited: work in stages, one session per stage, narrow requests, don't re-read unnecessarily.
 - Communication language: Russian.
+- **Code comments: keep them to a minimum, and write them in English only.**
 
 ## Product
 Admin panel for an English school (one-on-one lessons): students, lessons and calendar, remaining lesson balance, payments in different currencies, freezes and rescheduling, audit. The teacher runs the daily work on the site (teacher account; the admin account is Anatoly's); students get their balance and reminders in a Telegram bot. The main pain being solved: manual counting of paid/held/rescheduled lessons and manual reminders that a package is ending.

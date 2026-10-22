@@ -2,9 +2,11 @@
 
 Update at the end of every session (briefly).
 
-**Current stage:** stage 1, authentication and permissions, in progress (2026-10-21): auth schema migrated (incl. password recovery model), seed done; next is the auth module (login).
+**Current stage:** stage 1, authentication and permissions, in progress (2026-10-22): auth substep 2 done (login, refresh, logout); next is substep 3 (guard).
 
 ## Done
+- 2026-10-22: auth substep 2 done and checked by Anatoly with curl: `issueTokens` (access JWT with `sub`; refresh = random 48 bytes, SHA-256 hash in `RefreshToken`), `POST /auth/login`, `/auth/refresh` (rotation in a transaction, reuse detection revokes all user tokens), `/auth/logout`; httpOnly cookies `access_token` (path `/`, 15 min) and `refresh_token` (path `/auth`, `JWT_REFRESH_TTL_DAYS`), body `{ ok: true }`. Access cookie `expires` is taken from the JWT `exp`, so `JWT_ACCESS_TTL` is the single source. `JWT_REFRESH_SECRET` is unused (refresh is opaque). Code comments: minimal, English only (added to `CLAUDE.md`).
+- 2026-10-22: auth substep 2, pass 1 done and checked by Anatoly with curl: `LoginDto`, `AuthService.login` (argon2 verify with dummy hash, single 401 for unknown email/wrong password/inactive), `AuthController` `POST /auth/login`, `AuthModule` with `JwtModule.registerAsync`. Currently returns `{ userId }`.
 - 2026-10-21: auth substep 1 (foundation): `main.ts` has `helmet`, `cookie-parser`, global `ValidationPipe`; `JWT_ACCESS_TTL`/`JWT_REFRESH_TTL_DAYS` added to env. Anatoly confirmed: access 15m, refresh 14d with rotation; CSRF via `SameSite=Lax` + `Origin` check on mutations; `@nestjs/throttler` on login (5/min per IP) in substep 4. Packages must be installed by Anatoly (see Next).
 - 2026-10-21: `teacher` role added to the seed (`apps/api/prisma/seed.ts`), confirmed by Anatoly. Permission keys are grouped by domain (`STUDENTS`, `LESSONS`, `PAYMENTS`, `BALANCE`, `CURRENCIES`, `AUDIT`, `SYSTEM`); `admin` gets all, `teacher` gets students (no delete, no `read.own`), lessons (incl. series, freezes, schedule rules), payments, balance, `currencies.read`, `audit.read.business`. Admin only: `students.delete`, `currencies.create/update`, `audit.read.system`, `SYSTEM` group. Decided: no permission for the user's own profile, it goes through `/me/...` endpoints with the id taken from the session.
 - 2026-10-21: stage 1, seed done and verified by Anatoly (`apps/api/prisma/seed.ts`, run via `pnpm prisma db seed`): 7 permissions, roles `admin` (all permissions) and `student` (`students.read.own`), role–permission links, first admin from `ADMIN_EMAIL`/`ADMIN_PASSWORD` in `.env` (argon2 hash). Idempotent: a second run creates no duplicates and does not reset the admin password.
@@ -24,8 +26,7 @@ Update at the end of every session (briefly).
 - 2026-10-21: after discussion Anatoly kept the auth and permissions plan as is (teacher role with permissions stays). Confirmed: no student web login in the MVP; students are linked to the Telegram bot by a one-time invite link from the teacher (details — `docs/DECISIONS.md`, "Telegram and notifications"; `TelegramInvite` added to the `PLAN.md` data model; the model is not in the schema yet, it comes in stage 7).
 
 ## Next
-- Anatoly: `cd apps/api && pnpm add @nestjs/jwt helmet cookie-parser class-validator class-transformer && pnpm add -D @types/cookie-parser`, then check that `pnpm dev` starts.
-- Auth substep 2 (Anatoly writes): AuthModule, `POST /auth/login|refresh|logout`, LoginDto, httpOnly cookies, refresh hash in `RefreshToken`.
+- Auth substep 3: guard reading user, role and permissions from the DB on every request (access cookie), decorators for permissions, deny by default. Then substep 4: `@nestjs/throttler` on login (5/min per IP), `Origin` check on mutations, "role × endpoint" tests. Decide whether to drop `JWT_REFRESH_SECRET` from env examples.
 0. `teacher` role, remaining parts: the teacher user (create later, via the admin UI or a test setup, not needed in the seed) and the "role × endpoint" tests for it (after the guard exists). Permission keys for later stages are added to the seed as the modules appear.
 1. Stage 1, remaining: auth module (login, JWT in an httpOnly cookie, guard reading role/permissions from the DB on every request), `ValidationPipe` + `helmet`, "role × endpoint" tests (`PLAN.md`, stage 1).
 
