@@ -2,9 +2,10 @@
 
 Update at the end of every session (briefly).
 
-**Current stage:** stage 1, authentication and permissions, in progress (2026-10-22): auth substep 2 done (login, refresh, logout); next is substep 3 (guard).
+**Current stage:** stage 1, authentication and permissions, in progress (2026-10-22): auth substeps 2 (login, refresh, logout) and 3 (guard) done; next is substep 4.
 
 ## Done
+- 2026-10-22: auth substep 3 done and checked by Anatoly with curl: global `AuthGuard` (`APP_GUARD`) in `apps/api/src/auth/`. Reads the `access_token` cookie, verifies the JWT (HS256), loads user + role + permissions from the DB on every request (inactive user = 401), sets `req.user`. Marks: `@Public()`, `@Authenticated()`, `@RequirePermission(...keys)` (all keys required), `@CurrentUser()`. Deny by default: no mark = 403. `login`/`refresh`/`logout` are `@Public()`; `GET /auth/me` (`@Authenticated()`) returns id, email, role, permissions. `GET /` now returns 403 (no mark).
 - 2026-10-22: auth substep 2 done and checked by Anatoly with curl: `issueTokens` (access JWT with `sub`; refresh = random 48 bytes, SHA-256 hash in `RefreshToken`), `POST /auth/login`, `/auth/refresh` (rotation in a transaction, reuse detection revokes all user tokens), `/auth/logout`; httpOnly cookies `access_token` (path `/`, 15 min) and `refresh_token` (path `/auth`, `JWT_REFRESH_TTL_DAYS`), body `{ ok: true }`. Access cookie `expires` is taken from the JWT `exp`, so `JWT_ACCESS_TTL` is the single source. `JWT_REFRESH_SECRET` is unused (refresh is opaque). Code comments: minimal, English only (added to `CLAUDE.md`).
 - 2026-10-22: auth substep 2, pass 1 done and checked by Anatoly with curl: `LoginDto`, `AuthService.login` (argon2 verify with dummy hash, single 401 for unknown email/wrong password/inactive), `AuthController` `POST /auth/login`, `AuthModule` with `JwtModule.registerAsync`. Currently returns `{ userId }`.
 - 2026-10-21: auth substep 1 (foundation): `main.ts` has `helmet`, `cookie-parser`, global `ValidationPipe`; `JWT_ACCESS_TTL`/`JWT_REFRESH_TTL_DAYS` added to env. Anatoly confirmed: access 15m, refresh 14d with rotation; CSRF via `SameSite=Lax` + `Origin` check on mutations; `@nestjs/throttler` on login (5/min per IP) in substep 4. Packages must be installed by Anatoly (see Next).
@@ -26,9 +27,12 @@ Update at the end of every session (briefly).
 - 2026-10-21: after discussion Anatoly kept the auth and permissions plan as is (teacher role with permissions stays). Confirmed: no student web login in the MVP; students are linked to the Telegram bot by a one-time invite link from the teacher (details — `docs/DECISIONS.md`, "Telegram and notifications"; `TelegramInvite` added to the `PLAN.md` data model; the model is not in the schema yet, it comes in stage 7).
 
 ## Next
-- Auth substep 3: guard reading user, role and permissions from the DB on every request (access cookie), decorators for permissions, deny by default. Then substep 4: `@nestjs/throttler` on login (5/min per IP), `Origin` check on mutations, "role × endpoint" tests. Decide whether to drop `JWT_REFRESH_SECRET` from env examples.
+- Auth substep 4: `@nestjs/throttler` on login (5/min per IP), `Origin` check on mutations, "role × endpoint" tests. Decide whether to drop `JWT_REFRESH_SECRET` from env examples.
 0. `teacher` role, remaining parts: the teacher user (create later, via the admin UI or a test setup, not needed in the seed) and the "role × endpoint" tests for it (after the guard exists). Permission keys for later stages are added to the seed as the modules appear.
 1. Stage 1, remaining: auth module (login, JWT in an httpOnly cookie, guard reading role/permissions from the DB on every request), `ValidationPipe` + `helmet`, "role × endpoint" tests (`PLAN.md`, stage 1).
+
+- Last, when time allows (Anatoly's decision, 2026-10-22; not blocking): replace string permission keys with constants (`permissions.ts`, `as const`, `PermissionKey` type) used by the seed and by `@RequirePermission`, so a typo is a compile error.
+- Users module (later): deactivating a user must also revoke all their refresh tokens. `AuthService.refresh` and `AuthGuard` already reject inactive users.
 
 ## Known issues / notes
 - 2026-10-20: `apps/web` is created, `pnpm dev` starts. The Turbopack error "Could not find next/package.json" was caused by nested `pnpm-lock.yaml`/`pnpm-workspace.yaml`/`.git`/`node_modules` from create-next-app in `apps/web` — removed (they were in `_to_delete/`, which can be erased), `pnpm install` from the root.

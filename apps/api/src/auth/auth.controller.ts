@@ -1,6 +1,8 @@
-import { Body, Controller, HttpCode, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { Authenticated, CurrentUser, Public } from './auth.decorators.js';
 import { AuthService } from './auth.service.js';
+import type { AuthUser } from './auth.types.js';
 import { LoginDto } from './dto/login.dto.js';
 
 const isProd = process.env.NODE_ENV === 'production';
@@ -29,6 +31,7 @@ function setAuthCookies(res: Response, tokens: Tokens) {
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Public()
   @Post('login')
   @HttpCode(200)
   async login(
@@ -39,6 +42,7 @@ export class AuthController {
     return { ok: true };
   }
 
+  @Public()
   @Post('refresh')
   @HttpCode(200)
   async refresh(
@@ -50,6 +54,7 @@ export class AuthController {
     return { ok: true };
   }
 
+  @Public()
   @Post('logout')
   @HttpCode(200)
   async logout(
@@ -60,5 +65,11 @@ export class AuthController {
     res.clearCookie('access_token', { path: '/' });
     res.clearCookie('refresh_token', { path: '/auth' });
     return { ok: true };
+  }
+
+  @Authenticated()
+  @Get('me')
+  me(@CurrentUser() user: AuthUser) {
+    return { id: user.id, email: user.email, role: user.role, permissions: [...user.permissions] };
   }
 }
