@@ -40,6 +40,7 @@ An admin panel for an English school (one-on-one lessons). The admin (the teache
     - teacher: students (including lesson price and default currency), lessons, calendar, recurring series, freezes, payments, manual balance adjustments, cancellation rules, the low-balance threshold N, her own profile (time zone, Telegram), adding a new currency (tentative, Anatoly is not sure; easy to change by permission).
     - admin only: users, roles and permissions, editing and deactivating currencies, system settings, the full audit log. Decided 2026-10-21: the teacher sees the change history (audit) of her own students' lessons, payments and balance; the system-wide audit log (users, roles, settings) stays admin-only.
   - Access stays permission-based, never by role name; the "role × endpoint" tests get the new role.
+  - **Student–teacher link (decided 2026-10-22):** many-to-many through the `StudentTeacher` table from the start (Anatoly's choice, mainly for practice and modular growth; a single `Student.teacherId` was considered and would also have been enough). In the MVP every student is linked to the only teacher, automatically on creation. Lessons and payments reach the teacher through the student. Filtering by teacher (a teacher sees only her own students) is not in the MVP; student reads go through the service layer with the current user passed in, so the filter can be added in one place. Open: which teacher conducts a given lesson when a student has several (affects cancellation rules, time zone, notifications); decided when a second teacher appears.
   - Decided 2026-10-22: the teacher never deletes students; she marks them inactive through an ordinary update. `students.delete` is admin-only.
   - Decided 2026-10-22, HTTP statuses of the guard: 401 — no session, invalid or expired token, or the user is inactive; 403 — the user is signed in but lacks the required permission, or the endpoint has no access mark (deny by default). The "role × endpoint" tests are derived from this document and `PLAN.md`, section 4, never from the code; if code and document disagree, the document is right until Anatoly changes it.
   - Anatoly implements this himself in a separate chat.
@@ -84,7 +85,7 @@ An admin panel for an English school (one-on-one lessons). The admin (the teache
 
 **Time zones (decided 2026-10-21):** the teacher's time zone is the base for the schedule and the cancellation rules, and it can be changed in settings. The student's zone only affects how time is displayed. Daylight saving time is not tracked separately.
 
-**Not in the MVP:** reminders about lessons, self-registration, student web cabinet, teacher cabinet, groups/courses, automatic currency conversion, package expiry, price history.
+**Not in the MVP:** reminders about lessons, self-registration, student web cabinet, filtering data by teacher (a teacher sees only her own students; the student–teacher link itself is already in the schema), groups/courses, automatic currency conversion, package expiry, price history.
 
 ## Teacher's requirements (2026-10-21)
 
@@ -120,7 +121,7 @@ Calendar (**in the MVP**, decided 2026-10-17): the only library mentioned in the
 3. ~~Calendar and emails~~ — closed 2026-10-17: calendar on **FullCalendar**; emails with login/password — **Mailpit** in dev, plain SMTP in production.
 4. Initialize the monorepo (pnpm workspaces), docker-compose with PostgreSQL, base Next.js and NestJS.
 5. Implement in stages: auth + roles → students → packages/balance ledger → lessons (+freeze, rescheduling) → payments with proofs → dashboard, search, filters → Telegram bot and notifications → audit log.
-6. Later: Docker packaging and deployment to a weak server, extended schedule/calendar, teacher cabinet, groups and courses, exchange rates.
+6. Later: Docker packaging and deployment to a weak server, extended schedule/calendar, filtering data by teacher, groups and courses, exchange rates.
 
 ## Open questions
 

@@ -22,8 +22,9 @@ Nest modules (one per domain area): `auth`, `users`, `roles` (roles and permissi
 - **User**: email (unique), passwordHash, locale (default en; other languages later), isActive, mustChangePassword, roleId.
 - **RefreshToken**: userId, tokenHash (a hash, not the token itself), expiresAt, revokedAt?, createdAt. Revoked on password/role change.
 - **Role** / **Permission** / **RolePermission**: role = a set of permissions such as `students.read`, `payments.create`. Access is checked by permission, not by role name. System roles: `admin`, `teacher`, `student` (`manager` — later, without schema changes). The split is in `docs/DECISIONS.md`, "Roles and access".
-- **Student**: userId (unique; optional while students have no web login, see open questions), full name, phone, telegramUsername, telegramChatId (set when the student starts the bot), whatsapp, English level, manager comment, start date, time zone (display only), defaultCurrency (references `Currency`), lessonPrice (Decimal, in the default currency; price history is not stored).
+- **Student**: teachers (many-to-many through `StudentTeacher`; in the MVP every student is linked to the only teacher, no filtering by it yet), userId (unique; optional while students have no web login, see open questions), full name, phone, telegramUsername, telegramChatId (set when the student starts the bot), whatsapp, English level, manager comment, start date, time zone (display only), defaultCurrency (references `Currency`), lessonPrice (Decimal, in the default currency; price history is not stored).
 - **Teacher**: userId, full name, timeZone (the base for the schedule and the cancellation rules, changeable), telegramChatId. One record in the MVP, linked to the teacher's user (role `teacher`); the admin has no `Teacher` record. No UI.
+- **StudentTeacher**: studentId, teacherId, createdAt; unique (studentId, teacherId). Links students to teachers (many-to-many). Created together with the student, linked to the only teacher in the MVP. Which teacher conducts a particular lesson is not decided yet (see open questions).
 - **Lesson**: teacherId, startsAt, durationMin, status (`SCHEDULED | COMPLETED | CANCELLED | NO_SHOW`), cancelledAt?, charged (the "charge" checkbox: for a no-show and for a late cancellation; the system suggests the value by the cancellation rules, the admin has the final say), seriesId?, rescheduledFromId, cancelReason, notes.
 - **LessonSeries**: teacherId, studentId, weekday, localStartTime (in the teacher's time zone), durationMin, startsOn, endsOn?. Generates the recurring lessons; one-off (floating) lessons are created without a series.
 - **LessonParticipant**: lessonId + studentId (unique). One student now; groups later without migrating relations.
@@ -39,6 +40,8 @@ Nest modules (one per domain area): `auth`, `users`, `roles` (roles and permissi
 Principles: money is `Decimal`, not float; every balance and payment change happens in a transaction together with its audit record; time is stored in UTC; the teacher's time zone is the base for the schedule and the cancellation rules (changeable in settings); the student's time zone only affects how time is displayed.
 
 ## 3. Stages
+
+*Working order: backend and frontend parts of a stage alternate (a backend part, then its UI), not all backend first.*
 
 **Stage 0 — scaffolding [Me]**: pnpm monorepo, `docker-compose.yml` (PostgreSQL 16 + Mailpit) for development, README with run commands, `nest new`, Next.js (`output: 'standalone'`) + Tailwind + shadcn/ui + next-intl, Prisma, `.env.example`, linters. The tweakcn theme — you paste the CSS variables yourself.
 *Done when:* both apps start (web :3000, api :4000), Postgres and Mailpit run in Docker.

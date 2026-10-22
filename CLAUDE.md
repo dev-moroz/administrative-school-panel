@@ -35,7 +35,7 @@ Admin panel for an English school (one-on-one lessons): students, lessons and ca
 Deny by default; data ownership checks; responses only through DTOs; "role × endpoint" tests. Details — `PLAN.md`, section 4.
 
 ## Not in the MVP
-Reminders about the lessons themselves, self-registration, student web cabinet, teacher cabinet, groups/courses, automatic currency conversion, package expiry, price history.
+Reminders about the lessons themselves, self-registration, student web cabinet, filtering data by teacher (a teacher sees only her own students; the student–teacher link itself is already in the schema), groups/courses, automatic currency conversion, package expiry, price history.
 
 ## Where things live
 - `STATUS.md` — current stage, what is done, what is next.

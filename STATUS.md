@@ -28,7 +28,9 @@ Update at the end of every session (briefly).
 - 2026-10-21: after discussion Anatoly kept the auth and permissions plan as is (teacher role with permissions stays). Confirmed: no student web login in the MVP; students are linked to the Telegram bot by a one-time invite link from the teacher (details — `docs/DECISIONS.md`, "Telegram and notifications"; `TelegramInvite` added to the `PLAN.md` data model; the model is not in the schema yet, it comes in stage 7).
 
 ## Next
-- Auth substep 4: `@nestjs/throttler` on login (5/min per IP), `Origin` check on mutations (the e2e tests will need the throttler overridden). Decide whether to drop `JWT_REFRESH_SECRET` from env examples.
+- Working order (Anatoly's decision, 2026-10-22): alternate backend and frontend substeps instead of finishing the whole API first. After a backend part is done, the matching UI part follows before the next backend part.
+- Auth substep 4 (backend): `@nestjs/throttler` on login (5/min per IP), `Origin` check on mutations (the e2e tests will need the throttler overridden). Decide whether to drop `JWT_REFRESH_SECRET` from env examples.
+- Auth substep 5 (frontend): login page (react-hook-form + zod), Next middleware redirecting without a session, API client with refresh on 401 and `/auth/me`. Next after that: the admin shell (layout, navigation by permissions, logout) — scope to be confirmed by Anatoly.
 0. `teacher` role, remaining parts: the teacher user (create later, via the admin UI or a test setup, not needed in the seed) and the "role × endpoint" tests for it (after the guard exists). Permission keys for later stages are added to the seed as the modules appear.
 1. Stage 1, remaining: auth module (login, JWT in an httpOnly cookie, guard reading role/permissions from the DB on every request), `ValidationPipe` + `helmet`, "role × endpoint" tests (`PLAN.md`, stage 1).
 
