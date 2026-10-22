@@ -2,5 +2,16 @@
   "Home": {
     "title": "English School Admin",
     "subtitle": "Scaffold is ready. Next up: authentication and permissions."
+  },
+  "Login": {
+    "title": "Sign in",
+    "description": "Enter your email and password.",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "invalidCredentials": "Invalid email or password.",
+    "emailInvalid": "Enter a valid email.",
+    "passwordRequired": "Enter your password.",
+    "genericError": "Something went wrong. Try again."
   }
 }
