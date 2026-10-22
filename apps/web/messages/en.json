@@ -13,5 +13,11 @@
     "emailInvalid": "Enter a valid email.",
     "passwordRequired": "Enter your password.",
     "genericError": "Something went wrong. Try again."
+  },
+  "Nav": {
+    "students": "Students",
+    "lessons": "Lessons",
+    "payments": "Payments",
+    "logout": "Sign out"
   }
 }
