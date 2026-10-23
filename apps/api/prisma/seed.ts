@@ -9,7 +9,8 @@ const STUDENTS = [
     "students.read.own",
     "students.create",
     "students.update",
-    "students.delete"
+    "students.delete",
+    "students.assign-teacher"
 ]
 
 const LESSONS = [

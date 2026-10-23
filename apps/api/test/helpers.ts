@@ -42,3 +42,14 @@ export async function loginAs(app: INestApplication, email: string, password = P
   const setCookie = res.headers['set-cookie'] as unknown as string[];
   return setCookie.map((c) => c.split(';')[0]).join('; ');
 }
+
+export async function ensureTeacher(app: INestApplication, email: string, fullName: string) {
+  await ensureUser(app, email, 'teacher');
+  const prisma = app.get(PrismaService);
+  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+  return prisma.teacher.upsert({
+    where: { userId: user.id },
+    update: { fullName },
+    create: { userId: user.id, fullName },
+  });
+}
