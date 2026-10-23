@@ -1,7 +1,7 @@
 # PLAN.md — MVP development plan
 
 Context and accepted decisions are in `CLAUDE.md`. Here: structure, data model, stages.
-Legend: **[You]** — you write it yourself (key practice), **[Me]** — I do it (routine/scaffolding), **[Together]** — you write, I review.
+Working mode: every stage follows "Development workflow" in `CLAUDE.md` (plan → tests → implementation → report → commit). Claude writes the code; Anatoly approves the plan and the tests and reviews the result. If Anatoly wants to write a part by hand, he says so; Claude may also flag parts worth going through together.
 
 ## 1. Repository structure
 
@@ -43,38 +43,38 @@ Principles: money is `Decimal`, not float; every balance and payment change happ
 
 *Working order: backend and frontend parts of a stage alternate (a backend part, then its UI), not all backend first.*
 
-**Stage 0 — scaffolding [Me]**: pnpm monorepo, `docker-compose.yml` (PostgreSQL 16 + Mailpit) for development, README with run commands, `nest new`, Next.js (`output: 'standalone'`) + Tailwind + shadcn/ui + next-intl, Prisma, `.env.example`, linters. The tweakcn theme — you paste the CSS variables yourself.
+**Stage 0 — scaffolding**: pnpm monorepo, `docker-compose.yml` (PostgreSQL 16 + Mailpit) for development, README with run commands, `nest new`, Next.js (`output: 'standalone'`) + Tailwind + shadcn/ui + next-intl, Prisma, `.env.example`, linters. The tweakcn theme — you paste the CSS variables yourself.
 *Done when:* both apps start (web :3000, api :4000), Postgres and Mailpit run in Docker.
 
-**Stage 1 — authentication and permissions [Together]**: Prisma schema User/Role/Permission; Nest: login, JWT access + refresh, permission guard; Next: login page, protected routes (Next middleware: redirect without a session; rewrites `/api` → Nest), token storage (httpOnly cookie), no language switcher (English only for now); global `ValidationPipe({ whitelist: true })` and `helmet`; `RefreshToken` model in the schema. *React/Nest: routing, forms, validation (react-hook-form + zod), guards, DTOs, pipes.*
+**Stage 1 — authentication and permissions**: Prisma schema User/Role/Permission; Nest: login, JWT access + refresh, permission guard; Next: login page, protected routes (Next middleware: redirect without a session; rewrites `/api` → Nest), token storage (httpOnly cookie), no language switcher (English only for now); global `ValidationPipe({ whitelist: true })` and `helmet`; `RefreshToken` model in the schema. *React/Nest: routing, forms, validation (react-hook-form + zod), guards, DTOs, pipes.*
 **High priority, part of stage 1 — the `teacher` role** (Anatoly does it in a separate chat; the split is in `docs/DECISIONS.md`, "Roles and access"): add the role and its permissions to the seed, a teacher user, and extend the "role × endpoint" tests with it.
 *Done when:* login/logout via httpOnly cookie works; the permission guard reads from the DB; the "role × endpoint" e2e auth tests pass; the interface is in English via next-intl; the `teacher` role exists in the seed and is covered by the tests.
 
-**Docker check (after stage 1) [Together]**: trial build of the api and web images, run in containers, check env/architecture.
+**Docker check (after stage 1)**: trial build of the api and web images, run in containers, check env/architecture.
 *Done when:* the api and web images build and start, login works in the containers.
 
-**Stage 2 — students and account creation [Together]**: student CRUD, user creation with the login/password sent by email (password generated on the server, Mailpit in dev). *Tables, filters, search, pagination, server state (TanStack Query), optimistic updates.*
+**Stage 2 — students and account creation**: student CRUD, user creation with the login/password sent by email (password generated on the server, Mailpit in dev). *Tables, filters, search, pagination, server state (TanStack Query), optimistic updates.*
 *Done when:* the admin creates a student; an email with login and password arrives in Mailpit; the first login requires a password change; the list has search and pagination.
 
-**Stage 3 — balance ledger [You]**: `ledger` module, balance calculation, manual adjustment with a comment. *Prisma transactions, service layer, unit tests.*
+**Stage 3 — balance ledger**: `ledger` module, balance calculation, manual adjustment with a comment. *Prisma transactions, service layer, unit tests.*
 *Done when:* balance = SUM(delta); a manual adjustment requires a comment; a negative balance is shown as debt; the service unit tests pass.
 
-**Stage 4 — payments [Together]**: payment form (amount, currency, method, proof — file or link, number of lessons credited), history with multiple currencies. The number of lessons is suggested as floor(amount ÷ the student's lesson price) when the payment currency equals the price currency; the remainder is shown next to the lessons (for example 6 lessons + 10 EUR). In another currency the number of lessons is entered by hand. The admin manages the list of currencies. *Complex forms, file upload (multer), Decimal.*
+**Stage 4 — payments**: payment form (amount, currency, method, proof — file or link, number of lessons credited), history with multiple currencies. The number of lessons is suggested as floor(amount ÷ the student's lesson price) when the payment currency equals the price currency; the remainder is shown next to the lessons (for example 6 lessons + 10 EUR). In another currency the number of lessons is entered by hand. The admin manages the list of currencies. *Complex forms, file upload (multer), Decimal.*
 *Done when:* a payment is created in one transaction together with PURCHASE; the history shows different currencies; the proof is available only to authorized users.
 
-**Stage 5 — lessons and calendar [Together]**: Lesson CRUD, recurring schedules (`LessonSeries`) plus one-off lessons, the cancellation rules in the teacher's time zone, FullCalendar (view, create/edit on click), statuses and their effect on the balance (completed −1, no-show and late cancellation by the "charge" checkbox prefilled by the rules, other cancellations 0), rescheduling, freeze. *Complex state, integrating a third-party library, business rules on the backend.*
+**Stage 5 — lessons and calendar**: Lesson CRUD, recurring schedules (`LessonSeries`) plus one-off lessons, the cancellation rules in the teacher's time zone, FullCalendar (view, create/edit on click), statuses and their effect on the balance (completed −1, no-show and late cancellation by the "charge" checkbox prefilled by the rules, other cancellations 0), rescheduling, freeze. *Complex state, integrating a third-party library, business rules on the backend.*
 *Done when:* lessons are created and edited in the calendar; statuses change the balance correctly; recurring lessons are generated from a series; the checkbox is prefilled by the cancellation rules; rescheduling and freeze work.
 
-**Stage 6 — dashboard and reports [Together]**: key figures for the admin, including students with few lessons left; a per-student report for a chosen period (lessons held, missed, cancelled and charged, payments, balance at the start and end), visible to the teacher for her students. The student web page is postponed (the bot replaces it in stage 7).
+**Stage 6 — dashboard and reports**: key figures for the admin, including students with few lessons left; a per-student report for a chosen period (lessons held, missed, cancelled and charged, payments, balance at the start and end), visible to the teacher for her students. The student web page is postponed (the bot replaces it in stage 7).
 *Done when:* the admin has a dashboard with figures and a "negative balance" list and a "few lessons left" list; the period report for a student shows the counts and the list of lesson dates.
 
-**Stage 7 — Telegram bot and notifications [Together]**: a bot for students (remaining lessons; upcoming lessons: to confirm) and notifications to the teacher. When a lesson is charged and the balance drops to the threshold N, a message goes to the student and to the teacher; one message per threshold crossing (`Notification`). Linking is decided (`docs/DECISIONS.md`, "Linking a student to the bot"): a closed bot, the teacher generates a one-time invite link, the student presses Start, `telegramChatId` and `telegramUsername` are saved; unlinked chats are ignored. Rescheduling through the bot is not in the MVP. *Webhooks/long polling, an external API, idempotency.*
+**Stage 7 — Telegram bot and notifications**: a bot for students (remaining lessons; upcoming lessons: to confirm) and notifications to the teacher. When a lesson is charged and the balance drops to the threshold N, a message goes to the student and to the teacher; one message per threshold crossing (`Notification`). Linking is decided (`docs/DECISIONS.md`, "Linking a student to the bot"): a closed bot, the teacher generates a one-time invite link, the student presses Start, `telegramChatId` and `telegramUsername` are saved; unlinked chats are ignored. Rescheduling through the bot is not in the MVP. *Webhooks/long polling, an external API, idempotency.*
 *Done when:* a student can get their balance in the bot; when the remaining lessons reach N, the student and the teacher get one message; a repeated charge does not duplicate it.
 
-**Stage 8 — audit [Together]**: interceptor/service that records the audit, change history view.
+**Stage 8 — audit**: interceptor/service that records the audit, change history view.
 *Done when:* balance, payment and lesson changes are written to AuditLog and visible in the view.
 
-**Stage 9 — packaging [Me + you]**: Dockerfiles for api and web (web — standalone build), nginx only for HTTPS and proxying to web, prod `docker-compose`, a light image for 1 core / 2 GB, VPS deployment, reverse proxy + HTTPS, daily `pg_dump` in cron with rotation.
+**Stage 9 — packaging**: Dockerfiles for api and web (web — standalone build), nginx only for HTTPS and proxying to web, prod `docker-compose`, a light image for 1 core / 2 GB, VPS deployment, reverse proxy + HTTPS, daily `pg_dump` in cron with rotation.
 *Done when:* the images build; the prod compose starts on the server over HTTPS; the backup is created on schedule and restores correctly (verified).
 
 

@@ -4,10 +4,27 @@
 **Do not write into the documents anything Anatoly has not confirmed.**
 
 ## Working mode
-- Learning project: React/Next.js + NestJS. Anatoly writes the key parts himself; Claude designs, explains, reviews and takes the routine work. No vibe-coding everything.
+- Learning project: React/Next.js + NestJS. Anatoly is the manager, Claude writes the code; the procedure is in "Development workflow" below.
 - Tokens are limited: work in stages, one session per stage, narrow requests, don't re-read unnecessarily.
 - Communication language: Russian.
 - **Code comments: keep them to a minimum, and write them in English only.**
+
+## Development workflow (applies to every task)
+Anatoly acts as the manager: he approves the plan and the tests, reviews the result and confirms. Claude writes the code. Goal: no wasted steps or rework, save context and tokens.
+1. **Plan (no code).** Describe what will be done: modules/components/files and what each is responsible for, logic and data flow, what the tests will cover. Then **stop and wait for an explicit OK**. On remarks, update the plan and wait again. Task size does not skip this step.
+2. **Tests first (TDD).** After the plan is approved, write only the tests as a spec. **Do not run them** (there is no code yet, they would fail by definition). Show which scenarios are covered and how they map to the plan, then **stop and wait for an OK on the tests**. Do not start the implementation until then.
+   - Backend (NestJS) and frontend business logic (hooks, utils, forms): tests strictly before code.
+   - Purely visual React components: a behavior test (render states, clicks) is written together with the component, no style tests. The plan is still approved first.
+3. **Implementation.** Write the code until the approved tests pass. Never change the tests to fit the code; if a test looks wrong, stop and discuss. Stay inside the approved plan; if a deviation is needed, stop and agree first.
+4. **Report.** Only now run the tests and send a short report: test result, what was implemented, which files changed, what to check by eye. Anatoly reviews and may ask questions; fixes are made by Claude.
+5. **Commit.** Once tests pass and Anatoly has confirmed, commit without being reminded, then move to the next step (which starts with a plan again). One commit per logical change, and the `STATUS.md` update for that step goes into the same commit. `git push` only on explicit request. Stage only the files (or hunks) Claude changed in the current session; other modified files stay uncommitted for Anatoly to commit later.
+- Claude writes all the code by default. If Anatoly wants to write a part by hand, he says so while the plan is discussed; Claude may also flag non-trivial parts to go through together.
+- Anatoly wants to understand React: briefly explain non-obvious things (hooks, server components, etc.) in the plan or after the implementation.
+- Cheap change tracking: `STATUS.md` first, then `git log --oneline -n 10` and `git diff --stat`; don't re-read files that were just written or already reviewed.
+
+### Test commands (run from the repo root)
+- API (Vitest): `pnpm --filter api test:e2e` (e2e), `pnpm --filter api test` (unit).
+- Web: no test runner configured yet.
 
 ## Product
 Admin panel for an English school (one-on-one lessons): students, lessons and calendar, remaining lesson balance, payments in different currencies, freezes and rescheduling, audit. The teacher runs the daily work on the site (teacher account; the admin account is Anatoly's); students get their balance and reminders in a Telegram bot. The main pain being solved: manual counting of paid/held/rescheduled lessons and manual reminders that a package is ending.

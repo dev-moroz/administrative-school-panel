@@ -10,7 +10,7 @@ Status at the time of restoration: at that point there was only discussion and p
 
 - Learning project: practice **React/Next.js** (forms, validation, server data/cache, tables and filters, state, authentication, routing) and **NestJS** (the backend was always secondary for the author — he wants to understand it thoroughly). His experience is Vue/Nuxt; a stack different from Vue is exactly what is needed.
 - Goal of the practice: to be able to recall how it went in practice at a React interview.
-- **Way of working:** not vibe-coding. Anatoly writes the key parts himself; Claude designs, breaks work into tasks, explains, reviews and takes the routine and the hard parts. Don't write everything for him — explain why.
+- **Way of working (changed 2026-10-23, Anatoly):** Anatoly is the manager: Claude writes the code, Anatoly approves the plan and the tests, reviews the result and confirms. The procedure (plan → tests → implementation → report → commit) is in `CLAUDE.md`, "Development workflow". Claude explains non-obvious React/Nest parts so the learning goal is kept.
 - Communication language: Russian.
 
 ## What the product is
