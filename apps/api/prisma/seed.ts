@@ -73,6 +73,12 @@ const ROLES: Record<string, string[]> = {
     ],
 };
 
+const CURRENCIES_SEED = [
+    { code: "EUR", name: "Euro" },
+    { code: "USDT", name: "Tether" },
+    { code: "USDC", name: "USD Coin" },
+];
+
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
@@ -112,6 +118,14 @@ async function main() {
         ])
     }
 
+    for (const { code, name } of CURRENCIES_SEED) {
+        await prisma.currency.upsert({
+            where: { code },
+            update: {},
+            create: { code, name, decimals: 2 },
+        });
+    }
+
     const email = normalizeEmail(process.env.ADMIN_EMAIL as string);
     const password = process.env.ADMIN_PASSWORD;
     if (!email || !password) {
@@ -128,6 +142,32 @@ async function main() {
         update: {},
         create: { email: email, passwordHash, roleId: adminRole.id },
     });
+
+    // Temporary bootstrap until the Users module can create teachers.
+    const teacherEmail = process.env.TEACHER_EMAIL ? normalizeEmail(process.env.TEACHER_EMAIL) : "";
+    const teacherPassword = process.env.TEACHER_PASSWORD;
+    if (teacherEmail && teacherPassword) {
+        const teacherRole = await prisma.role.findUniqueOrThrow({
+            where: { name: "teacher" },
+        });
+        const teacherUser = await prisma.user.upsert({
+            where: { email: teacherEmail },
+            update: {},
+            create: {
+                email: teacherEmail,
+                passwordHash: await argon2.hash(teacherPassword),
+                roleId: teacherRole.id,
+            },
+        });
+        await prisma.teacher.upsert({
+            where: { userId: teacherUser.id },
+            update: {},
+            create: {
+                userId: teacherUser.id,
+                fullName: process.env.TEACHER_NAME || teacherEmail,
+            },
+        });
+    }
 }
 
 main()

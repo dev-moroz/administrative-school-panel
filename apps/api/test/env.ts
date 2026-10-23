@@ -21,4 +21,8 @@ export const TEST_ENV = {
   THROTTLE_DISABLED: 'true',
   ADMIN_EMAIL: 'admin@e2e.test',
   ADMIN_PASSWORD: 'e2e-admin-password',
+
+  TEACHER_EMAIL: 'seed-teacher@e2e.test',
+  TEACHER_PASSWORD: 'e2e-teacher-password',
+  TEACHER_NAME: 'E2E Seed Teacher',
 };

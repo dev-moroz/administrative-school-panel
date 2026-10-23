@@ -22,6 +22,8 @@ model User {
   refreshTokens       RefreshToken[]
   mustChangePassword  Boolean              @default(false) @map("must_change_password")
   passwordResetTokens PasswordResetToken[]
+  teacher             Teacher?
+  student             Student?
 
   @@index([roleId])
   @@map("users")
@@ -81,4 +83,73 @@ model PasswordResetToken {
 
   @@index([userId])
   @@map("password_reset_tokens")
+}
+
+enum EnglishLevel {
+  A0
+  A1
+  A2
+  B1
+  B2
+  C1
+  C2
+}
+
+model Currency {
+  code     String    @id
+  name     String
+  decimals Int       @default(2)
+  isActive Boolean   @default(true) @map("is_active")
+  students Student[]
+
+  @@map("currencies")
+}
+
+model Teacher {
+  id             String           @id @default(uuid()) @db.Uuid
+  userId         String           @unique @map("user_id") @db.Uuid
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName       String           @map("full_name")
+  timeZone       String           @default("Europe/Belgrade") @map("time_zone")
+  telegramChatId BigInt?          @unique @map("telegram_chat_id")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+  students       StudentTeacher[]
+
+  @@map("teachers")
+}
+
+model Student {
+  id                  String           @id @default(uuid()) @db.Uuid
+  userId              String?          @unique @map("user_id") @db.Uuid
+  user                User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  fullName            String           @map("full_name")
+  telegramUsername    String?          @map("telegram_username")
+  telegramChatId      BigInt?          @unique @map("telegram_chat_id")
+  englishLevel        EnglishLevel?    @map("english_level")
+  comment             String?
+  defaultCurrency     Currency?        @relation(fields: [defaultCurrencyCode], references: [code], onDelete: Restrict)
+  defaultCurrencyCode String?          @map("default_currency_code")
+  lessonPrice         Decimal?         @map("lesson_price") @db.Decimal(12, 2)
+  isActive            Boolean          @default(true) @map("is_active")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
+  teachers            StudentTeacher[]
+
+  @@index([fullName])
+  @@index([defaultCurrencyCode])
+  @@map("students")
+}
+
+model StudentTeacher {
+  studentId String   @map("student_id") @db.Uuid
+  teacherId String   @map("teacher_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher Teacher @relation(fields: [teacherId], references: [id])
+
+  @@id([studentId, teacherId])
+  @@index([teacherId])
+  @@map("student_teachers")
 }
