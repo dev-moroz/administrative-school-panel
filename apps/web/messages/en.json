@@ -19,5 +19,24 @@
     "lessons": "Lessons",
     "payments": "Payments",
     "logout": "Sign out"
+  },
+  "Common": {
+    "cards": "Cards",
+    "list": "List",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {page} of {total}"
+  },
+  "Students": {
+    "title": "Students",
+    "searchPlaceholder": "Search by name or @nickname",
+    "searchLabel": "Search students",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "statusAll": "All",
+    "newStudent": "New student",
+    "empty": "No students found",
+    "loadError": "Failed to load students",
+    "retry": "Retry"
   }
 }
