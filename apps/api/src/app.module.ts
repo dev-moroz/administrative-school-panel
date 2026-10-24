@@ -3,9 +3,11 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module.js';
+import { CurrenciesModule } from './currencies/currencies.module.js';
 import { OriginGuard } from './origin.guard.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { StudentsModule } from './students/students.module.js';
+import { TeachersModule } from './teachers/teachers.module.js';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { StudentsModule } from './students/students.module.js';
     PrismaModule,
     AuthModule,
     StudentsModule,
+    CurrenciesModule,
+    TeachersModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: OriginGuard },
