@@ -128,3 +128,23 @@ describe("toPayload", () => {
     });
   });
 });
+
+describe("toPayload teacherId", () => {
+  it("create: sends teacherId when chosen", () => {
+    expect(toPayload({ ...base, teacherId: "t1" }, "create")).toMatchObject({ teacherId: "t1" });
+  });
+
+  it("create: omits teacherId when empty or missing", () => {
+    expect(toPayload({ ...base, teacherId: "" }, "create")).not.toHaveProperty("teacherId");
+    expect(toPayload(base, "create")).not.toHaveProperty("teacherId");
+  });
+
+  it("edit: never sends teacherId (the API has no way to change the teacher)", () => {
+    expect(toPayload({ ...base, teacherId: "t1" }, "edit")).not.toHaveProperty("teacherId");
+  });
+
+  it("the schema accepts a missing and a filled teacherId", () => {
+    expect(studentSchema.safeParse(base).success).toBe(true);
+    expect(studentSchema.safeParse({ ...base, teacherId: "t1" }).success).toBe(true);
+  });
+});

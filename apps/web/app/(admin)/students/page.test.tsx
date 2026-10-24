@@ -172,3 +172,55 @@ describe("StudentsPage", () => {
     expect(await screen.findByText("Student 1")).toBeInTheDocument();
   });
 });
+
+describe("StudentsPage side panel", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.mocked(apiFetch).mockReset();
+  });
+
+  function mockWithStudent() {
+    vi.mocked(apiFetch).mockImplementation(async (path: string) => {
+      const url = new URL(path, "http://x");
+      if (url.pathname === "/auth/me")
+        return me(["students.read.all", "students.create", "students.update", "students.assign-teacher", "currencies.read"]);
+      if (url.pathname === "/students") return listResponse(1);
+      if (url.pathname === "/students/s1")
+        return {
+          id: "s1", fullName: "Student 1", telegramUsername: "nick_1", englishLevel: "B1", comment: null,
+          defaultCurrencyCode: null, lessonPrice: null, isActive: true, teacher: null, telegramLinked: false,
+          createdAt: "2026-10-01T10:00:00.000Z", updatedAt: "2026-10-01T10:00:00.000Z",
+        };
+      if (url.pathname === "/currencies") return [];
+      if (url.pathname === "/teachers") return [];
+      throw new Error(`unexpected ${path}`);
+    });
+  }
+
+  it("clicking a student opens the panel in read-only view mode", async () => {
+    mockWithStudent();
+    renderWithProviders(<StudentsPage />);
+    await userEvent.click(await screen.findByRole("button", { name: /Student 1/ }));
+    const dialog = await screen.findByRole("dialog");
+    expect(await within(dialog).findByRole("button", { name: "Edit" })).toBeInTheDocument();
+    expect(within(dialog).queryByRole("textbox")).not.toBeInTheDocument();
+  });
+
+  it("'New student' opens the panel with an empty form", async () => {
+    mockWithStudent();
+    renderWithProviders(<StudentsPage />);
+    await screen.findByText("Student 1");
+    await userEvent.click(screen.getByRole("button", { name: "New student" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(await within(dialog).findByLabelText("Full name")).toHaveValue("");
+  });
+
+  it("closing the panel hides it", async () => {
+    mockWithStudent();
+    renderWithProviders(<StudentsPage />);
+    await userEvent.click(await screen.findByRole("button", { name: /Student 1/ }));
+    await screen.findByRole("dialog");
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+});

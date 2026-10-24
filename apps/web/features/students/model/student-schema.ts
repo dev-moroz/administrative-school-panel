@@ -23,7 +23,10 @@ export const studentSchema = z.object({
   defaultCurrencyCode: z.string().max(10),
   lessonPrice: price,
   isActive: z.boolean(),
+  teacherId: z.string().optional(),
 });
+
+export type EnglishLevel = (typeof ENGLISH_LEVELS)[number];
 
 export type StudentFormValues = z.infer<typeof studentSchema>;
 
@@ -39,5 +42,6 @@ export function toPayload(values: StudentFormValues, mode: "create" | "edit") {
     defaultCurrencyCode: text(values.defaultCurrencyCode),
     lessonPrice: values.lessonPrice === "" ? empty : Number(values.lessonPrice),
   };
-  return mode === "edit" ? { ...payload, isActive: values.isActive } : payload;
+  if (mode === "edit") return { ...payload, isActive: values.isActive };
+  return values.teacherId ? { ...payload, teacherId: values.teacherId } : payload;
 }

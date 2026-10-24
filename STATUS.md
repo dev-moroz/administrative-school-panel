@@ -2,9 +2,11 @@
 
 Update at the end of every session (briefly).
 
-**Current stage:** stage 2, students (2026-10-24): step 2 (students API) done, e2e green (confirmed by Anatoly); step 2b (`GET /currencies`, `GET /teachers`) done, e2e green (confirmed by Anatoly); frontend B1 (students list) done, tests green (confirmed by Anatoly); next is B2 (student form and side panel, plan first).
+**Current stage:** stage 2, students (2026-10-24): step 2 (students API) done, e2e green (confirmed by Anatoly); step 2b (`GET /currencies`, `GET /teachers`) done, e2e green (confirmed by Anatoly); frontend B1 (students list) and B2 (student panel, form, mutations) done, tests green (confirmed by Anatoly); next is the following stage 2 step (plan first).
 
 ## Done
+
+- 2026-10-24: stage 2 frontend B2 (student panel) done, vitest/tsc/lint green and checked in the browser (confirmed by Anatoly): `components/discard-changes-dialog.tsx`; `features/students/` `api/` (get, create, update, list currencies, list teachers), `model/` (`student-to-form-values`, `use-student`, `use-create-student`, `use-update-student`, `use-currencies`, `use-teachers`; `teacherId` optional in the schema and sent only on create), `ui/` `StudentDetails` (read-only view), `StudentForm` (react-hook-form + zod), `StudentSheet` (modes view/edit/create, stays open after save, Discard changes?). Toasts via sonner (`<Toaster />` in `providers.tsx`; 404 is not retried). Added shadcn `select`, `textarea`, `switch`, `sonner`, `alert-dialog`; `vitest.setup.ts` got jsdom stubs for Radix. Decisions in `docs/DECISIONS.md`, "Entity UI". Dev note: the admin sees the Teacher field only after re-running the seed (permission `students.assign-teacher`), and a teacher must exist (`TEACHER_*` in `env/api.env`). The `CLAUDE.md` line "Web: no test runner configured yet" is still NOT updated (waiting for Anatoly's OK).
 
 - 2026-10-24: admin layout tweak (confirmed by Anatoly): the sidebar toggle and the empty header are commented out in `apps/web/app/(admin)/layout.tsx`, so the sidebar is always open for the MVP. TODO in code: rework the page template (title and controls layout) and bring the toggle back so the sidebar can be opened on mobile. Note: Ctrl/Cmd+B still collapses the sidebar (`collapsible="none"` not set).
 - 2026-10-24: B1 tweak (confirmed by Anatoly): empty and error states are centered in a `min-h-[50vh]` area shared by all list states, and the pagination is hidden when `total` is 0 (new test in `page.test.tsx`).
@@ -41,7 +43,7 @@ Update at the end of every session (briefly).
 - 2026-10-21: after discussion Anatoly kept the auth and permissions plan as is (teacher role with permissions stays). Confirmed: no student web login in the MVP; students are linked to the Telegram bot by a one-time invite link from the teacher (details — `docs/DECISIONS.md`, "Telegram and notifications"; `TelegramInvite` added to the `PLAN.md` data model; the model is not in the schema yet, it comes in stage 7).
 
 ## Next
-- Stage 2, frontend B2: student form (react-hook-form + zod, schema and `toPayload` already exist), side panel `EntitySheet` + `StudentSheet`, create/update mutations, `GET /students/:id`, currency select (`GET /currencies`), teacher select for admin (`GET /teachers`, `students.assign-teacher`); plan first. Telegram avatar and the other items in "Known MVP limitations" come later.
+- Stage 2, next: to be agreed with Anatoly (plan first). Left from B2: Telegram avatar and the other items in "Known MVP limitations" come later; a hint for an empty teacher list is optional.
 - **Deprecated, remove with the Users module:** the teacher bootstrap in the seed (`TEACHER_*` env, teacher block in `apps/api/prisma/seed.ts`, `test/env.ts`, seed-teacher tests in `test/schema.e2e-spec.ts`); details in `docs/DECISIONS.md`, "Teacher seed is temporary".
 - Currencies module (later): block deactivating a currency that students use, with a UI message (`docs/DECISIONS.md`, "Currency deactivation rule").
 - Working order (Anatoly's decision, 2026-10-22): alternate backend and frontend substeps instead of finishing the whole API first. After a backend part is done, the matching UI part follows before the next backend part.

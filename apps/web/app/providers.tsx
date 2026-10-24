@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/sonner";
 import { ApiError } from "@/lib/api";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -12,11 +13,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
           queries: {
             staleTime: 60_000,
             retry: (count, error) =>
-              !(error instanceof ApiError && error.status === 401) && count < 2,
+              !(error instanceof ApiError && (error.status === 401 || error.status === 404)) && count < 2,
           },
         },
       }),
   );
 
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      {children}
+      <Toaster />
+    </QueryClientProvider>
+  );
 }

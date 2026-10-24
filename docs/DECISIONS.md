@@ -171,3 +171,8 @@ Deliberate simplifications of the MVP (confirmed by Anatoly, 2026-10-23, stage 2
 - **List state (`search`, `page`, `status`) lives in `useState`, not in the URL.** Search is debounced by 300 ms; a new search or status resets the page to 1. Page size is 12. Status filter Active / Inactive / All, default Active, available to the teacher too (she sees inactive students; no permission split for now).
 - **Requests use query parameters** (`GET /students?q&page&pageSize&isActive`).
 - **Frontend tests:** Vitest + Testing Library (jsdom), network mocked at the `apiFetch` level. Step B is split into B1 (list, read only) and B2 (form, panel, mutations).
+- **The panel opens in read-only view mode (decided 2026-10-24, Anatoly, B2).** Clicking a card shows the profile; editing starts with the Edit (pencil) button inside the panel. Create opens straight as a form. The panel shows a Telegram icon next to the nickname (linked or not).
+- **The panel stays open after save.** Create: toast, then the panel switches to the view of the new student. Edit: toast, back to view. The list refreshes in the background; the saved response goes into the detail cache.
+- **Discard changes?** Asked when a dirty form is closed (Esc, overlay, close button) or cancelled. No `size` prop on the panel shell until a wide panel is really needed.
+- **Teacher cannot be changed in the edit form** (the API has no endpoint); shown as text. For the admin the teacher is required on create.
+- **Telegram nickname keeps the 5 to 32 rule** (the Telegram minimum), same as the API.

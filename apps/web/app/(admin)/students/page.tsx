@@ -7,6 +7,7 @@ import { useViewMode } from "@/hooks/use-view-mode";
 import { useDebouncedValue } from "@/features/students/model/use-debounced-value";
 import { useStudents } from "@/features/students/model/use-students";
 import { StudentsGrid } from "@/features/students/ui/students-grid";
+import { StudentSheet, type SheetTarget } from "@/features/students/ui/student-sheet";
 import { StudentsPagination } from "@/features/students/ui/students-pagination";
 import { StudentsToolbar, type StatusFilter } from "@/features/students/ui/students-toolbar";
 
@@ -19,6 +20,7 @@ export default function StudentsPage() {
   const [view, setView] = useViewMode("students.view");
   const [searchInput, setSearchInput] = useState("");
   const [status, setStatus] = useState<StatusFilter>("active");
+  const [target, setTarget] = useState<SheetTarget>({ kind: "closed" });
   const search = useDebouncedValue(searchInput, 300);
 
   // The page belongs to the filters it was chosen under; a new search or status falls back to page 1.
@@ -40,7 +42,7 @@ export default function StudentsPage() {
         view={view}
         onViewChange={setView}
         canCreate={!!me?.permissions.includes("students.create")}
-        onCreate={() => {}}
+        onCreate={() => setTarget({ kind: "create" })}
       />
       <StudentsGrid
         view={view}
@@ -48,7 +50,7 @@ export default function StudentsPage() {
         isLoading={students.isLoading}
         isError={students.isError}
         onRetry={() => students.refetch()}
-        onSelect={() => {}}
+        onSelect={(id) => setTarget({ kind: "view", id })}
       />
       {!!students.data?.total && (
         <StudentsPagination
@@ -57,6 +59,7 @@ export default function StudentsPage() {
           onPageChange={(next) => setPageState({ page: next, filterKey })}
         />
       )}
+      <StudentSheet target={target} onTargetChange={setTarget} />
     </div>
   );
 }
