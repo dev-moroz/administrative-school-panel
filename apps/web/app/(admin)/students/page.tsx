@@ -50,7 +50,7 @@ export default function StudentsPage() {
         onRetry={() => students.refetch()}
         onSelect={() => {}}
       />
-      {students.data && (
+      {!!students.data?.total && (
         <StudentsPagination
           page={page}
           totalPages={totalPages}

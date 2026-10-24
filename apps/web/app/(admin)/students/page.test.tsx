@@ -142,6 +142,19 @@ describe("StudentsPage", () => {
     expect(screen.queryByRole("button", { name: "New student" })).not.toBeInTheDocument();
   });
 
+  it("shows the empty message and no pagination when there are no students", async () => {
+    vi.mocked(apiFetch).mockImplementation(async (path: string) => {
+      const url = new URL(path, "http://x");
+      if (url.pathname === "/auth/me") return me(["students.read"]);
+      return { items: [], total: 0, page: 1, pageSize: PAGE_SIZE };
+    });
+    renderWithProviders(<StudentsPage />);
+    expect(await screen.findByText("No students found")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Previous" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Next" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Page \d+ of \d+$/)).not.toBeInTheDocument();
+  });
+
   it("shows an error and recovers on Retry", async () => {
     let fail = true;
     vi.mocked(apiFetch).mockImplementation(async (path: string) => {

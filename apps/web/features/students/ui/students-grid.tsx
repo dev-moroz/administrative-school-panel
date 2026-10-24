@@ -17,9 +17,13 @@ type Props = {
 
 const SKELETON_COUNT = 12;
 
+// One fixed minimum height for every state keeps the pagination in the same place.
+const AREA = "min-h-[50vh]";
+const MESSAGE = `${AREA} flex flex-col items-center justify-center gap-3 text-center`;
+
 const containerClass: Record<ViewMode, string> = {
-  cards: "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
-  list: "flex flex-col gap-2",
+  cards: `${AREA} grid grid-cols-1 content-start gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`,
+  list: `${AREA} flex flex-col gap-2`,
 };
 
 export function StudentsGrid({ view, students, isLoading, isError, onRetry, onSelect }: Props) {
@@ -27,7 +31,7 @@ export function StudentsGrid({ view, students, isLoading, isError, onRetry, onSe
 
   if (isError && !students) {
     return (
-      <div role="alert" className="grid justify-items-center gap-3 py-12 text-center">
+      <div role="alert" className={MESSAGE}>
         <p className="text-muted-foreground">{t("loadError")}</p>
         <Button variant="outline" onClick={onRetry}>
           {t("retry")}
@@ -47,7 +51,11 @@ export function StudentsGrid({ view, students, isLoading, isError, onRetry, onSe
   }
 
   if (!students?.length) {
-    return <p className="py-12 text-center text-muted-foreground">{t("empty")}</p>;
+    return (
+      <div className={MESSAGE}>
+        <p className="text-muted-foreground">{t("empty")}</p>
+      </div>
+    );
   }
 
   const Item = view === "cards" ? StudentCard : StudentRow;
