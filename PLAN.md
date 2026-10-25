@@ -50,7 +50,7 @@ Principles: money is `Decimal`, not float; every balance and payment change happ
 **High priority, part of stage 1 — the `teacher` role** (Anatoly does it in a separate chat; the split is in `docs/DECISIONS.md`, "Roles and access"): add the role and its permissions to the seed, a teacher user, and extend the "role × endpoint" tests with it.
 *Done when:* login/logout via httpOnly cookie works; the permission guard reads from the DB; the "role × endpoint" e2e auth tests pass; the interface is in English via next-intl; the `teacher` role exists in the seed and is covered by the tests.
 
-**Docker check (after stage 1)**: trial build of the api and web images, run in containers, check env/architecture.
+**Docker check (moved to after stage 3, Anatoly, 2026-10-25; a quick check only, the full packaging stays in stage 9)**: trial build of the api and web images, run in containers, check env/architecture.
 *Done when:* the api and web images build and start, login works in the containers.
 
 **Stage 2 — students**: student CRUD (create, edit, deactivate), server-side search and pagination, `Currency`/`Teacher`/`Student`/`StudentTeacher` in the schema. Students have no `User` and no web login; no emails in this stage (decided 2026-10-23). *Tables, filters, search, pagination, server state (TanStack Query), optimistic updates.*

@@ -45,6 +45,7 @@ Update at the end of every session (briefly).
 
 ## Next
 - **Next (Anatoly, 2026-10-25; plan first, in a new chat), the stage 2 leftovers:** (1) Telegram avatar for students (cards, rows, panel); (2) a hint when the teacher list is empty (admin student form). The other items in "Known MVP limitations" come later.
+- **Docker check moved to after stage 3** (Anatoly, 2026-10-25): quick trial build and start of the api and web images, login in the containers (`PLAN.md`, "Docker check"). Not before; the full packaging is stage 9.
 - **Deprecated, remove with the Users module:** the teacher bootstrap in the seed (`TEACHER_*` env, teacher block in `apps/api/prisma/seed.ts`, `test/env.ts`, seed-teacher tests in `test/schema.e2e-spec.ts`); details in `docs/DECISIONS.md`, "Teacher seed is temporary".
 - Currencies module (later): block deactivating a currency that students use, with a UI message (`docs/DECISIONS.md`, "Currency deactivation rule").
 - Working order (Anatoly's decision, 2026-10-22): alternate backend and frontend substeps instead of finishing the whole API first. After a backend part is done, the matching UI part follows before the next backend part.
