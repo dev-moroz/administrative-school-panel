@@ -184,3 +184,11 @@ Deliberate simplifications of the MVP (confirmed by Anatoly, 2026-10-23, stage 2
 - `LedgerEntry.paymentId` (stage 4) and `lessonId` (stage 5) are added by those stages' migrations. The double-charge protection is decided in stage 5.
 - `createdBy` in the history and in the adjustment response is `{ id, email, name }` (2026-10-25, Anatoly). `name` is `firstName` + `lastName` of the user (trimmed, either part may be missing), `null` if both are empty; the UI shows `name`, falling back to `email`.
 - `DELETE /students/:id` answers 409 once the student has ledger entries (FK `Restrict`).
+
+## Balance UI (stage 3 frontend, 2026-10-25)
+- The Balance section lives in the student panel, **view mode only** (not in create or edit), shown with `balance.read`; the "Adjust balance" button needs `balance.adjust` (admin). Feature code is in `features/ledger/`, the panel only mounts `StudentBalance`.
+- History shows the last 10 entries and loads more with "Show more" (`useInfiniteQuery`); the whole history is never loaded at once. Author is `createdBy.name`, falling back to `email`.
+- The adjustment form is inline in the panel: signed integer change (not 0, |change| <= 50, same as the API) and a required comment; it shows "Balance after: N" while the change is valid. After a save the balance and history are refetched (the server computes the balance, no optimistic update).
+- **Discard changes? has no exceptions (Anatoly):** any action that would drop unsaved input asks first. That covers closing the panel, switching to Edit and Cancel inside the adjustment form. An open but untouched form is closed without asking.
+- Dates use the browser time zone for now; the teacher's zone from settings replaces it later.
+

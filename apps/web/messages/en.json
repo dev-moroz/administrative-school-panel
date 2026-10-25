@@ -74,5 +74,36 @@
     "telegramNotLinked": "Telegram not linked",
     "toastSaved": "Changes saved",
     "toastCreated": "Student created"
+  },
+  "Ledger": {
+    "title": "Balance",
+    "lessonsLeft": "Lessons left",
+    "debt": "Debt",
+    "loadingBalance": "Loading balance",
+    "loadBalanceError": "Could not load balance",
+    "loadHistoryError": "Could not load history",
+    "retry": "Retry",
+    "history": "History",
+    "historyEmpty": "No entries yet",
+    "showMore": "Show more",
+    "adjust": "Adjust balance",
+    "fieldChange": "Change",
+    "fieldComment": "Comment",
+    "errChange": "Enter a whole number from -50 to 50, not 0",
+    "errComment": "Enter a comment (up to 1000 characters)",
+    "balanceAfter": "Balance after: {value}",
+    "save": "Save adjustment",
+    "cancel": "Cancel",
+    "toastAdjusted": "Balance adjusted",
+    "saveInvalid": "Invalid adjustment",
+    "saveForbidden": "You are not allowed to adjust the balance",
+    "studentNotFound": "Student not found",
+    "saveFailed": "Could not save the adjustment",
+    "type": {
+      "PURCHASE": "Purchase",
+      "LESSON_CHARGE": "Lesson charged",
+      "LESSON_REVERSAL": "Lesson reversed",
+      "MANUAL_ADJUSTMENT": "Manual adjustment"
+    }
   }
 }

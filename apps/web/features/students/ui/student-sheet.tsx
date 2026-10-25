@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { DiscardChangesDialog } from "@/components/discard-changes-dialog";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMe } from "@/features/auth";
+import { StudentBalance } from "@/features/ledger/ui/student-balance";
 import { ApiError } from "@/lib/api";
 import { toPayload, type StudentFormValues } from "../model/student-schema";
 import { emptyFormValues, studentToFormValues } from "../model/student-to-form-values";
@@ -23,7 +24,7 @@ export type SheetTarget = { kind: "closed" } | { kind: "create" } | { kind: "vie
 
 type Props = { target: SheetTarget; onTargetChange: (target: SheetTarget) => void };
 
-type Confirm = "close" | "cancel" | null;
+type Confirm = "close" | "cancel" | "edit" | null;
 
 export function StudentSheet({ target, onTargetChange }: Props) {
   const t = useTranslations("Students");
@@ -35,8 +36,17 @@ export function StudentSheet({ target, onTargetChange }: Props) {
   const editing = ui.key === key && ui.editing;
   const [confirm, setConfirm] = useState<Confirm>(null);
 
+  // Unsaved text in the balance adjustment form (view mode); keyed like `ui` so it never leaks to another target.
+  const [adjust, setAdjust] = useState({ key, dirty: false });
+  const setAdjustDirty = useCallback(
+    (next: boolean) => setAdjust((prev) => (prev.key === key && prev.dirty === next ? prev : { key, dirty: next })),
+    [key],
+  );
+  const adjustDirty = adjust.key === key && adjust.dirty;
+
   const formOpen = target.kind === "create" || (target.kind === "view" && editing);
-  const dirty = formOpen && ui.key === key && ui.dirty;
+  const profileDirty = formOpen && ui.key === key && ui.dirty;
+  const dirty = profileDirty || (target.kind === "view" && !editing && adjustDirty);
 
   function setEditing(next: boolean) {
     setUi({ key, editing: next, dirty: false });
@@ -82,9 +92,16 @@ export function StudentSheet({ target, onTargetChange }: Props) {
     setEditing(false);
   }
 
+  function requestEdit() {
+    if (adjustDirty) setConfirm("edit");
+    else setEditing(true);
+  }
+
   function discard() {
     const action = confirm;
     setConfirm(null);
+    setAdjustDirty(false);
+    if (action === "edit") setEditing(true);
     if (action === "close") onTargetChange({ kind: "closed" });
     if (action === "cancel") leaveEdit();
   }
@@ -171,7 +188,12 @@ export function StudentSheet({ target, onTargetChange }: Props) {
       );
     }
 
-    return <StudentDetails student={student.data} canEdit={canEdit} onEdit={() => setEditing(true)} />;
+    return (
+      <div className="grid gap-4">
+        <StudentDetails student={student.data} canEdit={canEdit} onEdit={requestEdit} />
+        <StudentBalance studentId={student.data.id} onDirtyChange={setAdjustDirty} />
+      </div>
+    );
   }
 
   const title =
