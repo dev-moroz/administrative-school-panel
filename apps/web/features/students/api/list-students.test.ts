@@ -38,7 +38,7 @@ describe("listStudents", () => {
   });
 
   it("returns the API response as is", async () => {
-    const data = { items: [{ id: "s1", fullName: "A", telegramUsername: null }], total: 1, page: 1, pageSize: 12 };
+    const data = { items: [{ id: "s1", fullName: "A", telegramUsername: null, isActive: true }], total: 1, page: 1, pageSize: 12 };
     vi.mocked(apiFetch).mockResolvedValue(data);
     await expect(listStudents({ page: 1, pageSize: 12 })).resolves.toEqual(data);
   });

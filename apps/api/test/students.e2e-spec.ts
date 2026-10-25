@@ -26,7 +26,7 @@ const RESPONSE_KEYS = [
   'updatedAt',
 ];
 
-const LIST_ITEM_KEYS = ['id', 'fullName', 'telegramUsername'];
+const LIST_ITEM_KEYS = ['id', 'fullName', 'telegramUsername', 'isActive'];
 
 describe('students (e2e)', () => {
   let app: INestApplication;
@@ -298,6 +298,15 @@ describe('students (e2e)', () => {
 
       expect(res.body.items).toHaveLength(1);
       expect(Object.keys(res.body.items[0]).sort()).toEqual([...LIST_ITEM_KEYS].sort());
+    });
+
+    it('returns isActive per item: true for active, false for inactive', async () => {
+      await seedStudent({ fullName: `${TAG}flag A`, isActive: true });
+      await seedStudent({ fullName: `${TAG}flag B`, isActive: false });
+      const res = await call('teacher', 'get', `/students?q=${TAG}flag`).expect(200);
+
+      const flags = Object.fromEntries(res.body.items.map((s: { fullName: string; isActive: boolean }) => [s.fullName, s.isActive]));
+      expect(flags).toEqual({ [`${TAG}flag A`]: true, [`${TAG}flag B`]: false });
     });
 
     it('searches by name, ignoring case', async () => {

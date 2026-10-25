@@ -14,7 +14,7 @@ function me(permissions: string[]) {
   return { id: "u1", email: "a@b.c", role: "admin", permissions };
 }
 
-function listResponse(page: number, items = [{ id: `s${page}`, fullName: `Student ${page}`, telegramUsername: `nick_${page}` }]) {
+function listResponse(page: number, items = [{ id: `s${page}`, fullName: `Student ${page}`, telegramUsername: `nick_${page}`, isActive: true }]) {
   return { items, total: TOTAL, page, pageSize: PAGE_SIZE };
 }
 

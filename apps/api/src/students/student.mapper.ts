@@ -31,6 +31,7 @@ export const STUDENT_LIST_SELECT = {
   id: true,
   fullName: true,
   telegramUsername: true,
+  isActive: true,
 } satisfies Prisma.StudentSelect;
 
 // The list needs just enough to recognise a student; the full card is GET /students/:id.

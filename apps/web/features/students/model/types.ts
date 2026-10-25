@@ -4,6 +4,7 @@ export type StudentListItem = {
   id: string;
   fullName: string;
   telegramUsername: string | null;
+  isActive: boolean;
 };
 
 export type StudentListResponse = {

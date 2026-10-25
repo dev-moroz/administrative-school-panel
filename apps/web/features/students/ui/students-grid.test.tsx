@@ -5,8 +5,8 @@ import { renderWithProviders } from "@/test/render";
 import { StudentsGrid } from "./students-grid";
 
 const students = [
-  { id: "s1", fullName: "Anna Petrova", telegramUsername: "anna_p1" },
-  { id: "s2", fullName: "Boris", telegramUsername: null },
+  { id: "s1", fullName: "Anna Petrova", telegramUsername: "anna_p1", isActive: true },
+  { id: "s2", fullName: "Boris", telegramUsername: null, isActive: true },
 ];
 
 const props = { isLoading: false, isError: false, onRetry: () => {}, onSelect: () => {} };
@@ -33,6 +33,27 @@ describe.each(["cards", "list"] as const)("StudentsGrid (%s view)", (view) => {
   it("calls onSelect with the student id on click", async () => {
     const onSelect = vi.fn();
     renderWithProviders(<StudentsGrid {...props} view={view} students={students} onSelect={onSelect} />);
+    await userEvent.click(screen.getByRole("button", { name: /Anna Petrova/ }));
+    expect(onSelect).toHaveBeenCalledWith("s1");
+  });
+
+  it("marks an inactive student with an Inactive badge", () => {
+    renderWithProviders(
+      <StudentsGrid {...props} view={view} students={[{ ...students[0], isActive: false }]} />,
+    );
+    expect(screen.getByText("Inactive")).toBeInTheDocument();
+  });
+
+  it("shows no Inactive badge for active students", () => {
+    renderWithProviders(<StudentsGrid {...props} view={view} students={students} />);
+    expect(screen.queryByText("Inactive")).not.toBeInTheDocument();
+  });
+
+  it("keeps an inactive student clickable", async () => {
+    const onSelect = vi.fn();
+    renderWithProviders(
+      <StudentsGrid {...props} view={view} students={[{ ...students[0], isActive: false }]} onSelect={onSelect} />,
+    );
     await userEvent.click(screen.getByRole("button", { name: /Anna Petrova/ }));
     expect(onSelect).toHaveBeenCalledWith("s1");
   });

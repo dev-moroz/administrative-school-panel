@@ -1,6 +1,7 @@
 import { Pencil, Send } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getInitials } from "../model/get-initials";
 import type { Student } from "../model/types";
@@ -32,9 +33,9 @@ export function StudentDetails({ student, canEdit, onEdit }: Props) {
         </Avatar>
         <div className="grid min-w-0 flex-1 gap-1">
           <span className="truncate text-lg font-medium">{student.fullName}</span>
-          <span className="text-sm text-muted-foreground">
+          <Badge variant={student.isActive ? "secondary" : "outline"} className="text-muted-foreground">
             {student.isActive ? t("statusActive") : t("statusInactive")}
-          </span>
+          </Badge>
         </div>
         {canEdit && (
           <Button variant="outline" size="sm" onClick={onEdit}>
