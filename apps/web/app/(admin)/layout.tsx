@@ -13,7 +13,7 @@ export default function AdminLayout({ children }: LayoutProps<"/">) {
           {/* <header className="flex h-12 items-center px-4">
             <SidebarTrigger />
           </header> */}
-          <main className="flex-1 p-4">{children}</main>
+          <main className="flex flex-1 flex-col p-4">{children}</main>
         </SidebarInset>
       </SidebarProvider>
     </SessionGuard>

@@ -32,7 +32,7 @@ export default function StudentsPage() {
   const totalPages = Math.max(1, Math.ceil((students.data?.total ?? 0) / PAGE_SIZE));
 
   return (
-    <div className="grid gap-6">
+    <div className="flex flex-1 flex-col gap-6">
       <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
       <StudentsToolbar
         search={searchInput}

@@ -20,7 +20,7 @@ describe("StudentDetails (read only view)", () => {
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
-  it("shows a dash for every empty value", () => {
+  it("shows a dash for every empty value except the comment", () => {
     renderWithProviders(
       <StudentDetails
         {...props}
@@ -34,8 +34,24 @@ describe("StudentDetails (read only view)", () => {
         })}
       />,
     );
-    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(5);
+    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(4);
     expect(screen.queryByText(/^@/)).not.toBeInTheDocument();
+  });
+
+  it("hides the Comment row when the comment is empty", () => {
+    const { unmount } = renderWithProviders(
+      <StudentDetails {...props} student={makeStudent({ comment: null })} />,
+    );
+    expect(screen.queryByText("Comment")).not.toBeInTheDocument();
+    unmount();
+    renderWithProviders(<StudentDetails {...props} student={makeStudent({ comment: "   " })} />);
+    expect(screen.queryByText("Comment")).not.toBeInTheDocument();
+  });
+
+  it("shows the Comment row when the comment is filled", () => {
+    renderWithProviders(<StudentDetails {...props} student={makeStudent({ comment: "Prefers evenings" })} />);
+    expect(screen.getByText("Comment")).toBeInTheDocument();
+    expect(screen.getByText("Prefers evenings")).toBeInTheDocument();
   });
 
   it("shows the Active / Inactive status", () => {

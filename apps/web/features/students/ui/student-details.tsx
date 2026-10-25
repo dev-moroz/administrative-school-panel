@@ -33,7 +33,7 @@ export function StudentDetails({ student, canEdit, onEdit }: Props) {
         </Avatar>
         <div className="grid min-w-0 flex-1 gap-1">
           <span className="truncate text-lg font-medium">{student.fullName}</span>
-          <Badge variant={student.isActive ? "secondary" : "outline"} className="text-muted-foreground">
+          <Badge variant={student.isActive ? "success" : "warning"}>
             {student.isActive ? t("statusActive") : t("statusInactive")}
           </Badge>
         </div>
@@ -60,7 +60,7 @@ export function StudentDetails({ student, canEdit, onEdit }: Props) {
         <Row label={t("fieldLevel")}>{student.englishLevel ?? EMPTY}</Row>
         <Row label={t("fieldPrice")}>{price}</Row>
         <Row label={t("fieldTeacher")}>{student.teacher?.fullName ?? EMPTY}</Row>
-        <Row label={t("fieldComment")}>{student.comment || EMPTY}</Row>
+        {student.comment?.trim() && <Row label={t("fieldComment")}>{student.comment}</Row>}
       </dl>
     </div>
   );

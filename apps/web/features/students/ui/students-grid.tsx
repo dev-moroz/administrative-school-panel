@@ -17,8 +17,8 @@ type Props = {
 
 const SKELETON_COUNT = 12;
 
-// One fixed minimum height for every state keeps the pagination in the same place.
-const AREA = "min-h-[50vh]";
+// Every state fills the free page height, which keeps the pagination in the same place.
+const AREA = "flex-1";
 const MESSAGE = `${AREA} flex flex-col items-center justify-center gap-3 text-center`;
 
 const containerClass: Record<ViewMode, string> = {
