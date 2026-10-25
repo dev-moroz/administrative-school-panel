@@ -8,7 +8,7 @@ function setup() {
   const tx = {
     student: { findUnique: vi.fn().mockResolvedValue({ id: STUDENT_ID }) },
     ledgerEntry: {
-      create: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'entry-1', ...data })),
+      create: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'entry-1', ...data, createdBy: { id: ACTOR_ID, email: 'a@b.test', firstName: null, lastName: null } })),
       aggregate: vi.fn(),
     },
   };

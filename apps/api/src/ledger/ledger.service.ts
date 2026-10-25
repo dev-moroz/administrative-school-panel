@@ -4,7 +4,7 @@ import type { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ListLedgerQueryDto } from './dto/list-ledger-query.dto.js';
 import { MAX_ADJUSTMENT } from './ledger.constants.js';
-import { LEDGER_ENTRY_SELECT } from './ledger.mapper.js';
+import { LEDGER_ENTRY_SELECT, toLedgerEntryDto } from './ledger.mapper.js';
 
 export interface NewLedgerEntry {
   studentId: string;
@@ -30,7 +30,7 @@ export class LedgerService {
     if (!Number.isInteger(entry.delta) || entry.delta === 0) {
       throw new BadRequestException('delta must be a non-zero integer');
     }
-    return tx.ledgerEntry.create({
+    const row = await tx.ledgerEntry.create({
       data: {
         studentId: entry.studentId,
         delta: entry.delta,
@@ -40,6 +40,7 @@ export class LedgerService {
       },
       select: LEDGER_ENTRY_SELECT,
     });
+    return toLedgerEntryDto(row);
   }
 
   async adjust(studentId: string, delta: number, comment: string, actorId: string) {
@@ -74,7 +75,7 @@ export class LedgerService {
       }),
       this.prisma.ledgerEntry.count({ where }),
     ]);
-    return { items, total, page: query.page, pageSize: query.pageSize };
+    return { items: items.map(toLedgerEntryDto), total, page: query.page, pageSize: query.pageSize };
   }
 
   private async assertStudentExists(studentId: string, db: Db) {

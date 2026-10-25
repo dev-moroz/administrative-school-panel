@@ -182,5 +182,5 @@ Deliberate simplifications of the MVP (confirmed by Anatoly, 2026-10-23, stage 2
 - Entries are never updated or deleted; there are no such routes or service methods. A mistake is fixed with a compensating entry.
 - `LedgerService.addEntry(tx, ...)` is the way for payments and lessons to write entries inside their own transaction. `PURCHASE`, `LESSON_CHARGE` and `LESSON_REVERSAL` cannot be created through the API.
 - `LedgerEntry.paymentId` (stage 4) and `lessonId` (stage 5) are added by those stages' migrations. The double-charge protection is decided in stage 5.
-- `createdBy` in the history is `{ id, email }`; a user name is not added in the MVP (Anatoly: admin and teacher are likely the same person).
+- `createdBy` in the history and in the adjustment response is `{ id, email, name }` (2026-10-25, Anatoly). `name` is `firstName` + `lastName` of the user (trimmed, either part may be missing), `null` if both are empty; the UI shows `name`, falling back to `email`.
 - `DELETE /students/:id` answers 409 once the student has ledger entries (FK `Restrict`).

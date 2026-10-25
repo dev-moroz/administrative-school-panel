@@ -280,6 +280,63 @@ describe('ledger (e2e)', () => {
     });
   });
 
+  describe('author name', () => {
+    const AUTHOR_KEYS = ['email', 'id', 'name'];
+
+    async function setAdminName(firstName: string | null, lastName: string | null) {
+      await prisma.user.update({ where: { id: adminId }, data: { firstName, lastName } });
+    }
+
+    afterEach(async () => {
+      await setAdminName(null, null);
+    });
+
+    it('history: createdBy is { id, email, name } with the full name when it is set', async () => {
+      const student = await seedStudent();
+      await seedEntry(student.id, 1);
+      await setAdminName('Anna', 'Admin');
+
+      const res = await call('teacher', 'get', `/students/${student.id}/ledger`).expect(200);
+
+      const author = res.body.items[0].createdBy;
+      expect(Object.keys(author).sort()).toEqual(AUTHOR_KEYS);
+      expect(author).toEqual({ id: adminId, email: ADMIN_EMAIL, name: 'Anna Admin' });
+    });
+
+    it('history: name is null when the author has no first or last name', async () => {
+      const student = await seedStudent();
+      await seedEntry(student.id, 1);
+
+      const res = await call('teacher', 'get', `/students/${student.id}/ledger`).expect(200);
+
+      expect(res.body.items[0].createdBy).toEqual({ id: adminId, email: ADMIN_EMAIL, name: null });
+    });
+
+    it('history: only a first name is used as is', async () => {
+      const student = await seedStudent();
+      await seedEntry(student.id, 1);
+      await setAdminName('Anna', null);
+
+      const res = await call('teacher', 'get', `/students/${student.id}/ledger`).expect(200);
+
+      expect(res.body.items[0].createdBy.name).toBe('Anna');
+    });
+
+    it('adjustment response has the same createdBy shape as the history', async () => {
+      const student = await seedStudent();
+      await setAdminName('Anna', 'Admin');
+
+      const res = await call('admin', 'post', `/students/${student.id}/ledger/adjustments`, {
+        delta: 1,
+        comment: 'check author',
+      }).expect(201);
+
+      expect(Object.keys(res.body.createdBy).sort()).toEqual(AUTHOR_KEYS);
+      expect(res.body.createdBy).toEqual({ id: adminId, email: ADMIN_EMAIL, name: 'Anna Admin' });
+      expect(JSON.stringify(res.body)).not.toMatch(/firstName|lastName|passwordHash/);
+    });
+  });
+
   describe('entries are never edited or deleted through the API', () => {
     it.each<[Method, string]>([
       ['patch', '/ledger/:entryId'],
