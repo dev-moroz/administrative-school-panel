@@ -44,8 +44,7 @@ Update at the end of every session (briefly).
 - 2026-10-21: after discussion Anatoly kept the auth and permissions plan as is (teacher role with permissions stays). Confirmed: no student web login in the MVP; students are linked to the Telegram bot by a one-time invite link from the teacher (details — `docs/DECISIONS.md`, "Telegram and notifications"; `TelegramInvite` added to the `PLAN.md` data model; the model is not in the schema yet, it comes in stage 7).
 
 ## Next
-- Stage 2, next: to be agreed with Anatoly (plan first).
-- Left from B2: Telegram avatar and the other items in "Known MVP limitations" come later; a hint for an empty teacher list is optional.
+- **Next (Anatoly, 2026-10-25; plan first, in a new chat), the stage 2 leftovers:** (1) Telegram avatar for students (cards, rows, panel); (2) a hint when the teacher list is empty (admin student form). The other items in "Known MVP limitations" come later.
 - **Deprecated, remove with the Users module:** the teacher bootstrap in the seed (`TEACHER_*` env, teacher block in `apps/api/prisma/seed.ts`, `test/env.ts`, seed-teacher tests in `test/schema.e2e-spec.ts`); details in `docs/DECISIONS.md`, "Teacher seed is temporary".
 - Currencies module (later): block deactivating a currency that students use, with a UI message (`docs/DECISIONS.md`, "Currency deactivation rule").
 - Working order (Anatoly's decision, 2026-10-22): alternate backend and frontend substeps instead of finishing the whole API first. After a backend part is done, the matching UI part follows before the next backend part.
