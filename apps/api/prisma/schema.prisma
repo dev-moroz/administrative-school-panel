@@ -24,6 +24,7 @@ model User {
   passwordResetTokens PasswordResetToken[]
   teacher             Teacher?
   student             Student?
+  ledgerEntries       LedgerEntry[]
 
   @@index([roleId])
   @@map("users")
@@ -135,6 +136,7 @@ model Student {
   createdAt           DateTime         @default(now()) @map("created_at")
   updatedAt           DateTime         @updatedAt @map("updated_at")
   teachers            StudentTeacher[]
+  ledgerEntries       LedgerEntry[]
 
   @@index([fullName])
   @@index([defaultCurrencyCode])
@@ -152,4 +154,26 @@ model StudentTeacher {
   @@id([studentId, teacherId])
   @@index([teacherId])
   @@map("student_teachers")
+}
+
+enum LedgerEntryType {
+  PURCHASE
+  LESSON_CHARGE
+  LESSON_REVERSAL
+  MANUAL_ADJUSTMENT
+}
+
+model LedgerEntry {
+  id          String          @id @default(uuid()) @db.Uuid
+  studentId   String          @map("student_id") @db.Uuid
+  student     Student         @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  delta       Int
+  type        LedgerEntryType
+  comment     String?
+  createdById String          @map("created_by_id") @db.Uuid
+  createdBy   User            @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  @@index([studentId, createdAt])
+  @@map("ledger_entries")
 }

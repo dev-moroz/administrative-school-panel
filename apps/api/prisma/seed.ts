@@ -68,7 +68,7 @@ const ROLES: Record<string, string[]> = {
         "students.read.all", "students.create", "students.update",
         ...LESSONS,
         ...PAYMENTS,
-        ...BALANCE,
+        "balance.read",
         "currencies.read",
         "audit.read.business",
     ],

@@ -4,6 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module.js';
 import { CurrenciesModule } from './currencies/currencies.module.js';
+import { LedgerModule } from './ledger/ledger.module.js';
 import { OriginGuard } from './origin.guard.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { StudentsModule } from './students/students.module.js';
@@ -26,6 +27,7 @@ import { TeachersModule } from './teachers/teachers.module.js';
     StudentsModule,
     CurrenciesModule,
     TeachersModule,
+    LedgerModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: OriginGuard },

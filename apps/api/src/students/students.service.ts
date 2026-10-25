@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import type { AuthUser } from '../auth/auth.types.js';
 import { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -11,6 +11,10 @@ const ASSIGN_TEACHER = 'students.assign-teacher';
 
 function isRecordNotFound(error: unknown) {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025';
+}
+
+function isForeignKeyViolation(error: unknown) {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003';
 }
 
 @Injectable()
@@ -85,6 +89,9 @@ export class StudentsService {
       await this.prisma.student.delete({ where: { id } });
     } catch (error) {
       if (isRecordNotFound(error)) throw new NotFoundException('Student not found');
+      if (isForeignKeyViolation(error)) {
+        throw new ConflictException('Student has history, deactivate instead');
+      }
       throw error;
     }
   }

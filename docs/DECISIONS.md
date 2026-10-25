@@ -37,7 +37,7 @@ An admin panel for an English school (one-on-one lessons). The admin (the teache
   - `teacher` is the teacher's own account for daily work. She has a `Teacher` record (time zone, Telegram chat). A separate account protects the settings from accidental changes.
   - `student` has no web login in the first version (the Telegram bot replaces it), but the role stays in the system.
   - Planned split (exact permission keys are defined when writing the seed):
-    - teacher: students (including lesson price and default currency), lessons, calendar, recurring series, freezes, payments, manual balance adjustments, cancellation rules, the low-balance threshold N, her own profile (time zone, Telegram), adding a new currency (tentative, Anatoly is not sure; easy to change by permission).
+    - teacher: students (including lesson price and default currency), lessons, calendar, recurring series, freezes, payments, cancellation rules, the low-balance threshold N, her own profile (time zone, Telegram), adding a new currency (tentative, Anatoly is not sure; easy to change by permission).
     - admin only: users, roles and permissions, editing and deactivating currencies, system settings, the full audit log. Decided 2026-10-21: the teacher sees the change history (audit) of her own students' lessons, payments and balance; the system-wide audit log (users, roles, settings) stays admin-only.
   - Access stays permission-based, never by role name; the "role × endpoint" tests get the new role.
   - **Student–teacher link (decided 2026-10-22):** many-to-many through the `StudentTeacher` table from the start (Anatoly's choice, mainly for practice and modular growth; a single `Student.teacherId` was considered and would also have been enough). In the MVP every student is linked to the only teacher, automatically on creation. Lessons and payments reach the teacher through the student. Filtering by teacher (a teacher sees only her own students) is not in the MVP; student reads go through the service layer with the current user passed in, so the filter can be added in one place. Open: which teacher conducts a given lesson when a student has several (affects cancellation rules, time zone, notifications); decided when a second teacher appears.
@@ -176,3 +176,11 @@ Deliberate simplifications of the MVP (confirmed by Anatoly, 2026-10-23, stage 2
 - **Discard changes?** Asked when a dirty form is closed (Esc, overlay, close button) or cancelled. No `size` prop on the panel shell until a wide panel is really needed.
 - **Teacher cannot be changed in the edit form** (the API has no endpoint); shown as text. For the admin the teacher is required on create.
 - **Telegram nickname keeps the 5 to 32 rule** (the Telegram minimum), same as the API.
+
+## Balance ledger (stage 3, 2026-10-25)
+- Manual balance adjustment is **admin only** (`balance.adjust`); the teacher has `balance.read`. Changed from the earlier "teacher adjusts" (Anatoly): a teacher can get the permission later through a role/permission change, no code change. Limit: |delta| <= 50 lessons (constant `MAX_ADJUSTMENT`), a non-empty comment is required (max 1000 characters).
+- Entries are never updated or deleted; there are no such routes or service methods. A mistake is fixed with a compensating entry.
+- `LedgerService.addEntry(tx, ...)` is the way for payments and lessons to write entries inside their own transaction. `PURCHASE`, `LESSON_CHARGE` and `LESSON_REVERSAL` cannot be created through the API.
+- `LedgerEntry.paymentId` (stage 4) and `lessonId` (stage 5) are added by those stages' migrations. The double-charge protection is decided in stage 5.
+- `createdBy` in the history is `{ id, email }`; a user name is not added in the MVP (Anatoly: admin and teacher are likely the same person).
+- `DELETE /students/:id` answers 409 once the student has ledger entries (FK `Restrict`).
