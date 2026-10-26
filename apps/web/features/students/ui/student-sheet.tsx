@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMe } from "@/features/auth";
-import { StudentBalance } from "@/features/ledger/ui/student-balance";
 import { ApiError } from "@/lib/api";
 import { toPayload, type StudentFormValues } from "../model/student-schema";
 import { emptyFormValues, studentToFormValues } from "../model/student-to-form-values";
@@ -19,6 +18,7 @@ import { useTeachers } from "../model/use-teachers";
 import { useUpdateStudent } from "../model/use-update-student";
 import { StudentDetails } from "./student-details";
 import { StudentForm } from "./student-form";
+import { StudentSections } from "./student-sections";
 
 export type SheetTarget = { kind: "closed" } | { kind: "create" } | { kind: "view"; id: string };
 
@@ -191,7 +191,7 @@ export function StudentSheet({ target, onTargetChange }: Props) {
     return (
       <div className="grid gap-4">
         <StudentDetails student={student.data} canEdit={canEdit} onEdit={requestEdit} />
-        <StudentBalance studentId={student.data.id} onDirtyChange={setAdjustDirty} />
+        <StudentSections studentId={student.data.id} onDirtyChange={setAdjustDirty} />
       </div>
     );
   }

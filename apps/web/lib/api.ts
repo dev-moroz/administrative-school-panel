@@ -24,12 +24,10 @@ function refreshSession() {
 }
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const send = () =>
-    fetch(`/api${path}`, {
-      ...init,
-      credentials: "include",
-      headers: { "Content-Type": "application/json", ...init?.headers },
-    });
+  // FormData needs the browser to set Content-Type itself (the multipart boundary).
+  const headers = new Headers(init?.headers);
+  if (!(init?.body instanceof FormData) && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  const send = () => fetch(`/api${path}`, { ...init, credentials: "include", headers });
 
   let res = await send();
   if (res.status === 401 && !NO_REFRESH_PATHS.includes(path) && (await refreshSession())) {

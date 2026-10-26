@@ -74,8 +74,8 @@ export function StudentBalance({ studentId, onDirtyChange }: Props) {
   const items = ledger.data?.pages.flatMap((page) => page.items) ?? [];
 
   return (
-    <section className="grid gap-5 border-t pt-8">
-      <h3 className="text-sm font-medium text-muted-foreground">{t("title")}</h3>
+    <section className="grid gap-5">
+      <h3 className="sr-only">{t("title")}</h3>
 
       {balance.isError ? (
         <div role="alert" className="grid justify-items-start gap-2">

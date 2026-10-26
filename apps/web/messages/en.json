@@ -73,7 +73,11 @@
     "telegramLinked": "Telegram linked",
     "telegramNotLinked": "Telegram not linked",
     "toastSaved": "Changes saved",
-    "toastCreated": "Student created"
+    "toastCreated": "Student created",
+    "section": {
+      "balance": "Balance",
+      "payments": "Payments"
+    }
   },
   "Ledger": {
     "title": "Balance",
@@ -104,6 +108,73 @@
       "LESSON_CHARGE": "Lesson charged",
       "LESSON_REVERSAL": "Lesson reversed",
       "MANUAL_ADJUSTMENT": "Manual adjustment"
+    }
+  },
+  "Payments": {
+    "title": "Payments",
+    "newPayment": "New payment",
+    "filterLabel": "Filter by student",
+    "allStudents": "All students",
+    "empty": "No payments yet",
+    "loadError": "Could not load payments",
+    "retry": "Retry",
+    "showMore": "Show more",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "lessons": "+{count} {count, plural, one {lesson} other {lessons}}",
+    "by": "by {name}",
+    "openFile": "Open file",
+    "openLink": "Open link",
+    "method": {
+      "CASH": "Cash",
+      "CARD": "Card",
+      "TRANSFER": "Transfer",
+      "CRYPTO": "Crypto"
+    },
+    "sheetTitle": "New payment",
+    "sheetDescription": "Record a payment and add lessons to the balance",
+    "fieldStudent": "Student",
+    "studentPlaceholder": "Select a student",
+    "fieldAmount": "Amount",
+    "fieldCurrency": "Currency",
+    "fieldMethod": "Method",
+    "fieldLessons": "Lessons",
+    "fieldPaidAt": "Paid at (empty = now)",
+    "fieldComment": "Comment",
+    "fieldProof": "Proof",
+    "proof": {
+      "none": "None",
+      "link": "Link",
+      "file": "File"
+    },
+    "fieldProofLink": "Proof link",
+    "fieldProofFile": "Proof file",
+    "errStudent": "Choose a student",
+    "errCurrency": "Choose a currency",
+    "errMethod": "Choose a method",
+    "errAmount": "Enter a positive amount with the currency's decimals",
+    "errLessons": "Enter a whole number from 1 to 100",
+    "errLink": "Enter a valid link starting with http:// or https://",
+    "errFileRequired": "Choose a file",
+    "errFileType": "Use a png, jpg, webp or pdf file",
+    "errFileSize": "The file is larger than 5 MB",
+    "save": "Save payment",
+    "cancel": "Cancel",
+    "toastSaved": "Payment saved",
+    "saveInvalid": "Invalid payment data",
+    "saveForbidden": "You are not allowed to add payments",
+    "saveFailed": "Could not save the payment",
+    "uploadFailed": "Payment saved, but the file was not uploaded",
+    "retryUpload": "Retry upload",
+    "close": "Close",
+    "lessonPrice": "Lesson price: {value}",
+    "readMore": "Read more",
+    "readLess": "Read less",
+    "receipt": "Receipt",
+    "link": "Link",
+    "fileKind": {
+      "pdf": "PDF",
+      "image": "Image"
     }
   }
 }
