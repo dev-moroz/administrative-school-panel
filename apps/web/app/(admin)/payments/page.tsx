@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -58,7 +57,6 @@ export default function PaymentsPage() {
         </Select>
         {me?.permissions.includes("payments.create") && (
           <Button onClick={() => setSheetOpen(true)}>
-            <Plus aria-hidden />
             {t("newPayment")}
           </Button>
         )}
