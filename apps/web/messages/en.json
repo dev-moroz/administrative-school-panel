@@ -20,6 +20,12 @@
     "payments": "Payments",
     "logout": "Sign out"
   },
+  "Theme": {
+    "toggle": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
   "Common": {
     "cards": "Cards",
     "list": "List",
