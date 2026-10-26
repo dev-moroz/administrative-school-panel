@@ -30,7 +30,7 @@ export function LoginForm() {
       });
 
       if (res.ok) {
-        router.replace("/");
+        router.replace("/students");
         return;
       }
 

@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // so pages cannot tell an expired session from no session: SessionGuard decides after refresh-on-401.
 export function proxy(request: NextRequest) {
   if (request.cookies.has("access_token")) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("/students", request.url));
   }
   return NextResponse.next();
 }

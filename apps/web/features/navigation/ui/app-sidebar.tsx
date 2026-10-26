@@ -47,8 +47,8 @@ export function AppSidebar() {
               {!me &&
                 NAV_ITEMS.map((item) => (
                   <SidebarMenuItem key={item.href}>
-                    <div className="flex h-8 items-center gap-2 px-2">
-                      <Skeleton className="size-4" />
+                    <div className="flex h-12 items-center gap-2 px-2">
+                      <Skeleton className="size-5" />
                       <Skeleton className="h-4 flex-1" />
                     </div>
                   </SidebarMenuItem>
@@ -57,6 +57,8 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild
+                    size="lg"
+                    className="text-base [&_svg]:size-5"
                     isActive={pathname.startsWith(item.href)}
                   >
                     <Link href={item.href}>
@@ -73,7 +75,12 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton disabled={isPending} onClick={() => signOut()}>
+            <SidebarMenuButton
+              size="lg"
+              className="text-base [&_svg]:size-5"
+              disabled={isPending}
+              onClick={() => signOut()}
+            >
               <LogOut />
               <span>{t("logout")}</span>
             </SidebarMenuButton>
