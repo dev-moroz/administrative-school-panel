@@ -14,6 +14,8 @@ export default getRequestConfig(async () => {
 
   return {
     locale,
+    // Explicit default so next-intl does not fall back to the environment (ENVIRONMENT_FALLBACK).
+    timeZone: process.env.APP_TIME_ZONE ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
     messages: (await import(`../messages/${locale}.json`)).default,
   };
 });

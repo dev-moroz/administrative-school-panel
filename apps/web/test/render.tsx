@@ -10,7 +10,7 @@ export function renderWithProviders(ui: ReactElement) {
   });
   return render(
     <QueryClientProvider client={client}>
-      <NextIntlClientProvider locale="en" messages={messages}>
+      <NextIntlClientProvider locale="en" messages={messages} timeZone={Intl.DateTimeFormat().resolvedOptions().timeZone}>
         {ui}
       </NextIntlClientProvider>
     </QueryClientProvider>,
