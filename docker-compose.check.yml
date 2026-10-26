@@ -1,0 +1,40 @@
+# Docker check only (stage 3 -> 4). Run together with the base file:
+#   docker compose -p school-check -f docker-compose.yml -f docker-compose.check.yml up --build -d
+services:
+  postgres:
+    ports: !reset []   # do not clash with the dev database on 5432
+
+  mailpit:
+    ports: !reset []   # unused in the check, avoid clashing with the dev one
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://school:school@postgres:5432/school?schema=public
+      PORT: "4000"
+      WEB_ORIGIN: http://localhost:3000
+      JWT_ACCESS_SECRET: check-only-secret-change-me-0123456789abcdef
+      JWT_ACCESS_TTL: 15m
+      JWT_REFRESH_TTL_DAYS: "14"
+      REFRESH_COOKIE_PATH: /api/auth
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: check-admin-pass
+      TEACHER_EMAIL: teacher@example.com
+      TEACHER_PASSWORD: check-teacher-pass
+      TEACHER_NAME: Check Teacher
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        API_URL: http://api:4000
+    depends_on:
+      - api
+    ports:
+      - "127.0.0.1:3000:3000"
