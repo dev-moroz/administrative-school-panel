@@ -1,4 +1,6 @@
 import { config } from 'dotenv';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const apiRoot = fileURLToPath(new URL('..', import.meta.url));
@@ -19,6 +21,7 @@ export const TEST_ENV = {
   JWT_REFRESH_TTL_DAYS: '14',
   WEB_ORIGIN: 'http://localhost:3000',
   THROTTLE_DISABLED: 'true',
+  UPLOADS_DIR: join(tmpdir(), 'school-e2e-uploads'),
   ADMIN_EMAIL: 'admin@e2e.test',
   ADMIN_PASSWORD: 'e2e-admin-password',
 

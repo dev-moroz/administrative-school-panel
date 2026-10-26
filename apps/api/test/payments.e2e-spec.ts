@@ -26,6 +26,7 @@ const PAYMENT_KEYS = [
   'lessonsGranted',
   'method',
   'paidAt',
+  'proofFile',
   'proofUrl',
   'student',
 ];

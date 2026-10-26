@@ -26,6 +26,7 @@ model User {
   student             Student?
   ledgerEntries       LedgerEntry[]
   payments            Payment[]
+  paymentProofFiles   PaymentProofFile[]
 
   @@index([roleId])
   @@map("users")
@@ -206,8 +207,23 @@ model Payment {
   createdBy      User          @relation(fields: [createdById], references: [id], onDelete: Restrict)
   createdAt      DateTime      @default(now()) @map("created_at")
   ledgerEntry    LedgerEntry?
+  proofFile      PaymentProofFile?
 
   @@index([studentId, paidAt])
   @@index([paidAt])
   @@map("payments")
+}
+
+model PaymentProofFile {
+  id           String   @id @default(uuid()) @db.Uuid
+  paymentId    String   @unique @map("payment_id") @db.Uuid
+  payment      Payment  @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  originalName String   @map("original_name")
+  mimeType     String   @map("mime_type")
+  size         Int
+  uploadedById String   @map("uploaded_by_id") @db.Uuid
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("payment_proof_files")
 }

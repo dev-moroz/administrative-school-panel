@@ -200,3 +200,10 @@ Deliberate simplifications of the MVP (confirmed by Anatoly, 2026-10-23, stage 2
 - `paidAt` defaults to now; it may not be later than now plus 5 minutes (`PAID_AT_SKEW_MS`, tolerance for a fast client clock). The frontend should omit `paidAt` for "now".
 - Proof is a link only (`proofUrl`, http/https) in 4a; file upload and protected download come in 4b.
 
+## Payment proof files (stage 4b, 2026-10-26)
+- `POST /payments/:id/proof` (`payments.create`, multipart field `file`) attaches a file to an existing payment; `GET /payments/:id/proof` (`payments.read`) returns it. The payment JSON contract from 4a is unchanged; the frontend creates the payment first and uploads the file second.
+- Allowed: png, jpg, webp, pdf, at most 5 MB (`MAX_PROOF_FILE_SIZE`). The type is decided by the file signature, never by the declared mime type or extension. Above the limit: 413; wrong type, empty file or no file: 400.
+- One proof per payment, either a link or a file; attached once, no replace and no delete (the change history comes with the audit, stage 8). A second upload or a payment with `proofUrl`: 409.
+- Storage: `UPLOADS_DIR/payment-proofs/<uuid>.<ext>` (`PaymentProofFile.id` is the file name; the original name is kept in the database for display only, sanitized). Never served as static files. In production `UPLOADS_DIR` is a Docker volume outside the container, included in backups (stage 9).
+- The file is served `inline` (opens in the browser, no download), `Cache-Control: private, no-store`, `nosniff`, with a generated file name. The payment DTO has `proofFile { originalName, mimeType, size } | null`; the frontend builds the link `/api/payments/{id}/proof`.
+

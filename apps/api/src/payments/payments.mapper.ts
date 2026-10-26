@@ -10,6 +10,7 @@ export const PAYMENT_SELECT = {
   paidAt: true,
   comment: true,
   proofUrl: true,
+  proofFile: { select: { originalName: true, mimeType: true, size: true } },
   lessonsGranted: true,
   createdAt: true,
   student: { select: { id: true, fullName: true } },
