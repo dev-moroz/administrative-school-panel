@@ -192,3 +192,11 @@ Deliberate simplifications of the MVP (confirmed by Anatoly, 2026-10-23, stage 2
 - **Discard changes? has no exceptions (Anatoly):** any action that would drop unsaved input asks first. That covers closing the panel, switching to Edit and Cancel inside the adjustment form. An open but untouched form is closed without asking.
 - Dates use the browser time zone for now; the teacher's zone from settings replaces it later.
 
+## Payments (stage 4a, 2026-10-26)
+- Endpoints: `POST /payments` (`payments.create`, `studentId` in the body) and `GET /payments` (`payments.read`; `page`, `pageSize` max 100, optional `studentId`). One list serves both the Payments page and the student panel; items include `student { id, fullName }`.
+- A payment and its `PURCHASE` entry (with `LedgerEntry.paymentId`, unique) are created in one transaction. Payments are never edited or deleted (no routes); a mistake is fixed with a balance adjustment by the admin, the payment stays in the history. `DELETE /students/:id` is 409 for a student with payments.
+- `lessonsGranted` is 1..100 (at least one lesson). The money remainder is postponed until after the MVP (Anatoly), no column and no calculation for now.
+- `amount` is sent as a string, validated against the currency's `decimals` (`parseAmount`), stored as `Decimal(28,8)` and returned formatted by `decimals`. The currency must exist and be active.
+- `paidAt` defaults to now; it may not be later than now plus 5 minutes (`PAID_AT_SKEW_MS`, tolerance for a fast client clock). The frontend should omit `paidAt` for "now".
+- Proof is a link only (`proofUrl`, http/https) in 4a; file upload and protected download come in 4b.
+

@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { CurrenciesModule } from './currencies/currencies.module.js';
 import { LedgerModule } from './ledger/ledger.module.js';
 import { OriginGuard } from './origin.guard.js';
+import { PaymentsModule } from './payments/payments.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { StudentsModule } from './students/students.module.js';
 import { TeachersModule } from './teachers/teachers.module.js';
@@ -28,6 +29,7 @@ import { TeachersModule } from './teachers/teachers.module.js';
     CurrenciesModule,
     TeachersModule,
     LedgerModule,
+    PaymentsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: OriginGuard },

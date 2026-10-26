@@ -11,6 +11,7 @@ export interface NewLedgerEntry {
   delta: number;
   type: LedgerEntryType;
   comment?: string | null;
+  paymentId?: string;
   createdById: string;
 }
 
@@ -36,6 +37,7 @@ export class LedgerService {
         delta: entry.delta,
         type: entry.type,
         comment: entry.comment ?? null,
+        paymentId: entry.paymentId ?? null,
         createdById: entry.createdById,
       },
       select: LEDGER_ENTRY_SELECT,

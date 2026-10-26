@@ -25,6 +25,7 @@ model User {
   teacher             Teacher?
   student             Student?
   ledgerEntries       LedgerEntry[]
+  payments            Payment[]
 
   @@index([roleId])
   @@map("users")
@@ -102,6 +103,7 @@ model Currency {
   decimals Int       @default(2)
   isActive Boolean   @default(true) @map("is_active")
   students Student[]
+  payments Payment[]
 
   @@map("currencies")
 }
@@ -137,6 +139,7 @@ model Student {
   updatedAt           DateTime         @updatedAt @map("updated_at")
   teachers            StudentTeacher[]
   ledgerEntries       LedgerEntry[]
+  payments            Payment[]
 
   @@index([fullName])
   @@index([defaultCurrencyCode])
@@ -172,8 +175,39 @@ model LedgerEntry {
   comment     String?
   createdById String          @map("created_by_id") @db.Uuid
   createdBy   User            @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  paymentId   String?         @unique @map("payment_id") @db.Uuid
+  payment     Payment?        @relation(fields: [paymentId], references: [id], onDelete: Restrict)
   createdAt   DateTime        @default(now()) @map("created_at")
 
   @@index([studentId, createdAt])
   @@map("ledger_entries")
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+  CRYPTO
+}
+
+model Payment {
+  id             String        @id @default(uuid()) @db.Uuid
+  studentId      String        @map("student_id") @db.Uuid
+  student        Student       @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  amount         Decimal       @db.Decimal(28, 8)
+  currencyCode   String        @map("currency_code")
+  currency       Currency      @relation(fields: [currencyCode], references: [code], onDelete: Restrict)
+  paidAt         DateTime      @map("paid_at")
+  method         PaymentMethod
+  comment        String?
+  proofUrl       String?       @map("proof_url")
+  lessonsGranted Int           @map("lessons_granted")
+  createdById    String        @map("created_by_id") @db.Uuid
+  createdBy      User          @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt      DateTime      @default(now()) @map("created_at")
+  ledgerEntry    LedgerEntry?
+
+  @@index([studentId, paidAt])
+  @@index([paidAt])
+  @@map("payments")
 }
