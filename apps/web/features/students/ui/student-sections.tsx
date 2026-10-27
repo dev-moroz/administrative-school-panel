@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMe } from "@/features/auth";
 import { StudentBalance } from "@/features/ledger/ui/student-balance";
 import { StudentPayments } from "@/features/payments/ui/student-payments";
@@ -22,28 +22,26 @@ export function StudentSections({ studentId, onDirtyChange }: Props) {
 
   const active = available.includes(selected) ? selected : available[0];
 
-  // Both sections stay mounted and the inactive one is only hidden, so an unsaved balance adjustment survives switching.
+  // Balance stays mounted (hidden, not unmounted) so an unsaved adjustment survives switching; Payments mounts on first open.
   return (
-    <div className="grid gap-5 border-t pt-8">
-      <ToggleGroup
-        type="single"
-        variant="outline"
-        className="justify-self-start"
-        value={active}
-        onValueChange={(next) => next && setSelected(next as Section)}
-      >
+    <Tabs value={active} onValueChange={(next) => setSelected(next as Section)} className="gap-5 border-t pt-8">
+      <TabsList className="w-full group-data-horizontal/tabs:h-10">
         {available.map((section) => (
-          <ToggleGroupItem key={section} value={section}>
+          <TabsTrigger key={section} value={section}>
             {t(`section.${section}`)}
-          </ToggleGroupItem>
+          </TabsTrigger>
         ))}
-      </ToggleGroup>
-      <div hidden={active !== "balance"}>
-        <StudentBalance studentId={studentId} onDirtyChange={onDirtyChange} />
-      </div>
-      <div hidden={active !== "payments"}>
-        <StudentPayments studentId={studentId} />
-      </div>
-    </div>
+      </TabsList>
+      {available.includes("balance") && (
+        <TabsContent value="balance" forceMount hidden={active !== "balance"} className="text-base">
+          <StudentBalance studentId={studentId} onDirtyChange={onDirtyChange} />
+        </TabsContent>
+      )}
+      {available.includes("payments") && (
+        <TabsContent value="payments" className="text-base">
+          <StudentPayments studentId={studentId} />
+        </TabsContent>
+      )}
+    </Tabs>
   );
 }

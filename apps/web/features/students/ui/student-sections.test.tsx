@@ -28,54 +28,66 @@ function setup(permissions = BOTH) {
   renderWithProviders(<StudentSections studentId="s1" onDirtyChange={onDirtyChange} />);
 }
 
+const paymentCalls = () => vi.mocked(apiFetch).mock.calls.filter(([p]) => String(p).startsWith("/payments"));
+
 beforeEach(() => {
   vi.mocked(apiFetch).mockReset();
 });
 
 describe("StudentSections", () => {
-  it("offers Balance and Payments, Balance is selected and visible first", async () => {
+  it("offers Balance and Payments tabs, Balance is selected and visible first", async () => {
     setup();
-    const balance = await screen.findByRole("radio", { name: "Balance" });
-    expect(balance).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByRole("radio", { name: "Payments" })).toHaveAttribute("aria-checked", "false");
+    expect(await screen.findByRole("tablist")).toBeInTheDocument();
+    const balance = await screen.findByRole("tab", { name: "Balance" });
+    expect(balance).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Payments" })).toHaveAttribute("aria-selected", "false");
     expect(await screen.findByText("Lessons left")).toBeVisible();
   });
 
   it("switches to the payment history and hides the balance", async () => {
     setup();
-    await userEvent.click(await screen.findByRole("radio", { name: "Payments" }));
+    await userEvent.click(await screen.findByRole("tab", { name: "Payments" }));
     expect(await screen.findByText("400.00")).toBeVisible();
     expect(screen.getByText("Lessons left")).not.toBeVisible();
-    expect(screen.getByRole("radio", { name: "Payments" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("tab", { name: "Payments" })).toHaveAttribute("aria-selected", "true");
   });
 
-  it("cannot be switched off by clicking the selected item again", async () => {
+  it("keeps the selected tab selected when it is clicked again", async () => {
     setup();
-    const balance = await screen.findByRole("radio", { name: "Balance" });
+    const balance = await screen.findByRole("tab", { name: "Balance" });
     await userEvent.click(balance);
-    expect(balance).toHaveAttribute("aria-checked", "true");
+    expect(balance).toHaveAttribute("aria-selected", "true");
   });
 
-  it("keeps an unsaved balance adjustment while the other section is open", async () => {
+  it("does not request payments until the Payments tab is opened", async () => {
+    setup();
+    expect(await screen.findByText("Lessons left")).toBeVisible();
+    expect(paymentCalls()).toHaveLength(0);
+    await userEvent.click(screen.getByRole("tab", { name: "Payments" }));
+    expect(await screen.findByText("400.00")).toBeVisible();
+    expect(paymentCalls().length).toBeGreaterThan(0);
+  });
+
+  it("keeps an unsaved balance adjustment while the other tab is open", async () => {
     setup();
     await userEvent.click(await screen.findByRole("button", { name: "Adjust balance" }));
     await userEvent.type(screen.getByLabelText("Change"), "2");
-    await userEvent.click(screen.getByRole("radio", { name: "Payments" }));
-    await userEvent.click(screen.getByRole("radio", { name: "Balance" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Payments" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Balance" }));
     expect(screen.getByLabelText("Change")).toHaveValue("2");
   });
 
   it("offers only the sections the user may read", async () => {
     setup(["payments.read"]);
-    const payments = await screen.findByRole("radio", { name: "Payments" });
-    expect(payments).toHaveAttribute("aria-checked", "true");
-    expect(screen.queryByRole("radio", { name: "Balance" })).not.toBeInTheDocument();
+    const payments = await screen.findByRole("tab", { name: "Payments" });
+    expect(payments).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByRole("tab", { name: "Balance" })).not.toBeInTheDocument();
     expect(await screen.findByText("400.00")).toBeVisible();
   });
 
   it("renders nothing without balance.read and payments.read", async () => {
     setup(["students.read.all"]);
     await vi.waitFor(() => expect(vi.mocked(apiFetch)).toHaveBeenCalled());
-    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab")).not.toBeInTheDocument();
   });
 });
