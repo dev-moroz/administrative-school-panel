@@ -1,3 +1,4 @@
+// Currently unused: the theme toggle moved to a Switch. Kept for future menus.
 "use client"
 
 import * as React from "react"

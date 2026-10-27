@@ -1,47 +1,38 @@
 "use client"
 
-import { Monitor, Moon, Sun } from "lucide-react"
+import { useSyncExternalStore } from "react"
+import { Moon, Sun } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useTheme } from "next-themes"
-import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { Switch } from "@/components/ui/switch"
 
-const OPTIONS = [
-  { value: "light", icon: Sun },
-  { value: "dark", icon: Moon },
-  { value: "system", icon: Monitor },
-] as const
+const subscribe = () => () => {}
+
+// False on the server and during hydration, true afterwards.
+function useMounted() {
+  return useSyncExternalStore(
+    subscribe,
+    () => true,
+    () => false,
+  )
+}
 
 export function ThemeToggle() {
   const t = useTranslations("Theme")
-  const { setTheme } = useTheme()
+  const { resolvedTheme, setTheme } = useTheme()
+  const mounted = useMounted()
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="h-12 w-full justify-start gap-2 px-2 text-base [&_svg]:size-5"
-        >
-          {/* Both icons are in the DOM; CSS picks one, so the server and client markup match. */}
-          <Sun className="dark:hidden" />
-          <Moon className="hidden dark:block" />
-          <span>{t("toggle")}</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent side="top" align="start">
-        {OPTIONS.map(({ value, icon: Icon }) => (
-          <DropdownMenuItem key={value} onSelect={() => setTheme(value)}>
-            <Icon />
-            {t(value)}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex h-12 items-center gap-3 px-2 [&_svg]:size-5">
+      {/* CSS picks the active icon, so the server and client markup match. */}
+      <Sun className="text-foreground dark:text-muted-foreground" />
+      <Switch
+        aria-label={t("toggle")}
+        checked={mounted && resolvedTheme === "dark"}
+        disabled={!mounted}
+        onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+      />
+      <Moon className="text-muted-foreground dark:text-foreground" />
+    </div>
   )
 }

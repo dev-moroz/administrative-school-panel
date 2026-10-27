@@ -26,12 +26,6 @@ function mockSystemDark(matches: boolean) {
   }));
 }
 
-async function pick(name: "Light" | "Dark" | "System") {
-  const user = userEvent.setup();
-  await user.click(screen.getByRole("button", { name: "Theme" }));
-  await user.click(await screen.findByRole("menuitem", { name }));
-}
-
 beforeEach(() => {
   localStorage.clear();
   document.documentElement.className = "";
@@ -39,57 +33,71 @@ beforeEach(() => {
   mockSystemDark(false);
 });
 
+function getSwitch() {
+  return screen.getByRole("switch", { name: "Theme" });
+}
+
 describe("ThemeToggle", () => {
-  it("renders a button named Theme", () => {
+  it("renders a switch named Theme", () => {
     renderToggle();
-    expect(screen.getByRole("button", { name: "Theme" })).toBeInTheDocument();
+    expect(getSwitch()).toBeInTheDocument();
   });
 
-  it("opens a menu with Light, Dark and System", async () => {
+  it("has no menu and no System option", () => {
     renderToggle();
-    await userEvent.setup().click(screen.getByRole("button", { name: "Theme" }));
-    expect(await screen.findByRole("menuitem", { name: "Light" })).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: "Dark" })).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: "System" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Theme" })).not.toBeInTheDocument();
+    expect(screen.queryByText("System")).not.toBeInTheDocument();
   });
 
-  it("Dark adds the dark class to <html> and saves the choice", async () => {
+  it("is off in the light theme", () => {
     renderToggle();
-    await pick("Dark");
+    expect(getSwitch()).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("is on when the saved theme is dark", () => {
+    localStorage.setItem("theme", "dark");
+    renderToggle();
+    expect(document.documentElement).toHaveClass("dark");
+    expect(getSwitch()).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("is on when the saved theme is system and the OS is dark", () => {
+    mockSystemDark(true);
+    localStorage.setItem("theme", "system");
+    renderToggle();
+    expect(getSwitch()).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("follows the OS preference when nothing is saved", () => {
+    mockSystemDark(true);
+    renderToggle();
+    expect(document.documentElement).toHaveClass("dark");
+    expect(getSwitch()).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("turning it on adds the dark class and saves dark", async () => {
+    renderToggle();
+    await userEvent.setup().click(getSwitch());
     expect(document.documentElement).toHaveClass("dark");
     expect(localStorage.getItem("theme")).toBe("dark");
+    expect(getSwitch()).toHaveAttribute("aria-checked", "true");
   });
 
-  it("Light removes the dark class and saves the choice", async () => {
+  it("turning it off removes the dark class and saves light", async () => {
     localStorage.setItem("theme", "dark");
     renderToggle();
-    expect(document.documentElement).toHaveClass("dark");
-    await pick("Light");
+    await userEvent.setup().click(getSwitch());
     expect(document.documentElement).not.toHaveClass("dark");
     expect(localStorage.getItem("theme")).toBe("light");
+    expect(getSwitch()).toHaveAttribute("aria-checked", "false");
   });
 
-  it("System follows the OS preference (dark)", async () => {
+  it("turning it off from system+dark OS saves an explicit light", async () => {
     mockSystemDark(true);
-    localStorage.setItem("theme", "light");
+    localStorage.setItem("theme", "system");
     renderToggle();
+    await userEvent.setup().click(getSwitch());
     expect(document.documentElement).not.toHaveClass("dark");
-    await pick("System");
-    expect(document.documentElement).toHaveClass("dark");
-    expect(localStorage.getItem("theme")).toBe("system");
-  });
-
-  it("System follows the OS preference (light)", async () => {
-    localStorage.setItem("theme", "dark");
-    renderToggle();
-    await pick("System");
-    expect(document.documentElement).not.toHaveClass("dark");
-    expect(localStorage.getItem("theme")).toBe("system");
-  });
-
-  it("applies the saved theme on first render", () => {
-    localStorage.setItem("theme", "dark");
-    renderToggle();
-    expect(document.documentElement).toHaveClass("dark");
+    expect(localStorage.getItem("theme")).toBe("light");
   });
 });
