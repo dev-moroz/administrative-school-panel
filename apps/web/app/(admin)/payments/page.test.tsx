@@ -58,12 +58,12 @@ describe("PaymentsPage", () => {
     expect(lastCall().searchParams.has("studentId")).toBe(false);
   });
 
-  it("paginates: Page 1 of 3, Previous disabled, Next loads page 2", async () => {
+  it("paginates: Page 1 of 3, no Previous, Next loads page 2", async () => {
     mockApi();
     renderWithProviders(<PaymentsPage />);
     await screen.findByText("Payer 1");
     expect(screen.getByText("Page 1 of 3")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Previous" })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Next" }));
     expect(await screen.findByText("Payer 2")).toBeInTheDocument();
   });
@@ -200,7 +200,7 @@ describe("PaymentsPage", () => {
       renderWithProviders(<PaymentsPage />);
       await screen.findByText("Payer 1");
       expect(screen.getByText("Page 1 of 3")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
+      expect(screen.queryByRole("button", { name: "Previous" })).not.toBeInTheDocument();
     });
 
     it("shows the empty state instead of a table when there are no payments", async () => {

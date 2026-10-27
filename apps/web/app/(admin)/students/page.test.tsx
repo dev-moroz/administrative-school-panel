@@ -52,15 +52,15 @@ describe("StudentsPage", () => {
     expect(lastCall().searchParams.get("isActive")).toBe("true");
   });
 
-  it("shows 'Page 1 of 3' and disables Previous on the first page", async () => {
+  it("shows 'Page 1 of 3' and hides Previous on the first page", async () => {
     mockApi();
     renderWithProviders(<StudentsPage />);
     await screen.findByText("Student 1");
     expect(screen.getByText("Page 1 of 3")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Previous" })).not.toBeInTheDocument();
   });
 
-  it("Next goes to the following page and is disabled on the last one", async () => {
+  it("Next goes to the following page and is hidden on the last one", async () => {
     mockApi();
     renderWithProviders(<StudentsPage />);
     await screen.findByText("Student 1");
@@ -69,7 +69,7 @@ describe("StudentsPage", () => {
     expect(await screen.findByText("Student 2")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Next" }));
     expect(await screen.findByText("Student 3")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Next" })).not.toBeInTheDocument();
   });
 
   it("sends the search to the API only after a 300 ms pause, with page reset to 1", async () => {

@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { ListPage } from "@/components/list-page";
 import { useMe } from "@/features/auth";
 import { useViewMode } from "@/hooks/use-view-mode";
 import { useDebouncedValue } from "@/features/students/model/use-debounced-value";
 import { useStudents } from "@/features/students/model/use-students";
 import { StudentsGrid } from "@/features/students/ui/students-grid";
 import { StudentSheet, type SheetTarget } from "@/features/students/ui/student-sheet";
-import { StudentsPagination } from "@/features/students/ui/students-pagination";
 import { StudentsToolbar, type StatusFilter } from "@/features/students/ui/students-toolbar";
 
 const STUDENT_VIEWS = ["cards", "list"] as const;
@@ -33,34 +33,33 @@ export default function StudentsPage() {
   const totalPages = Math.max(1, Math.ceil((students.data?.total ?? 0) / PAGE_SIZE));
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
-      <StudentsToolbar
-        search={searchInput}
-        onSearchChange={setSearchInput}
-        status={status}
-        onStatusChange={setStatus}
-        view={view}
-        onViewChange={setView}
-        canCreate={!!me?.permissions.includes("students.create")}
-        onCreate={() => setTarget({ kind: "create" })}
-      />
-      <StudentsGrid
-        view={view}
-        students={students.data?.items}
-        isLoading={students.isLoading}
-        isError={students.isError}
-        onRetry={() => students.refetch()}
-        onSelect={(id) => setTarget({ kind: "view", id })}
-      />
-      {!!students.data?.total && (
-        <StudentsPagination
-          page={page}
-          totalPages={totalPages}
-          onPageChange={(next) => setPageState({ page: next, filterKey })}
+    <>
+      <ListPage
+        title={t("title")}
+        toolbar={
+          <StudentsToolbar
+            search={searchInput}
+            onSearchChange={setSearchInput}
+            status={status}
+            onStatusChange={setStatus}
+            view={view}
+            onViewChange={setView}
+            canCreate={!!me?.permissions.includes("students.create")}
+            onCreate={() => setTarget({ kind: "create" })}
+          />
+        }
+        pagination={{ page, totalPages, onPageChange: (next) => setPageState({ page: next, filterKey }) }}
+      >
+        <StudentsGrid
+          view={view}
+          students={students.data?.items}
+          isLoading={students.isLoading}
+          isError={students.isError}
+          onRetry={() => students.refetch()}
+          onSelect={(id) => setTarget({ kind: "view", id })}
         />
-      )}
+      </ListPage>
       <StudentSheet target={target} onTargetChange={setTarget} />
-    </div>
+    </>
   );
 }

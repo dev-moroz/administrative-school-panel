@@ -5,6 +5,7 @@ import { LayoutList, Table2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ListPage } from "@/components/list-page";
 import { ViewToggle } from "@/components/view-toggle";
 import { useMe } from "@/features/auth";
 import { usePayments } from "@/features/payments/model/use-payments";
@@ -13,7 +14,6 @@ import { PaymentsFeed } from "@/features/payments/ui/payments-feed";
 import { PaymentsTable } from "@/features/payments/ui/payments-table";
 import { PaymentsEmpty, PaymentsError, PaymentsSkeleton } from "@/features/payments/ui/payments-states";
 import { useStudents } from "@/features/students/model/use-students";
-import { StudentsPagination } from "@/features/students/ui/students-pagination";
 import { useViewMode } from "@/hooks/use-view-mode";
 
 const PAGE_SIZE = 20;
@@ -47,49 +47,48 @@ export default function PaymentsPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Select value={studentId} onValueChange={setStudentId}>
-          <SelectTrigger aria-label={t("filterLabel")} className="w-64">
-            <SelectValue>
-              {studentId === ALL ? t("allStudents") : students.data?.items.find((s) => s.id === studentId)?.fullName}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>{t("allStudents")}</SelectItem>
-            {students.data?.items.map((s) => (
-              <SelectItem key={s.id} value={s.id}>
-                {s.fullName}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <div className="ml-auto flex items-center gap-3">
-          <ViewToggle
-            value={view}
-            onChange={setView}
-            options={[
-              { value: "table", label: t("viewTable"), icon: Table2 },
-              { value: "feed", label: t("viewFeed"), icon: LayoutList },
-            ]}
-          />
-          {me?.permissions.includes("payments.create") && (
-            <Button onClick={() => setSheetOpen(true)}>
-              {t("newPayment")}
-            </Button>
-          )}
-        </div>
-      </div>
-      {content()}
-      {!!payments.data?.total && (
-        <StudentsPagination
-          page={page}
-          totalPages={totalPages}
-          onPageChange={(next) => setPageState({ page: next, filterKey: studentId })}
-        />
-      )}
+    <>
+      <ListPage
+        title={t("title")}
+        toolbar={
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Select value={studentId} onValueChange={setStudentId}>
+              <SelectTrigger aria-label={t("filterLabel")} className="w-64">
+                <SelectValue>
+                  {studentId === ALL ? t("allStudents") : students.data?.items.find((s) => s.id === studentId)?.fullName}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>{t("allStudents")}</SelectItem>
+                {students.data?.items.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.fullName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="ml-auto flex items-center gap-3">
+              <ViewToggle
+                value={view}
+                onChange={setView}
+                options={[
+                  { value: "table", label: t("viewTable"), icon: Table2 },
+                  { value: "feed", label: t("viewFeed"), icon: LayoutList },
+                ]}
+              />
+              {me?.permissions.includes("payments.create") && (
+                <Button onClick={() => setSheetOpen(true)}>
+                  {t("newPayment")}
+                </Button>
+              )}
+            </div>
+          </div>
+        }
+        pagination={{ page, totalPages, onPageChange: (next) => setPageState({ page: next, filterKey: studentId }) }}
+      >
+        {content()}
+      </ListPage>
       <PaymentSheet open={sheetOpen} onOpenChange={setSheetOpen} />
-    </div>
+    </>
   );
 }
