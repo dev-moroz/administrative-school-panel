@@ -17,7 +17,8 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { ENGLISH_LEVELS, studentSchema, type StudentFormValues } from "../model/student-schema";
-import type { Currency, Teacher } from "../model/types";
+import type { Currency } from "@/features/currencies/model/types";
+import type { Teacher } from "../model/types";
 
 type Props = {
   mode: "create" | "edit";

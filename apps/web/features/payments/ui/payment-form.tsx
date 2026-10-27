@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { useCurrencies } from "@/features/students/model/use-currencies";
+import { useActiveCurrencies } from "@/features/currencies/model/use-currencies";
 import { useStudent } from "@/features/students/model/use-student";
 import { useStudents } from "@/features/students/model/use-students";
 import type { Student } from "@/features/students/model/types";
@@ -50,7 +50,7 @@ function Field({ label, htmlFor, error, hint, children }: { label: string; htmlF
 export function PaymentForm({ isSubmitting, errorMessage, onSubmit, onCancel, onDirtyChange }: Props) {
   const t = useTranslations("Payments");
   const students = useStudents({ page: 1, pageSize: 100, isActive: true });
-  const currenciesQuery = useCurrencies(true);
+  const currenciesQuery = useActiveCurrencies(true);
   const currencies = useMemo(() => currenciesQuery.data ?? [], [currenciesQuery.data]);
   const schema = useMemo(() => createPaymentSchema(currencies), [currencies]);
 
@@ -96,11 +96,14 @@ export function PaymentForm({ isSubmitting, errorMessage, onSubmit, onCancel, on
   // The student's default currency is applied once per chosen student.
   const appliedFor = useRef<string | null>(null);
   useEffect(() => {
-    if (!student || appliedFor.current === student.id) return;
+    if (!student || !currenciesQuery.isSuccess || appliedFor.current === student.id) return;
     appliedFor.current = student.id;
-    if (student.defaultCurrencyCode) setValue("currencyCode", student.defaultCurrencyCode);
-    applySuggestion(student, { currency: student.defaultCurrencyCode ?? undefined });
-  }, [student, applySuggestion, setValue]);
+    // A deactivated default currency is not applied: the user picks an active one.
+    const code = student.defaultCurrencyCode;
+    const usable = code && currencies.some((c) => c.code === code) ? code : undefined;
+    if (usable) setValue("currencyCode", usable);
+    applySuggestion(student, { currency: usable });
+  }, [student, currenciesQuery.isSuccess, currencies, applySuggestion, setValue]);
 
   const priceHint = student?.lessonPrice
     ? t("lessonPrice", { value: [student.lessonPrice, student.defaultCurrencyCode].filter(Boolean).join(" ") })

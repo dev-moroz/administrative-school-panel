@@ -1,4 +1,5 @@
-import type { Currency, Student, Teacher } from "../model/types";
+import type { Currency } from "@/features/currencies/model/types";
+import type { Student, Teacher } from "../model/types";
 
 export function makeStudent(patch: Partial<Student> = {}): Student {
   return {

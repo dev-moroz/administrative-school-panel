@@ -12,7 +12,7 @@ import { ApiError } from "@/lib/api";
 import { toPayload, type StudentFormValues } from "../model/student-schema";
 import { emptyFormValues, studentToFormValues } from "../model/student-to-form-values";
 import { useCreateStudent } from "../model/use-create-student";
-import { useCurrencies } from "../model/use-currencies";
+import { useActiveCurrencies } from "@/features/currencies/model/use-currencies";
 import { useStudent } from "../model/use-student";
 import { useTeachers } from "../model/use-teachers";
 import { useUpdateStudent } from "../model/use-update-student";
@@ -64,7 +64,7 @@ export function StudentSheet({ target, onTargetChange }: Props) {
   const canAssignTeacher = permissions.includes("students.assign-teacher");
 
   const student = useStudent(target.kind === "view" ? target.id : null);
-  const currencies = useCurrencies(formOpen && permissions.includes("currencies.read"));
+  const currencies = useActiveCurrencies(formOpen && permissions.includes("currencies.read"));
   const teachers = useTeachers(formOpen && canAssignTeacher);
   const create = useCreateStudent();
   const update = useUpdateStudent(target.kind === "view" ? target.id : "");

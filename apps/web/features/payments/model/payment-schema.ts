@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Currency } from "@/features/students/model/types";
+import type { Currency } from "@/features/currencies/model/types";
 import { PAYMENT_METHODS, type CreatePaymentPayload } from "./types";
 
 export const MAX_LESSONS_GRANTED = 100;

@@ -23,8 +23,6 @@ export type StudentListParams = {
 
 export type Teacher = { id: string; fullName: string };
 
-export type Currency = { code: string; name: string; decimals: number; isActive: boolean };
-
 export type Student = {
   id: string;
   fullName: string;

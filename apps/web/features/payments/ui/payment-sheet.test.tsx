@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ApiError, apiFetch } from "@/lib/api";
+import type { Currency } from "@/features/currencies/model/types";
 import { currencies, makeStudent } from "@/features/students/test/fixtures";
 import { renderWithProviders } from "@/test/render";
 import { makePayment } from "../test/fixtures";
@@ -9,9 +10,9 @@ import { PaymentSheet } from "./payment-sheet";
 
 vi.mock("@/lib/api", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/lib/api")>()), apiFetch: vi.fn() }));
 
-type Opts = { createError?: ApiError; proofError?: ApiError };
+type Opts = { createError?: ApiError; proofError?: ApiError; currencyList?: Currency[]; s1Currency?: string };
 
-function mockApi({ createError, proofError }: Opts = {}) {
+function mockApi({ createError, proofError, currencyList, s1Currency = "EUR" }: Opts = {}) {
   vi.mocked(apiFetch).mockImplementation(async (path: string, init?: RequestInit) => {
     const url = new URL(path, "http://x");
     const method = init?.method ?? "GET";
@@ -27,9 +28,9 @@ function mockApi({ createError, proofError }: Opts = {}) {
         pageSize: 100,
       };
     }
-    if (url.pathname === "/students/s1") return makeStudent({ id: "s1", defaultCurrencyCode: "EUR", lessonPrice: "50.00" });
+    if (url.pathname === "/students/s1") return makeStudent({ id: "s1", defaultCurrencyCode: s1Currency, lessonPrice: "50.00" });
     if (url.pathname === "/students/s2") return makeStudent({ id: "s2", fullName: "Max Kozlov", defaultCurrencyCode: null, lessonPrice: null });
-    if (url.pathname === "/currencies") return currencies;
+    if (url.pathname === "/currencies") return currencyList ?? currencies;
     if (url.pathname === "/payments" && method === "POST") {
       if (createError) throw createError;
       return makePayment({ id: "p-new" });
@@ -276,6 +277,38 @@ describe("PaymentSheet", () => {
       await user.click(screen.getByRole("button", { name: "Cancel" }));
       expect(await screen.findByText(/discard changes/i)).toBeInTheDocument();
       expect(onOpenChange).not.toHaveBeenCalled();
+    });
+  });
+  describe("inactive currencies", () => {
+    const withInactive: Currency[] = [...currencies, { code: "CHF", name: "Swiss franc", decimals: 2, isActive: false }];
+
+    it("an inactive currency is not offered in the Currency select", async () => {
+      mockApi({ currencyList: withInactive });
+      const { user } = setup();
+      await user.click(await screen.findByRole("combobox", { name: "Currency" }));
+      expect(await screen.findByRole("option", { name: /^GBP/ })).toBeInTheDocument();
+      expect(screen.queryByRole("option", { name: /CHF/ })).not.toBeInTheDocument();
+    });
+
+    it("a student whose default currency is inactive: the currency is not preselected, the price hint stays", async () => {
+      mockApi({ currencyList: withInactive, s1Currency: "CHF" });
+      const { user } = setup();
+      await pick(user, "Student", "Anna Petrova");
+      expect(await screen.findByText("Lesson price: 50.00 CHF")).toBeInTheDocument();
+      expect(screen.getByRole("combobox", { name: "Currency" })).not.toHaveTextContent("CHF");
+      await user.type(screen.getByLabelText("Amount"), "400");
+      expect(screen.getByLabelText("Lessons")).toHaveValue("");
+    });
+
+    it("a student whose default currency is inactive: submitting without choosing a currency is blocked", async () => {
+      mockApi({ currencyList: withInactive, s1Currency: "CHF" });
+      const { user } = setup();
+      await pick(user, "Student", "Anna Petrova");
+      await user.type(screen.getByLabelText("Amount"), "400");
+      await pick(user, "Method", "Cash");
+      await user.click(screen.getByRole("button", { name: "Save payment" }));
+      expect(await screen.findByText("Choose a currency")).toBeInTheDocument();
+      expect(posts()).toEqual([]);
     });
   });
 });

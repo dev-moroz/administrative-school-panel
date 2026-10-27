@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Currency } from "@/features/students/model/types";
+import type { Currency } from "@/features/currencies/model/types";
 import { createPaymentSchema, toPayload, type PaymentFormValues } from "./payment-schema";
 
 const currencies: Currency[] = [

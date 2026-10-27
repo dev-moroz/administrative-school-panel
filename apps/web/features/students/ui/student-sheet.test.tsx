@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { ApiError, apiFetch } from "@/lib/api";
 import { renderWithProviders } from "@/test/render";
 import { useStudents } from "../model/use-students";
+import type { Currency } from "@/features/currencies/model/types";
 import { currencies, makeStudent, teachers } from "../test/fixtures";
 import { StudentSheet, type SheetTarget } from "./student-sheet";
 
@@ -17,7 +18,7 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 const ADMIN = ["students.read.all", "students.create", "students.update", "students.assign-teacher", "currencies.read"];
 const TEACHER = ["students.read.all", "students.create", "students.update", "currencies.read"];
 
-type Opts = { permissions?: string[]; student?: ReturnType<typeof makeStudent>; getError?: ApiError; saveError?: ApiError; save?: Promise<unknown> };
+type Opts = { currencyList?: Currency[]; permissions?: string[]; student?: ReturnType<typeof makeStudent>; getError?: ApiError; saveError?: ApiError; save?: Promise<unknown> };
 
 let opts: Opts;
 
@@ -28,7 +29,7 @@ function mockApi(next: Opts = {}) {
     const method = init?.method ?? "GET";
     if (url.pathname === "/auth/me")
       return { id: "u1", email: "a@b.c", role: "admin", permissions: opts.permissions ?? ADMIN };
-    if (url.pathname === "/currencies") return currencies;
+    if (url.pathname === "/currencies") return opts.currencyList ?? currencies;
     if (url.pathname === "/teachers") return teachers;
     if (url.pathname === "/students" && method === "GET")
       return { items: [], total: 0, page: 1, pageSize: 12 };
@@ -333,5 +334,37 @@ describe("StudentSheet: discard changes", () => {
     expect(onTargetChange).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole("button", { name: "Discard" }));
     expect(onTargetChange).toHaveBeenCalledWith({ kind: "closed" });
+  });
+});
+
+describe("StudentSheet: inactive currencies", () => {
+  const withInactive: Currency[] = [...currencies, { code: "CHF", name: "Swiss franc", decimals: 2, isActive: false }];
+
+  it("create: an inactive currency is not offered, active ones are", async () => {
+    mockApi({ currencyList: withInactive });
+    setup(CREATE);
+    await userEvent.click(await screen.findByRole("combobox", { name: "Currency" }));
+    expect(await screen.findByRole("option", { name: /^GBP/ })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /CHF/ })).not.toBeInTheDocument();
+  });
+
+  it("edit: the student's own currency stays selected and selectable even if it is inactive", async () => {
+    mockApi({ currencyList: withInactive, student: makeStudent({ defaultCurrencyCode: "CHF" }) });
+    setup(VIEW);
+    await openEdit();
+    const select = screen.getByRole("combobox", { name: "Currency" });
+    expect(select).toHaveTextContent("CHF");
+    await userEvent.click(select);
+    expect(await screen.findByRole("option", { name: "CHF" })).toBeInTheDocument();
+    expect(screen.getAllByRole("option", { name: /CHF/ })).toHaveLength(1);
+  });
+
+  it("edit: other inactive currencies are not offered", async () => {
+    mockApi({ currencyList: withInactive });
+    setup(VIEW);
+    await openEdit();
+    await userEvent.click(screen.getByRole("combobox", { name: "Currency" }));
+    expect(await screen.findByRole("option", { name: /^GBP/ })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /CHF/ })).not.toBeInTheDocument();
   });
 });
