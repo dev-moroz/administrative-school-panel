@@ -12,8 +12,10 @@ const ACTIVE = 'ZMACTIVE';
 const OFF = 'ZMOFF';
 const USED = 'ZMUSED';
 const CREATED = 'ZMNEW';
-const ALL_CODES = [ACTIVE, OFF, USED, CREATED, 'ZM_LOWER', 'ZM_DUP', 'ZM_A', 'ZM_B'];
+const DEFAULT_OF = 'ZMDEF';
+const ALL_CODES = [ACTIVE, OFF, USED, DEFAULT_OF, CREATED, 'ZM_LOWER', 'ZM_DUP', 'ZM_A', 'ZM_B'];
 const STUDENT_NAME = 'E2E payment methods';
+const DEFAULT_STUDENT_NAME = 'E2E payment methods default';
 
 describe('payment methods (e2e)', () => {
   let app: INestApplication;
@@ -34,7 +36,7 @@ describe('payment methods (e2e)', () => {
   async function cleanup() {
     await prisma.ledgerEntry.deleteMany({ where: { payment: { student: { fullName: STUDENT_NAME } } } });
     await prisma.payment.deleteMany({ where: { methodCode: { in: ALL_CODES } } });
-    await prisma.student.deleteMany({ where: { fullName: STUDENT_NAME } });
+    await prisma.student.deleteMany({ where: { fullName: { in: [STUDENT_NAME, DEFAULT_STUDENT_NAME] } } });
     await prisma.paymentMethod.deleteMany({ where: { OR: [{ code: { in: ALL_CODES } }, { code: { startsWith: 'ZMI_' } }] } });
   }
 
@@ -57,8 +59,10 @@ describe('payment methods (e2e)', () => {
         { code: ACTIVE, name: 'Zeta active', icon: 'wallet' },
         { code: OFF, name: 'Zeta inactive', icon: 'wallet', isActive: false },
         { code: USED, name: 'Zeta used', icon: 'wallet' },
+        { code: DEFAULT_OF, name: 'Zeta student default', icon: 'wallet' },
       ],
     });
+    await prisma.student.create({ data: { fullName: DEFAULT_STUDENT_NAME, defaultPaymentMethodCode: DEFAULT_OF } });
     const admin = await prisma.user.findUniqueOrThrow({ where: { email: 'pm-admin@e2e.test' } });
     const student = await prisma.student.create({ data: { fullName: STUDENT_NAME } });
     await prisma.payment.create({
@@ -220,6 +224,30 @@ describe('payment methods (e2e)', () => {
       const res = await patch('admin', USED, { isActive: false }).expect(200);
       expect(res.body.isActive).toBe(false);
       expect(await prisma.payment.count({ where: { methodCode: USED } })).toBe(1);
+    });
+
+    it('deactivating a method that is the default of a student answers 409 and keeps it active', async () => {
+      await patch('admin', DEFAULT_OF, { isActive: false }).expect(409);
+      expect((await prisma.paymentMethod.findUniqueOrThrow({ where: { code: DEFAULT_OF } })).isActive).toBe(true);
+    });
+
+    it('the block counts inactive students too', async () => {
+      await prisma.student.updateMany({ where: { fullName: DEFAULT_STUDENT_NAME }, data: { isActive: false } });
+      await patch('admin', DEFAULT_OF, { isActive: false }).expect(409);
+    });
+
+    it('renaming and re-sending isActive true stay allowed for a method that students use', async () => {
+      await patch('admin', DEFAULT_OF, { name: 'Renamed default', icon: 'landmark' }).expect(200);
+      await patch('admin', DEFAULT_OF, { isActive: true }).expect(200);
+    });
+
+    it('after the students switch to another method or clear it, deactivation works', async () => {
+      await prisma.student.updateMany({ where: { fullName: DEFAULT_STUDENT_NAME }, data: { defaultPaymentMethodCode: ACTIVE } });
+      expect((await patch('admin', DEFAULT_OF, { isActive: false }).expect(200)).body.isActive).toBe(false);
+
+      await patch('admin', ACTIVE, { isActive: false }).expect(409);
+      await prisma.student.updateMany({ where: { fullName: DEFAULT_STUDENT_NAME }, data: { defaultPaymentMethodCode: null } });
+      await patch('admin', ACTIVE, { isActive: false }).expect(200);
     });
 
     it('a deactivated method is hidden from the teacher and visible to the admin', async () => {

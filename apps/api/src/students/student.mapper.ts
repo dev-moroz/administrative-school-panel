@@ -18,6 +18,7 @@ export function toStudentDto(student: StudentWithTeacher) {
     englishLevel: student.englishLevel,
     comment: student.comment,
     defaultCurrencyCode: student.defaultCurrencyCode,
+    defaultPaymentMethodCode: student.defaultPaymentMethodCode,
     lessonPrice: student.lessonPrice?.toString() ?? null,
     isActive: student.isActive,
     teacher: student.teachers[0]?.teacher ?? null,

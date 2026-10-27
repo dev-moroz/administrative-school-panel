@@ -124,26 +124,29 @@ model Teacher {
 }
 
 model Student {
-  id                  String           @id @default(uuid()) @db.Uuid
-  userId              String?          @unique @map("user_id") @db.Uuid
-  user                User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
-  fullName            String           @map("full_name")
-  telegramUsername    String?          @map("telegram_username")
-  telegramChatId      BigInt?          @unique @map("telegram_chat_id")
-  englishLevel        EnglishLevel?    @map("english_level")
-  comment             String?
-  defaultCurrency     Currency?        @relation(fields: [defaultCurrencyCode], references: [code], onDelete: Restrict)
-  defaultCurrencyCode String?          @map("default_currency_code")
-  lessonPrice         Decimal?         @map("lesson_price") @db.Decimal(12, 2)
-  isActive            Boolean          @default(true) @map("is_active")
-  createdAt           DateTime         @default(now()) @map("created_at")
-  updatedAt           DateTime         @updatedAt @map("updated_at")
-  teachers            StudentTeacher[]
-  ledgerEntries       LedgerEntry[]
-  payments            Payment[]
+  id                       String           @id @default(uuid()) @db.Uuid
+  userId                   String?          @unique @map("user_id") @db.Uuid
+  user                     User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  fullName                 String           @map("full_name")
+  telegramUsername         String?          @map("telegram_username")
+  telegramChatId           BigInt?          @unique @map("telegram_chat_id")
+  englishLevel             EnglishLevel?    @map("english_level")
+  comment                  String?
+  defaultCurrency          Currency?        @relation(fields: [defaultCurrencyCode], references: [code], onDelete: Restrict)
+  defaultCurrencyCode      String?          @map("default_currency_code")
+  defaultPaymentMethod     PaymentMethod?   @relation(fields: [defaultPaymentMethodCode], references: [code], onDelete: Restrict)
+  defaultPaymentMethodCode String?          @map("default_payment_method_code")
+  lessonPrice              Decimal?         @map("lesson_price") @db.Decimal(12, 2)
+  isActive                 Boolean          @default(true) @map("is_active")
+  createdAt                DateTime         @default(now()) @map("created_at")
+  updatedAt                DateTime         @updatedAt @map("updated_at")
+  teachers                 StudentTeacher[]
+  ledgerEntries            LedgerEntry[]
+  payments                 Payment[]
 
   @@index([fullName])
   @@index([defaultCurrencyCode])
+  @@index([defaultPaymentMethodCode])
   @@map("students")
 }
 
@@ -191,6 +194,7 @@ model PaymentMethod {
   isActive  Boolean   @default(true) @map("is_active")
   createdAt DateTime  @default(now()) @map("created_at")
   payments  Payment[]
+  students  Student[]
 
   @@map("payment_methods")
 }

@@ -50,6 +50,12 @@ export class CreateStudentDto {
   defaultCurrencyCode?: string;
 
   @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(20)
+  defaultPaymentMethodCode?: string;
+
+  @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2, allowNaN: false, allowInfinity: false })
   @Min(0)
   @Max(MAX_LESSON_PRICE)

@@ -128,6 +128,7 @@ describe('students schema and seed (e2e)', () => {
       englishLevel: null,
       comment: null,
       defaultCurrencyCode: null,
+      defaultPaymentMethodCode: null,
       lessonPrice: null,
       userId: null,
       isActive: true,
@@ -149,6 +150,26 @@ describe('students schema and seed (e2e)', () => {
     await expect(prisma.currency.delete({ where: { code: 'EUR' } })).rejects.toMatchObject({
       code: 'P2003',
     });
+  });
+
+  it('a student cannot reference a payment method that does not exist', async () => {
+    await expect(
+      prisma.student.create({
+        data: { fullName: `${PREFIX} bad default method`, defaultPaymentMethodCode: 'NOPE' },
+      }),
+    ).rejects.toMatchObject({ code: 'P2003' });
+  });
+
+  it('a payment method used as a student default cannot be deleted', async () => {
+    await prisma.paymentMethod.create({ data: { code: 'ZSCHEMADEF', name: 'Schema default', icon: 'wallet' } });
+    await prisma.student.create({
+      data: { fullName: `${PREFIX} default method in use`, defaultPaymentMethodCode: 'ZSCHEMADEF' },
+    });
+    await expect(prisma.paymentMethod.delete({ where: { code: 'ZSCHEMADEF' } })).rejects.toMatchObject({
+      code: 'P2003',
+    });
+    await prisma.student.deleteMany({ where: { defaultPaymentMethodCode: 'ZSCHEMADEF' } });
+    await prisma.paymentMethod.delete({ where: { code: 'ZSCHEMADEF' } });
   });
 
   it('the same student-teacher pair cannot be linked twice, but a student can have two teachers', async () => {

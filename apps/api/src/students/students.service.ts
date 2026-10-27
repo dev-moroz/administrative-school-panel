@@ -59,6 +59,7 @@ export class StudentsService {
 
     const teacherId = await this.resolveTeacherId(user, dto.teacherId);
     await this.assertCurrencyUsable(dto.defaultCurrencyCode);
+    await this.assertPaymentMethodUsable(dto.defaultPaymentMethodCode);
 
     const { teacherId: _ignored, ...fields } = dto;
     const student = await this.prisma.student.create({
@@ -70,6 +71,7 @@ export class StudentsService {
 
   async update(id: string, dto: UpdateStudentDto) {
     await this.assertCurrencyUsable(dto.defaultCurrencyCode);
+    await this.assertPaymentMethodUsable(dto.defaultPaymentMethodCode);
 
     try {
       const student = await this.prisma.student.update({
@@ -113,5 +115,12 @@ export class StudentsService {
     if (code === undefined || code === null) return;
     const currency = await this.prisma.currency.findFirst({ where: { code, isActive: true } });
     if (!currency) throw new BadRequestException('Unknown or inactive currency');
+  }
+
+  // Same rule as for the currency: null/undefined means "no method"; a given code must exist and be active.
+  private async assertPaymentMethodUsable(code?: string | null) {
+    if (code === undefined || code === null) return;
+    const method = await this.prisma.paymentMethod.findFirst({ where: { code, isActive: true } });
+    if (!method) throw new BadRequestException('Unknown or inactive payment method');
   }
 }

@@ -18,6 +18,7 @@ const RESPONSE_KEYS = [
   'englishLevel',
   'comment',
   'defaultCurrencyCode',
+  'defaultPaymentMethodCode',
   'lessonPrice',
   'isActive',
   'teacher',
@@ -74,11 +75,17 @@ describe('students (e2e)', () => {
       update: { isActive: false },
       create: { code: 'TST', name: 'Inactive test currency', isActive: false },
     });
+    await prisma.paymentMethod.upsert({
+      where: { code: 'ZSTUDPM' },
+      update: { isActive: false },
+      create: { code: 'ZSTUDPM', name: 'Inactive test method', icon: 'wallet', isActive: false },
+    });
   });
 
   afterAll(async () => {
     await prisma.student.deleteMany({ where: { fullName: { startsWith: TAG } } });
     await prisma.currency.deleteMany({ where: { code: 'TST' } });
+    await prisma.paymentMethod.deleteMany({ where: { code: 'ZSTUDPM' } });
     await app.close();
   });
 
@@ -186,6 +193,7 @@ describe('students (e2e)', () => {
         englishLevel: 'B1',
         comment: 'prefers evenings',
         defaultCurrencyCode: 'EUR',
+        defaultPaymentMethodCode: 'CARD',
         lessonPrice: 25,
       }).expect(201);
 
@@ -196,6 +204,7 @@ describe('students (e2e)', () => {
         englishLevel: 'B1',
         comment: 'prefers evenings',
         defaultCurrencyCode: 'EUR',
+        defaultPaymentMethodCode: 'CARD',
         isActive: true,
         telegramLinked: false,
       });
@@ -212,6 +221,7 @@ describe('students (e2e)', () => {
         englishLevel: null,
         comment: null,
         defaultCurrencyCode: null,
+        defaultPaymentMethodCode: null,
         lessonPrice: null,
         isActive: true,
       });
@@ -255,6 +265,8 @@ describe('students (e2e)', () => {
       ['comment over 2000 chars', { fullName: `${TAG} v`, comment: 'x'.repeat(2001) }],
       ['unknown currency', { fullName: `${TAG} v`, defaultCurrencyCode: 'XXX' }],
       ['inactive currency', { fullName: `${TAG} v`, defaultCurrencyCode: 'TST' }],
+      ['unknown payment method', { fullName: `${TAG} v`, defaultPaymentMethodCode: 'NOPE' }],
+      ['inactive payment method', { fullName: `${TAG} v`, defaultPaymentMethodCode: 'ZSTUDPM' }],
       ['userId in the body', { fullName: `${TAG} v`, userId: randomUUID() }],
       ['telegramChatId in the body', { fullName: `${TAG} v`, telegramChatId: 123456 }],
     ])('rejects: %s (400)', async (_label, body) => {
@@ -406,19 +418,34 @@ describe('students (e2e)', () => {
       expect(res.body.teacher.id).toBe(teacherA.id);
     });
 
-    it('clears lessonPrice and defaultCurrencyCode with null', async () => {
-      const student = await seedStudent({ lessonPrice: 20, defaultCurrencyCode: 'EUR' });
+    it('clears lessonPrice, defaultCurrencyCode and defaultPaymentMethodCode with null', async () => {
+      const student = await seedStudent({ lessonPrice: 20, defaultCurrencyCode: 'EUR', defaultPaymentMethodCode: 'CARD' });
       const res = await call('teacher', 'patch', `/students/${student.id}`, {
         lessonPrice: null,
         defaultCurrencyCode: null,
+        defaultPaymentMethodCode: null,
       }).expect(200);
 
-      expect(res.body).toMatchObject({ lessonPrice: null, defaultCurrencyCode: null });
+      expect(res.body).toMatchObject({ lessonPrice: null, defaultCurrencyCode: null, defaultPaymentMethodCode: null });
+    });
+
+    it('sets and changes the default payment method; omitting it keeps the value', async () => {
+      const student = await seedStudent();
+      const set = await call('teacher', 'patch', `/students/${student.id}`, { defaultPaymentMethodCode: 'CASH' }).expect(200);
+      expect(set.body.defaultPaymentMethodCode).toBe('CASH');
+
+      const kept = await call('teacher', 'patch', `/students/${student.id}`, { comment: 'other field' }).expect(200);
+      expect(kept.body.defaultPaymentMethodCode).toBe('CASH');
+
+      const changed = await call('teacher', 'patch', `/students/${student.id}`, { defaultPaymentMethodCode: 'TRANSFER' }).expect(200);
+      expect(changed.body.defaultPaymentMethodCode).toBe('TRANSFER');
     });
 
     it('applies the same validation as create', async () => {
       const student = await seedStudent();
       await call('teacher', 'patch', `/students/${student.id}`, { defaultCurrencyCode: 'XXX' }).expect(400);
+      await call('teacher', 'patch', `/students/${student.id}`, { defaultPaymentMethodCode: 'NOPE' }).expect(400);
+      await call('teacher', 'patch', `/students/${student.id}`, { defaultPaymentMethodCode: 'ZSTUDPM' }).expect(400);
       await call('teacher', 'patch', `/students/${student.id}`, { lessonPrice: 1.255 }).expect(400);
       await call('teacher', 'patch', `/students/${student.id}`, { fullName: '' }).expect(400);
     });

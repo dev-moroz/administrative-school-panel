@@ -45,6 +45,12 @@ export class UpdateStudentDto {
   defaultCurrencyCode?: string | null;
 
   @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(20)
+  defaultPaymentMethodCode?: string | null;
+
+  @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2, allowNaN: false, allowInfinity: false })
   @Min(0)
   @Max(MAX_LESSON_PRICE)

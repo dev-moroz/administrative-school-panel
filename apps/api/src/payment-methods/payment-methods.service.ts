@@ -36,17 +36,21 @@ export class PaymentMethodsService {
     if (dto.name === undefined && dto.icon === undefined && dto.isActive === undefined) {
       throw new BadRequestException('Nothing to update');
     }
-    try {
-      return await this.prisma.paymentMethod.update({
-        where: { code: code.toUpperCase() },
-        data: dto,
-        select: METHOD_SELECT,
-      });
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-        throw new NotFoundException('Payment method not found');
+    const key = code.toUpperCase();
+
+    return this.prisma.$transaction(async (tx) => {
+      const current = await tx.paymentMethod.findUnique({ where: { code: key } });
+      if (!current) throw new NotFoundException('Payment method not found');
+
+      // Payments are history and do not block; only a student's default does.
+      if (dto.isActive === false && current.isActive) {
+        const students = await tx.student.count({ where: { defaultPaymentMethodCode: key } });
+        if (students > 0) {
+          throw new ConflictException('this payment method is in use, it cannot be deactivated');
+        }
       }
-      throw error;
-    }
+
+      return tx.paymentMethod.update({ where: { code: key }, data: dto, select: METHOD_SELECT });
+    });
   }
 }
