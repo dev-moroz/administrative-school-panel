@@ -19,13 +19,15 @@ export function SessionGuard({ children }: { children: React.ReactNode }) {
       .finally(() => router.replace("/login"));
   }, [unauthorized, router]);
 
-  // Nothing but a loader until the session is confirmed (loading, refreshing or redirecting).
-  if (!data) {
-    return (
-      <div className="flex min-h-svh items-center justify-center">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" aria-label="Loading" />
-      </div>
-    );
-  }
-  return children;
+  // Children render underneath so Next.js can validate the segments; the overlay hides them until the session is confirmed.
+  return (
+    <>
+      {children}
+      {!data && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
+          <Loader2 className="size-6 animate-spin text-muted-foreground" aria-label="Loading" />
+        </div>
+      )}
+    </>
+  );
 }
