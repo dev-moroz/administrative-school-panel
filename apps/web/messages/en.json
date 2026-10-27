@@ -18,7 +18,11 @@
     "students": "Students",
     "lessons": "Lessons",
     "payments": "Payments",
+    "settings": "Settings",
     "logout": "Sign out"
+  },
+  "Settings": {
+    "currencies": "Currencies"
   },
   "Theme": {
     "toggle": "Theme",
