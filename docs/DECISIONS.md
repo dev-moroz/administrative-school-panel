@@ -209,6 +209,26 @@ Deliberate simplifications of the MVP (confirmed by Anatoly, 2026-10-23, stage 2
 - Storage: `UPLOADS_DIR/payment-proofs/<uuid>.<ext>` (`PaymentProofFile.id` is the file name; the original name is kept in the database for display only, sanitized). Never served as static files. In production `UPLOADS_DIR` is a Docker volume outside the container, included in backups (stage 9).
 - The file is served `inline` (opens in the browser, no download), `Cache-Control: private, no-store`, `nosniff`, with a generated file name. The payment DTO has `proofFile { originalName, mimeType, size } | null`; the frontend builds the link `/api/payments/{id}/proof`.
 
+
+## Incoming payments through the Telegram bot (decided 2026-10-27, Anatoly)
+- Instead of integrating payment providers, a student reports a payment in the bot: sends a screenshot or a link and says that they paid. The report lands in the system as an incoming payment request; for now the teacher reads and processes it by hand. Stage 7 (bot); nothing is built yet.
+- **A request is not a payment.** A separate entity (student, received at, amount and currency if the student wrote them, attachment or link, message text, status `new` / `confirmed` / `rejected`, who processed it and when). The balance and the ledger are not touched until the teacher confirms.
+- **Confirm** creates a regular `Payment` (with its `PURCHASE` ledger entry, as in "Payments") and links it to the request; **Reject** only closes the request. No automatic confirmation, no recognition of the amount for now (OCR or vision can later be a hint for the teacher, never an automatic action).
+- **Sender identification:** by the linked `telegramChatId` (see "Linking a student to the bot"), never by the nickname. Messages from an unlinked chat are shown in the same list as "unidentified" or ignored (to decide with stage 7).
+- **Files:** a screenshot is downloaded at receipt and stored by us (Telegram file links contain the bot token and expire), same storage rules as "Payment proof files". On confirm, the file becomes the payment proof.
+- **UI:** a "Incoming payments" tab with a status filter; a click opens the side panel (screenshot, text, student, amount and currency fields, Confirm / Reject), per "Entity UI". A badge with the number of new requests on the menu item is wanted.
+- **Risk:** fake screenshots. Accepted for the MVP, because a human confirms against the bank.
+- Open for stage 7: unidentified senders, duplicate requests for one payment, the bot's reply to the student ("received, the teacher will confirm").
+
+### Incoming payments: notes for stage 7 (analysis 2026-10-27, based on the docs, not on a fresh read of the schema)
+- **Why stage 7 and not earlier:** the request is a separate entity and changes no existing table; reports (stage 6) and the balance use only `Payment` and `LedgerEntry`, so requests never touch them before confirmation. All later changes are additive (a new table, a nullable link from `Payment` to the request, new permissions in the seed). Payments are never edited or deleted, so no data migration. Building requests now would give an empty table and a guessed design, since only the bot fills it. Nothing needs to be laid down in advance.
+- **Proof files:** `PaymentProofFile.paymentId` is unique and required, but a request's file exists before the payment. Either make `paymentId` optional and add `requestId`, or add a separate table for request files. Small migration. On confirm the file moves to the payment, it is not copied.
+- **Payment creation as a service method:** "Confirm" must create the payment, the `PURCHASE` entry and set the request status in one transaction. If the logic lives inside the `POST /payments` handler, first extract it into a service method that takes a transaction (like `LedgerService.addEntry(tx)`). First step of stage 7.
+- **Student deletion:** `DELETE /students/:id` is 409 when payments exist; requests join the same check, with a `Restrict` foreign key.
+- **Bot webhook:** the route uses `@SkipOriginCheck()` (already provided in `OriginGuard`) and verifies the Telegram secret token. The bot token is also needed to download screenshots.
+- **Confirmation panel:** reuse `PaymentForm`, prefilled from the request. The teacher enters the number of lessons, because the student does not know it.
+- **Optional earlier step:** none needed. If `payments.service` is edited anyway, extracting the transactional method can be done then, but not as a separate step.
+
 ## Student default payment method (decided 2026-10-27, Anatoly)
 - A student has an optional default payment method, the same way as the default currency. In the payment form, choosing a student fills in both the currency and the method (once per chosen student; the user can change them).
 - API: `defaultPaymentMethodCode` in the student DTOs (`null` clears it); only an existing active method is accepted (400 otherwise). Existing students keep it empty, nothing is backfilled and nothing is applied when it is empty.
