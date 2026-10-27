@@ -154,13 +154,24 @@ describe("PaymentMethodSheet", () => {
       expect(toast.success).toHaveBeenCalledWith("Payment method saved");
     });
 
-    it("deactivation is allowed even for a used method: sent as isActive: false, no 'in use' block", async () => {
+    it("deactivation is sent as isActive: false", async () => {
       mockApi();
       const { user, onOpenChange } = setup(makePaymentMethod({ code: "CASH" }));
       await user.click(screen.getByRole("switch", { name: "Active" }));
       await user.click(screen.getByRole("button", { name: "Save changes" }));
       await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
       expect(writes()[0].body).toEqual({ name: "Cash", icon: "banknote", isActive: false });
+    });
+
+    it("409 on deactivation shows the 'in use' toast, resets the switch and keeps the sheet open", async () => {
+      mockApi({ error: new ApiError(409) });
+      const { user, onOpenChange } = setup(makePaymentMethod({ code: "CASH" }));
+      await user.click(screen.getByRole("switch", { name: "Active" }));
+      await user.click(screen.getByRole("button", { name: "Save changes" }));
+      await waitFor(() => expect(toast.error).toHaveBeenCalledWith("This payment method is in use, it cannot be deactivated"));
+      expect(screen.getByRole("switch", { name: "Active" })).toBeChecked();
+      expect(onOpenChange).not.toHaveBeenCalledWith(false);
+      expect(toast.success).not.toHaveBeenCalled();
     });
 
     it("reactivation is sent as isActive: true", async () => {

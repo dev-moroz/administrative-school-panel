@@ -85,7 +85,8 @@
     "toastCreated": "Payment method created",
     "toastSaved": "Payment method saved",
     "saveFailed": "Could not save the payment method",
-    "notFound": "Payment method not found"
+    "notFound": "Payment method not found",
+    "inUse": "This payment method is in use, it cannot be deactivated"
   },
   "Theme": {
     "toggle": "Theme",
@@ -127,6 +128,7 @@
     "fieldNickname": "Telegram nickname",
     "fieldLevel": "English level",
     "fieldCurrency": "Currency",
+    "fieldPaymentMethod": "Payment method",
     "fieldPrice": "Lesson price",
     "fieldComment": "Comment",
     "fieldActive": "Active",

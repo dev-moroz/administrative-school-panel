@@ -3,10 +3,12 @@ import { useTranslations } from "next-intl";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import type { PaymentMethod } from "@/features/payment-methods/model/types";
+import { MethodLabel } from "@/features/payment-methods/ui/payment-method-label";
 import { getInitials } from "../model/get-initials";
 import type { Student } from "../model/types";
 
-type Props = { student: Student; canEdit: boolean; onEdit: () => void };
+type Props = { student: Student; paymentMethods: PaymentMethod[]; canEdit: boolean; onEdit: () => void };
 
 const EMPTY = "—";
 
@@ -19,11 +21,14 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-export function StudentDetails({ student, canEdit, onEdit }: Props) {
+export function StudentDetails({ student, paymentMethods, canEdit, onEdit }: Props) {
   const t = useTranslations("Students");
   const price = student.lessonPrice
     ? [student.lessonPrice, student.defaultCurrencyCode].filter(Boolean).join(" ")
     : EMPTY;
+
+  const methodCode = student.defaultPaymentMethodCode;
+  const method = methodCode ? paymentMethods.find((m) => m.code === methodCode) : undefined;
 
   return (
     <div className="grid gap-6">
@@ -59,6 +64,9 @@ export function StudentDetails({ student, canEdit, onEdit }: Props) {
         </Row>
         <Row label={t("fieldLevel")}>{student.englishLevel ?? EMPTY}</Row>
         <Row label={t("fieldPrice")}>{price}</Row>
+        {methodCode && (
+          <Row label={t("fieldPaymentMethod")}>{method ? <MethodLabel method={method} /> : methodCode}</Row>
+        )}
         <Row label={t("fieldTeacher")}>{student.teacher?.fullName ?? EMPTY}</Row>
         {student.comment?.trim() && <Row label={t("fieldComment")}>{student.comment}</Row>}
       </dl>

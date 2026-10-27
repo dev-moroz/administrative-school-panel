@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useActiveCurrencies } from "@/features/currencies/model/use-currencies";
 import { useActivePaymentMethods } from "@/features/payment-methods/model/use-payment-methods";
-import { PaymentMethodIcon } from "@/features/payment-methods/ui/payment-method-icon";
+import { MethodLabel } from "@/features/payment-methods/ui/payment-method-label";
 import { useStudent } from "@/features/students/model/use-student";
 import { useStudents } from "@/features/students/model/use-students";
 import type { Student } from "@/features/students/model/types";
@@ -48,21 +48,13 @@ function Field({ label, htmlFor, error, hint, children }: { label: string; htmlF
   );
 }
 
-function MethodLabel({ method }: { method: { name: string; icon: string } }) {
-  return (
-    <span className="flex items-center gap-2">
-      <PaymentMethodIcon name={method.icon} />
-      {method.name}
-    </span>
-  );
-}
-
 export function PaymentForm({ isSubmitting, errorMessage, onSubmit, onCancel, onDirtyChange }: Props) {
   const t = useTranslations("Payments");
   const students = useStudents({ page: 1, pageSize: 100, isActive: true });
   const currenciesQuery = useActiveCurrencies(true);
   const currencies = useMemo(() => currenciesQuery.data ?? [], [currenciesQuery.data]);
-  const methods = useActivePaymentMethods(true).data ?? [];
+  const methodsQuery = useActivePaymentMethods(true);
+  const methods = useMemo(() => methodsQuery.data ?? [], [methodsQuery.data]);
   const schema = useMemo(() => createPaymentSchema(currencies), [currencies]);
 
   const {
@@ -104,17 +96,20 @@ export function PaymentForm({ isSubmitting, errorMessage, onSubmit, onCancel, on
     [currencies, getValues, setValue],
   );
 
-  // The student's default currency is applied once per chosen student.
+  // The student's default currency and method are applied once per chosen student.
   const appliedFor = useRef<string | null>(null);
   useEffect(() => {
-    if (!student || !currenciesQuery.isSuccess || appliedFor.current === student.id) return;
+    if (!student || !currenciesQuery.isSuccess || !methodsQuery.isSuccess || appliedFor.current === student.id) return;
     appliedFor.current = student.id;
     // A deactivated default currency is not applied: the user picks an active one.
     const code = student.defaultCurrencyCode;
     const usable = code && currencies.some((c) => c.code === code) ? code : undefined;
     if (usable) setValue("currencyCode", usable);
+    // Same for the method: a deactivated default is not applied.
+    const methodCode = student.defaultPaymentMethodCode;
+    if (methodCode && methods.some((m) => m.code === methodCode)) setValue("method", methodCode);
     applySuggestion(student, { currency: usable });
-  }, [student, currenciesQuery.isSuccess, currencies, applySuggestion, setValue]);
+  }, [student, currenciesQuery.isSuccess, methodsQuery.isSuccess, currencies, methods, applySuggestion, setValue]);
 
   const priceHint = student?.lessonPrice
     ? t("lessonPrice", { value: [student.lessonPrice, student.defaultCurrencyCode].filter(Boolean).join(" ") })

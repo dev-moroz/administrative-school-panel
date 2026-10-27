@@ -13,6 +13,7 @@ import { toPayload, type StudentFormValues } from "../model/student-schema";
 import { emptyFormValues, studentToFormValues } from "../model/student-to-form-values";
 import { useCreateStudent } from "../model/use-create-student";
 import { useActiveCurrencies } from "@/features/currencies/model/use-currencies";
+import { useActivePaymentMethods, usePaymentMethods } from "@/features/payment-methods/model/use-payment-methods";
 import { useStudent } from "../model/use-student";
 import { useTeachers } from "../model/use-teachers";
 import { useUpdateStudent } from "../model/use-update-student";
@@ -65,6 +66,9 @@ export function StudentSheet({ target, onTargetChange }: Props) {
 
   const student = useStudent(target.kind === "view" ? target.id : null);
   const currencies = useActiveCurrencies(formOpen && permissions.includes("currencies.read"));
+  const canSeeMethods = permissions.includes("payment-methods.read");
+  const allMethods = usePaymentMethods(target.kind === "view" && canSeeMethods);
+  const activeMethods = useActivePaymentMethods(formOpen && canSeeMethods);
   const teachers = useTeachers(formOpen && canAssignTeacher);
   const create = useCreateStudent();
   const update = useUpdateStudent(target.kind === "view" ? target.id : "");
@@ -138,6 +142,7 @@ export function StudentSheet({ target, onTargetChange }: Props) {
 
     const formProps = {
       currencies: currencies.data ?? [],
+      paymentMethods: activeMethods.data ?? [],
       teachers: teachers.data ?? [],
       canAssignTeacher,
       onDirtyChange: setDirty,
@@ -190,7 +195,7 @@ export function StudentSheet({ target, onTargetChange }: Props) {
 
     return (
       <div className="grid gap-4">
-        <StudentDetails student={student.data} canEdit={canEdit} onEdit={requestEdit} />
+        <StudentDetails student={student.data} paymentMethods={allMethods.data ?? []} canEdit={canEdit} onEdit={requestEdit} />
         <StudentSections studentId={student.data.id} onDirtyChange={setAdjustDirty} />
       </div>
     );

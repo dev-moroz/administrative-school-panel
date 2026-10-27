@@ -12,9 +12,9 @@ import { PaymentSheet } from "./payment-sheet";
 
 vi.mock("@/lib/api", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/lib/api")>()), apiFetch: vi.fn() }));
 
-type Opts = { createError?: ApiError; proofError?: ApiError; currencyList?: Currency[]; methodList?: PaymentMethod[]; s1Currency?: string };
+type Opts = { createError?: ApiError; proofError?: ApiError; currencyList?: Currency[]; methodList?: PaymentMethod[]; s1Currency?: string; s1Method?: string | null; methodsGate?: Promise<void> };
 
-function mockApi({ createError, proofError, currencyList, methodList, s1Currency = "EUR" }: Opts = {}) {
+function mockApi({ createError, proofError, currencyList, methodList, s1Currency = "EUR", s1Method = null, methodsGate }: Opts = {}) {
   vi.mocked(apiFetch).mockImplementation(async (path: string, init?: RequestInit) => {
     const url = new URL(path, "http://x");
     const method = init?.method ?? "GET";
@@ -30,10 +30,13 @@ function mockApi({ createError, proofError, currencyList, methodList, s1Currency
         pageSize: 100,
       };
     }
-    if (url.pathname === "/students/s1") return makeStudent({ id: "s1", defaultCurrencyCode: s1Currency, lessonPrice: "50.00" });
+    if (url.pathname === "/students/s1") return makeStudent({ id: "s1", defaultCurrencyCode: s1Currency, defaultPaymentMethodCode: s1Method, lessonPrice: "50.00" });
     if (url.pathname === "/students/s2") return makeStudent({ id: "s2", fullName: "Max Kozlov", defaultCurrencyCode: null, lessonPrice: null });
     if (url.pathname === "/currencies") return currencyList ?? currencies;
-    if (url.pathname === "/payment-methods") return methodList ?? paymentMethods;
+    if (url.pathname === "/payment-methods") {
+      await methodsGate;
+      return methodList ?? paymentMethods;
+    }
     if (url.pathname === "/payments" && method === "POST") {
       if (createError) throw createError;
       return makePayment({ id: "p-new" });
@@ -312,6 +315,82 @@ describe("PaymentSheet", () => {
       await user.click(screen.getByRole("button", { name: "Save payment" }));
       expect(await screen.findByText("Choose a currency")).toBeInTheDocument();
       expect(posts()).toEqual([]);
+    });
+  });
+
+  describe("student default payment method", () => {
+    const withInactive: PaymentMethod[] = [...paymentMethods, makePaymentMethod({ code: "OLD", name: "Old method", icon: "wallet", isActive: false })];
+
+    it("picking a student preselects their default method together with the currency", async () => {
+      mockApi({ s1Method: "CARD" });
+      const { user } = setup();
+      await pick(user, "Student", "Anna Petrova");
+      await waitFor(() => expect(screen.getByRole("combobox", { name: "Method" })).toHaveTextContent("Card"));
+      expect(screen.getByRole("combobox", { name: "Currency" })).toHaveTextContent("EUR");
+    });
+
+    it("a student without a default method leaves the field empty", async () => {
+      mockApi({ s1Method: null });
+      const { user } = setup();
+      await pick(user, "Student", "Anna Petrova");
+      await waitFor(() => expect(screen.getByRole("combobox", { name: "Currency" })).toHaveTextContent("EUR"));
+      expect(screen.getByRole("combobox", { name: "Method" })).not.toHaveTextContent(/Card|Cash|Bank transfer/);
+    });
+
+    it("the method chosen by hand is not overwritten once the student is loaded", async () => {
+      mockApi({ s1Method: "CARD" });
+      const { user } = setup();
+      await pick(user, "Student", "Anna Petrova");
+      await waitFor(() => expect(screen.getByRole("combobox", { name: "Method" })).toHaveTextContent("Card"));
+      await pick(user, "Method", "Cash");
+      await user.type(screen.getByLabelText("Amount"), "400");
+      expect(screen.getByRole("combobox", { name: "Method" })).toHaveTextContent("Cash");
+    });
+
+    it("an inactive default method is not applied and the field stays empty", async () => {
+      mockApi({ methodList: withInactive, s1Method: "OLD" });
+      const { user } = setup();
+      await pick(user, "Student", "Anna Petrova");
+      await waitFor(() => expect(screen.getByRole("combobox", { name: "Currency" })).toHaveTextContent("EUR"));
+      expect(screen.getByRole("combobox", { name: "Method" })).not.toHaveTextContent("Old method");
+      expect(screen.getByRole("combobox", { name: "Method" })).not.toHaveTextContent("OLD");
+    });
+
+    it("an inactive default method: submitting without choosing a method is blocked", async () => {
+      mockApi({ methodList: withInactive, s1Method: "OLD" });
+      const { user } = setup();
+      await pick(user, "Student", "Anna Petrova");
+      await waitFor(() => expect(screen.getByRole("combobox", { name: "Currency" })).toHaveTextContent("EUR"));
+      await user.type(screen.getByLabelText("Amount"), "400");
+      await user.click(screen.getByRole("button", { name: "Save payment" }));
+      expect(await screen.findByText("Choose a method")).toBeInTheDocument();
+      expect(posts()).toEqual([]);
+    });
+
+    it("waits for the method list: applied once the methods have loaded", async () => {
+      let release!: () => void;
+      const methodsGate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      mockApi({ s1Method: "CASH", methodsGate });
+      const { user } = setup();
+      await pick(user, "Student", "Anna Petrova");
+      await waitFor(() => expect(vi.mocked(apiFetch).mock.calls.some(([p]) => p === "/students/s1")).toBe(true));
+      expect(screen.getByRole("combobox", { name: "Method" })).not.toHaveTextContent("Cash");
+      release();
+      await waitFor(() => expect(screen.getByRole("combobox", { name: "Method" })).toHaveTextContent("Cash"));
+      expect(screen.getByRole("combobox", { name: "Currency" })).toHaveTextContent("EUR");
+    });
+
+    it("the applied default is what gets sent", async () => {
+      mockApi({ s1Method: "CARD" });
+      const { user } = setup();
+      await pick(user, "Student", "Anna Petrova");
+      await waitFor(() => expect(screen.getByRole("combobox", { name: "Method" })).toHaveTextContent("Card"));
+      await user.type(screen.getByLabelText("Amount"), "400");
+      await user.click(screen.getByRole("button", { name: "Save payment" }));
+      await waitFor(() => expect(posts()).toHaveLength(1));
+      expect(body(posts()[0])).toMatchObject({ method: "CARD", currencyCode: "EUR" });
     });
   });
 

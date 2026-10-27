@@ -6,6 +6,8 @@ import { ApiError, apiFetch } from "@/lib/api";
 import { renderWithProviders } from "@/test/render";
 import { useStudents } from "../model/use-students";
 import type { Currency } from "@/features/currencies/model/types";
+import type { PaymentMethod } from "@/features/payment-methods/model/types";
+import { makePaymentMethod, paymentMethods } from "@/features/payment-methods/test/fixtures";
 import { currencies, makeStudent, teachers } from "../test/fixtures";
 import { StudentSheet, type SheetTarget } from "./student-sheet";
 
@@ -15,10 +17,10 @@ vi.mock("@/lib/api", async (importOriginal) => ({
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
-const ADMIN = ["students.read.all", "students.create", "students.update", "students.assign-teacher", "currencies.read"];
+const ADMIN = ["students.read.all", "students.create", "students.update", "students.assign-teacher", "currencies.read", "payment-methods.read"];
 const TEACHER = ["students.read.all", "students.create", "students.update", "currencies.read"];
 
-type Opts = { currencyList?: Currency[]; permissions?: string[]; student?: ReturnType<typeof makeStudent>; getError?: ApiError; saveError?: ApiError; save?: Promise<unknown> };
+type Opts = { currencyList?: Currency[]; methodList?: PaymentMethod[]; permissions?: string[]; student?: ReturnType<typeof makeStudent>; getError?: ApiError; saveError?: ApiError; save?: Promise<unknown> };
 
 let opts: Opts;
 
@@ -30,6 +32,7 @@ function mockApi(next: Opts = {}) {
     if (url.pathname === "/auth/me")
       return { id: "u1", email: "a@b.c", role: "admin", permissions: opts.permissions ?? ADMIN };
     if (url.pathname === "/currencies") return opts.currencyList ?? currencies;
+    if (url.pathname === "/payment-methods") return opts.methodList ?? paymentMethods;
     if (url.pathname === "/teachers") return teachers;
     if (url.pathname === "/students" && method === "GET")
       return { items: [], total: 0, page: 1, pageSize: 12 };
@@ -366,5 +369,66 @@ describe("StudentSheet: inactive currencies", () => {
     await userEvent.click(screen.getByRole("combobox", { name: "Currency" }));
     expect(await screen.findByRole("option", { name: /^GBP/ })).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: /CHF/ })).not.toBeInTheDocument();
+  });
+});
+
+describe("StudentSheet: default payment method", () => {
+  const withInactive: PaymentMethod[] = [...paymentMethods, makePaymentMethod({ code: "OLD", name: "Old method", icon: "wallet", isActive: false })];
+
+  it("view: shows the student's method by name", async () => {
+    mockApi({ student: makeStudent({ defaultPaymentMethodCode: "CARD" }) });
+    setup(VIEW);
+    const dialog = await screen.findByRole("dialog");
+    expect(await within(dialog).findByText("Payment method")).toBeInTheDocument();
+    expect(await within(dialog).findByText("Card")).toBeInTheDocument();
+  });
+
+  it("view: an inactive method is still shown by name for a user who can see all methods", async () => {
+    mockApi({ methodList: withInactive, student: makeStudent({ defaultPaymentMethodCode: "OLD" }) });
+    setup(VIEW);
+    const dialog = await screen.findByRole("dialog");
+    expect(await within(dialog).findByText("Old method")).toBeInTheDocument();
+  });
+
+  it("edit: Save sends the chosen method code in PATCH", async () => {
+    mockApi({ student: makeStudent({ defaultPaymentMethodCode: "CARD" }) });
+    setup(VIEW);
+    await openEdit();
+    await userEvent.click(screen.getByRole("combobox", { name: "Payment method" }));
+    await userEvent.click(await screen.findByRole("option", { name: "Cash" }));
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(calls("PATCH", "/students/s1")).toHaveLength(1));
+    expect(JSON.parse(String(calls("PATCH", "/students/s1")[0][1]?.body))).toMatchObject({ defaultPaymentMethodCode: "CASH" });
+  });
+
+  it("edit: clearing the method sends null", async () => {
+    mockApi({ student: makeStudent({ defaultPaymentMethodCode: "CARD" }) });
+    setup(VIEW);
+    await openEdit();
+    await userEvent.click(screen.getByRole("combobox", { name: "Payment method" }));
+    await userEvent.click(await screen.findByRole("option", { name: "Not set" }));
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(calls("PATCH", "/students/s1")).toHaveLength(1));
+    expect(JSON.parse(String(calls("PATCH", "/students/s1")[0][1]?.body))).toMatchObject({ defaultPaymentMethodCode: null });
+  });
+
+  it("create: an inactive method is not offered, active ones are", async () => {
+    mockApi({ methodList: withInactive });
+    setup(CREATE);
+    await userEvent.click(await screen.findByRole("combobox", { name: "Payment method" }));
+    expect(await screen.findByRole("option", { name: "Cash" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /OLD|Old method/ })).not.toBeInTheDocument();
+  });
+
+  it("edit: the student's own inactive method stays selected and selectable, other inactive ones are not offered", async () => {
+    const list = [...withInactive, makePaymentMethod({ code: "GONE", name: "Gone method", icon: "wallet", isActive: false })];
+    mockApi({ methodList: list, student: makeStudent({ defaultPaymentMethodCode: "OLD" }) });
+    setup(VIEW);
+    await openEdit();
+    const select = screen.getByRole("combobox", { name: "Payment method" });
+    expect(select).toHaveTextContent("OLD");
+    await userEvent.click(select);
+    expect(await screen.findByRole("option", { name: "OLD" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Gone method|GONE/ })).not.toBeInTheDocument();
   });
 });

@@ -2,10 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "@/test/render";
+import { paymentMethods } from "@/features/payment-methods/test/fixtures";
 import { makeStudent } from "../test/fixtures";
 import { StudentDetails } from "./student-details";
 
-const props = { canEdit: true, onEdit: () => {} };
+const props = { canEdit: true, onEdit: () => {}, paymentMethods };
 
 describe("StudentDetails (read only view)", () => {
   it("shows the profile data as plain text, with no inputs", () => {
@@ -80,5 +81,25 @@ describe("StudentDetails (read only view)", () => {
   it("hides the Edit button without the update permission", () => {
     renderWithProviders(<StudentDetails {...props} canEdit={false} student={makeStudent()} />);
     expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
+  });
+});
+
+describe("StudentDetails payment method", () => {
+  it("shows the method name with its icon in a Payment method row", () => {
+    renderWithProviders(<StudentDetails {...props} student={makeStudent({ defaultPaymentMethodCode: "CARD" })} />);
+    expect(screen.getByText("Payment method")).toBeInTheDocument();
+    const name = screen.getByText("Card");
+    expect(name.closest("dd")?.querySelector("svg")).not.toBeNull();
+  });
+
+  it("renders no row at all when the student has no method (no dash)", () => {
+    renderWithProviders(<StudentDetails {...props} student={makeStudent({ defaultPaymentMethodCode: null })} />);
+    expect(screen.queryByText("Payment method")).not.toBeInTheDocument();
+  });
+
+  it("falls back to the code when the method is not in the list", () => {
+    renderWithProviders(<StudentDetails {...props} student={makeStudent({ defaultPaymentMethodCode: "OLD" })} />);
+    expect(screen.getByText("Payment method")).toBeInTheDocument();
+    expect(screen.getByText("OLD")).toBeInTheDocument();
   });
 });

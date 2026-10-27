@@ -21,6 +21,7 @@ export const studentSchema = z.object({
   englishLevel: z.union([z.literal(""), z.enum(ENGLISH_LEVELS)]),
   comment: z.string().max(2000),
   defaultCurrencyCode: z.string().max(10),
+  defaultPaymentMethodCode: z.string().max(20),
   lessonPrice: price,
   isActive: z.boolean(),
   teacherId: z.string().optional(),
@@ -40,6 +41,7 @@ export function toPayload(values: StudentFormValues, mode: "create" | "edit") {
     englishLevel: text(values.englishLevel),
     comment: text(values.comment),
     defaultCurrencyCode: text(values.defaultCurrencyCode),
+    defaultPaymentMethodCode: text(values.defaultPaymentMethodCode),
     lessonPrice: values.lessonPrice === "" ? empty : Number(values.lessonPrice),
   };
   if (mode === "edit") return { ...payload, isActive: values.isActive };

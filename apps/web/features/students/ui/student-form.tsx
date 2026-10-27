@@ -18,12 +18,15 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { ENGLISH_LEVELS, studentSchema, type StudentFormValues } from "../model/student-schema";
 import type { Currency } from "@/features/currencies/model/types";
+import type { PaymentMethod } from "@/features/payment-methods/model/types";
+import { MethodLabel } from "@/features/payment-methods/ui/payment-method-label";
 import type { Teacher } from "../model/types";
 
 type Props = {
   mode: "create" | "edit";
   defaultValues: StudentFormValues;
   currencies: Currency[];
+  paymentMethods: PaymentMethod[];
   teachers: Teacher[];
   canAssignTeacher: boolean;
   teacherName: string | null;
@@ -61,6 +64,7 @@ export function StudentForm({
   mode,
   defaultValues,
   currencies,
+  paymentMethods,
   teachers,
   canAssignTeacher,
   teacherName,
@@ -96,6 +100,11 @@ export function StudentForm({
   const currentCurrency = defaultValues.defaultCurrencyCode;
   // A currency the student already has may be missing from the list (deactivated): keep it selectable.
   const extraCurrency = currentCurrency && !currencyCodes.includes(currentCurrency) ? currentCurrency : null;
+
+  const currentMethod = defaultValues.defaultPaymentMethodCode;
+  // Same for the payment method.
+  const extraMethod =
+    currentMethod && !paymentMethods.some((m) => m.code === currentMethod) ? currentMethod : null;
 
   return (
     <form className="grid gap-4" noValidate onSubmit={handleSubmit(submit)}>
@@ -171,6 +180,34 @@ export function StudentForm({
           />
         </Field>
       </div>
+
+      <Field label={t("fieldPaymentMethod")} htmlFor="defaultPaymentMethodCode">
+        <Controller
+          control={control}
+          name="defaultPaymentMethodCode"
+          render={({ field }) => {
+            const selected = paymentMethods.find((m) => m.code === field.value);
+            return (
+              <Select value={field.value} onValueChange={(v) => field.onChange(v === NONE ? "" : v)}>
+                <SelectTrigger id="defaultPaymentMethodCode" className="w-full">
+                  <SelectValue placeholder="—">
+                    {selected ? <MethodLabel method={selected} /> : field.value || undefined}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>{t("notSet")}</SelectItem>
+                  {extraMethod && <SelectItem value={extraMethod}>{extraMethod}</SelectItem>}
+                  {paymentMethods.map((m) => (
+                    <SelectItem key={m.code} value={m.code}>
+                      <MethodLabel method={m} />
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            );
+          }}
+        />
+      </Field>
 
       {canAssignTeacher && mode === "create" && (
         <Field label={t("fieldTeacher")} htmlFor="teacherId" error={errors.teacherId?.message}>

@@ -9,6 +9,7 @@ export function makeStudent(patch: Partial<Student> = {}): Student {
     englishLevel: "B1",
     comment: "Prefers evenings",
     defaultCurrencyCode: "EUR",
+    defaultPaymentMethodCode: null,
     lessonPrice: "50.00",
     isActive: true,
     teacher: { id: "t1", fullName: "Olga Smirnova" },

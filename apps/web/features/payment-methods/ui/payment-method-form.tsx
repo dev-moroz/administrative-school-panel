@@ -42,6 +42,7 @@ export function PaymentMethodForm({ mode, defaultValues, onSubmit, onCancel, onD
     control,
     handleSubmit,
     setError,
+    setValue,
     formState: { errors, isDirty, isSubmitting },
   } = useForm<PaymentMethodFormValues>({ resolver: zodResolver(paymentMethodSchema), defaultValues });
 
@@ -56,6 +57,9 @@ export function PaymentMethodForm({ mode, defaultValues, onSubmit, onCancel, onD
       const status = error instanceof ApiError ? error.status : null;
       if (mode === "create" && status === 409) {
         setError("code", { type: "duplicate", message: t("errCodeExists") });
+      } else if (mode === "edit" && status === 409) {
+        setValue("isActive", defaultValues.isActive, { shouldDirty: true });
+        toast.error(t("inUse"));
       } else if (status === 404) {
         toast.error(t("notFound"));
       } else {

@@ -30,6 +30,7 @@ export type Student = {
   englishLevel: EnglishLevel | null;
   comment: string | null;
   defaultCurrencyCode: string | null;
+  defaultPaymentMethodCode: string | null;
   lessonPrice: string | null;
   isActive: boolean;
   teacher: Teacher | null;

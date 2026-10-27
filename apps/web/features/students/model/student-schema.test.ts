@@ -7,6 +7,7 @@ const base: StudentFormValues = {
   englishLevel: "",
   comment: "",
   defaultCurrencyCode: "",
+  defaultPaymentMethodCode: "",
   lessonPrice: "",
   isActive: true,
 };
@@ -78,6 +79,7 @@ describe("toPayload", () => {
     englishLevel: "B1",
     comment: "Prefers evenings",
     defaultCurrencyCode: "EUR",
+    defaultPaymentMethodCode: "CARD",
     lessonPrice: "50.5",
     isActive: false,
   };
@@ -89,6 +91,7 @@ describe("toPayload", () => {
       englishLevel: "B1",
       comment: "Prefers evenings",
       defaultCurrencyCode: "EUR",
+      defaultPaymentMethodCode: "CARD",
       lessonPrice: 50.5,
     });
   });
@@ -104,6 +107,7 @@ describe("toPayload", () => {
       englishLevel: null,
       comment: null,
       defaultCurrencyCode: null,
+      defaultPaymentMethodCode: null,
       lessonPrice: null,
       isActive: true,
     });
@@ -116,6 +120,7 @@ describe("toPayload", () => {
       englishLevel: "B1",
       comment: "Prefers evenings",
       defaultCurrencyCode: "EUR",
+      defaultPaymentMethodCode: "CARD",
       lessonPrice: 50.5,
       isActive: false,
     });
@@ -146,5 +151,23 @@ describe("toPayload teacherId", () => {
   it("the schema accepts a missing and a filled teacherId", () => {
     expect(studentSchema.safeParse(base).success).toBe(true);
     expect(studentSchema.safeParse({ ...base, teacherId: "t1" }).success).toBe(true);
+  });
+});
+
+describe("defaultPaymentMethodCode", () => {
+  it("the schema accepts an empty and a filled code, rejects one longer than 20 characters", () => {
+    expect(parse({ defaultPaymentMethodCode: "" }).success).toBe(true);
+    expect(parse({ defaultPaymentMethodCode: "CARD" }).success).toBe(true);
+    expect(parse({ defaultPaymentMethodCode: "A".repeat(21) }).success).toBe(false);
+  });
+
+  it("create: sends the code when chosen and leaves it out when empty", () => {
+    expect(toPayload({ ...base, defaultPaymentMethodCode: "CASH" }, "create")).toMatchObject({ defaultPaymentMethodCode: "CASH" });
+    expect(JSON.parse(JSON.stringify(toPayload(base, "create")))).not.toHaveProperty("defaultPaymentMethodCode");
+  });
+
+  it("edit: sends the code, or null when it was cleared", () => {
+    expect(toPayload({ ...base, defaultPaymentMethodCode: "CASH" }, "edit")).toMatchObject({ defaultPaymentMethodCode: "CASH" });
+    expect(toPayload(base, "edit")).toMatchObject({ defaultPaymentMethodCode: null });
   });
 });

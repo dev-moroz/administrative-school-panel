@@ -3,6 +3,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "@/test/render";
 import { emptyFormValues, studentToFormValues } from "../model/student-to-form-values";
+import { paymentMethods } from "@/features/payment-methods/test/fixtures";
 import { currencies, makeStudent, teachers } from "../test/fixtures";
 import { StudentForm } from "./student-form";
 
@@ -10,6 +11,7 @@ const baseProps = {
   mode: "create" as const,
   defaultValues: emptyFormValues,
   currencies,
+  paymentMethods,
   teachers: [],
   canAssignTeacher: false,
   teacherName: null,
@@ -169,5 +171,78 @@ describe("StudentForm state", () => {
     expect(onDirtyChange).not.toHaveBeenCalledWith(true);
     await userEvent.type(screen.getByLabelText("Full name"), "A");
     expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+  });
+});
+
+describe("StudentForm payment method", () => {
+  it("offers the given methods by name, with an icon, and a Not set option", async () => {
+    renderWithProviders(<StudentForm {...baseProps} />);
+    await userEvent.click(screen.getByRole("combobox", { name: "Payment method" }));
+    expect(await screen.findByRole("option", { name: "Not set" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Card" }).querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("option", { name: "Cash" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Bank transfer" })).toBeInTheDocument();
+  });
+
+  it("is empty for a new student and sends nothing", async () => {
+    const onSubmit = vi.fn();
+    renderWithProviders(<StudentForm {...baseProps} onSubmit={onSubmit} />);
+    await userEvent.type(screen.getByLabelText("Full name"), "Anna");
+    await userEvent.click(save());
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({ defaultPaymentMethodCode: "" });
+  });
+
+  it("edit mode shows the student's method by name", () => {
+    renderWithProviders(
+      <StudentForm
+        {...baseProps}
+        mode="edit"
+        defaultValues={studentToFormValues(makeStudent({ defaultPaymentMethodCode: "CARD" }))}
+      />,
+    );
+    expect(screen.getByRole("combobox", { name: "Payment method" })).toHaveTextContent("Card");
+  });
+
+  it("a chosen method goes into the submitted values as its code", async () => {
+    const onSubmit = vi.fn();
+    renderWithProviders(<StudentForm {...baseProps} onSubmit={onSubmit} />);
+    await userEvent.type(screen.getByLabelText("Full name"), "Anna");
+    await userEvent.click(screen.getByRole("combobox", { name: "Payment method" }));
+    await userEvent.click(await screen.findByRole("option", { name: "Cash" }));
+    await userEvent.click(save());
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({ defaultPaymentMethodCode: "CASH" });
+  });
+
+  it("Not set clears a method", async () => {
+    const onSubmit = vi.fn();
+    renderWithProviders(
+      <StudentForm
+        {...baseProps}
+        mode="edit"
+        defaultValues={studentToFormValues(makeStudent({ defaultPaymentMethodCode: "CARD" }))}
+        onSubmit={onSubmit}
+      />,
+    );
+    await userEvent.click(screen.getByRole("combobox", { name: "Payment method" }));
+    await userEvent.click(await screen.findByRole("option", { name: "Not set" }));
+    await userEvent.click(save());
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({ defaultPaymentMethodCode: "" });
+  });
+
+  it("keeps a method that is not in the options list (e.g. deactivated) selected and selectable", async () => {
+    renderWithProviders(
+      <StudentForm
+        {...baseProps}
+        mode="edit"
+        defaultValues={studentToFormValues(makeStudent({ defaultPaymentMethodCode: "OLD" }))}
+      />,
+    );
+    const select = screen.getByRole("combobox", { name: "Payment method" });
+    expect(select).toHaveTextContent("OLD");
+    await userEvent.click(select);
+    expect(await screen.findByRole("option", { name: "OLD" })).toBeInTheDocument();
   });
 });
