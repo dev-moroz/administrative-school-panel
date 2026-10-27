@@ -327,6 +327,18 @@ describe("PaymentSheet", () => {
       expect(screen.getByRole("option", { name: "Bank transfer" })).toBeInTheDocument();
     });
 
+    it("each option shows the method icon next to its name, and the chosen one keeps it in the field", async () => {
+      mockApi();
+      const { user } = setup();
+      await user.click(await screen.findByRole("combobox", { name: "Method" }));
+      expect((await screen.findByRole("option", { name: "Cash" })).querySelector("svg")).not.toBeNull();
+      expect(screen.getByRole("option", { name: "Card" }).querySelector("svg")).not.toBeNull();
+      await user.click(screen.getByRole("option", { name: "Cash" }));
+      const trigger = screen.getByRole("combobox", { name: "Method" });
+      expect(trigger).toHaveTextContent("Cash");
+      expect(trigger.querySelector("[data-slot=select-value] svg")).not.toBeNull();
+    });
+
     it("an inactive method is not offered", async () => {
       mockApi({ methodList: withInactive });
       const { user } = setup();

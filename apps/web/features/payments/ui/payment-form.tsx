@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useActiveCurrencies } from "@/features/currencies/model/use-currencies";
 import { useActivePaymentMethods } from "@/features/payment-methods/model/use-payment-methods";
+import { PaymentMethodIcon } from "@/features/payment-methods/ui/payment-method-icon";
 import { useStudent } from "@/features/students/model/use-student";
 import { useStudents } from "@/features/students/model/use-students";
 import type { Student } from "@/features/students/model/types";
@@ -44,6 +45,15 @@ function Field({ label, htmlFor, error, hint, children }: { label: string; htmlF
         hint && <p className="absolute -bottom-3.5 text-[10px] text-muted-foreground">{hint}</p>
       )}
     </div>
+  );
+}
+
+function MethodLabel({ method }: { method: { name: string; icon: string } }) {
+  return (
+    <span className="flex items-center gap-2">
+      <PaymentMethodIcon name={method.icon} />
+      {method.name}
+    </span>
   );
 }
 
@@ -193,12 +203,17 @@ export function PaymentForm({ isSubmitting, errorMessage, onSubmit, onCancel, on
             render={({ field }) => (
               <Select value={field.value} onValueChange={field.onChange}>
                 <SelectTrigger id="method" className="w-full" aria-invalid={!!errors.method}>
-                  <SelectValue placeholder="—">{methods.find((m) => m.code === field.value)?.name}</SelectValue>
+                  <SelectValue placeholder="—">
+                    {(() => {
+                      const selected = methods.find((m) => m.code === field.value);
+                      return selected && <MethodLabel method={selected} />;
+                    })()}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {methods.map((m) => (
                     <SelectItem key={m.code} value={m.code}>
-                      {m.name}
+                      <MethodLabel method={m} />
                     </SelectItem>
                   ))}
                 </SelectContent>
