@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Currency } from "@/features/currencies/model/types";
-import { PAYMENT_METHODS, type CreatePaymentPayload } from "./types";
+import type { CreatePaymentPayload } from "./types";
 
 export const MAX_LESSONS_GRANTED = 100;
 export const MAX_PROOF_FILE_SIZE = 5 * 1024 * 1024;
@@ -15,7 +15,7 @@ const paymentFormSchema = z.object({
   studentId: z.string().min(1),
   amount: z.string(),
   currencyCode: z.string().min(1),
-  method: z.enum(PAYMENT_METHODS),
+  method: z.string().min(1),
   lessonsGranted: z.string(),
   paidAt: z.string(),
   comment: z.string().max(MAX_COMMENT_LENGTH),
@@ -30,7 +30,7 @@ export const emptyPaymentValues: PaymentFormValues = {
   studentId: "",
   amount: "",
   currencyCode: "",
-  method: "" as PaymentFormValues["method"],
+  method: "",
   lessonsGranted: "",
   paidAt: "",
   comment: "",

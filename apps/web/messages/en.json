@@ -22,7 +22,8 @@
     "logout": "Sign out"
   },
   "Settings": {
-    "currencies": "Currencies"
+    "currencies": "Currencies",
+    "paymentMethods": "Payment methods"
   },
   "Currencies": {
     "title": "Currencies",
@@ -55,6 +56,36 @@
     "saveFailed": "Could not save the currency",
     "notFound": "Currency not found",
     "inUse": "This currency is in use, it cannot be deactivated"
+  },
+  "PaymentMethods": {
+    "title": "Payment methods",
+    "newMethod": "New payment method",
+    "empty": "No payment methods yet",
+    "loadError": "Failed to load payment methods",
+    "retry": "Retry",
+    "colName": "Name",
+    "colCode": "Code",
+    "colStatus": "Status",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "sheetTitleCreate": "New payment method",
+    "sheetTitleEdit": "Edit payment method",
+    "sheetDescCreate": "The code cannot be changed after creation",
+    "sheetDescEdit": "The name, the icon and the status can be changed",
+    "fieldCode": "Code",
+    "fieldName": "Name",
+    "fieldIcon": "Icon",
+    "fieldActive": "Active",
+    "errCode": "Use 2 to 20 letters, digits or underscores",
+    "errName": "Enter a name",
+    "errIcon": "Choose an icon",
+    "errCodeExists": "This code already exists",
+    "create": "Create payment method",
+    "save": "Save changes",
+    "toastCreated": "Payment method created",
+    "toastSaved": "Payment method saved",
+    "saveFailed": "Could not save the payment method",
+    "notFound": "Payment method not found"
   },
   "Theme": {
     "toggle": "Theme",
@@ -176,12 +207,6 @@
     "by": "by {name}",
     "openFile": "Open file",
     "openLink": "Open link",
-    "method": {
-      "CASH": "Cash",
-      "CARD": "Card",
-      "TRANSFER": "Transfer",
-      "CRYPTO": "Crypto"
-    },
     "sheetTitle": "New payment",
     "sheetDescription": "Record a payment and add lessons to the balance",
     "fieldStudent": "Student",

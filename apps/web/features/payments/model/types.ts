@@ -1,5 +1,5 @@
-export const PAYMENT_METHODS = ["CASH", "CARD", "TRANSFER", "CRYPTO"] as const;
-export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+// The method as the API returns it inside a payment; the list of methods lives in features/payment-methods.
+export type PaymentMethodRef = { code: string; name: string; icon: string };
 
 export type PaymentProofFile = { originalName: string; mimeType: string; size: number };
 
@@ -7,7 +7,7 @@ export type Payment = {
   id: string;
   amount: string;
   currencyCode: string;
-  method: PaymentMethod;
+  method: PaymentMethodRef;
   paidAt: string;
   comment: string | null;
   proofUrl: string | null;
@@ -26,7 +26,7 @@ export type CreatePaymentPayload = {
   studentId: string;
   amount: string;
   currencyCode: string;
-  method: PaymentMethod;
+  method: string;
   lessonsGranted: number;
   paidAt?: string;
   comment?: string;

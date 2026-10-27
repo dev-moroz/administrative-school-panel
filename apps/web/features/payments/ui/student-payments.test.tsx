@@ -53,7 +53,7 @@ describe("StudentPayments", () => {
     expect(screen.getByText("EUR")).toBeInTheDocument();
     expect(screen.getByText(/Olga Smirnova/)).toBeInTheDocument();
     expect(screen.queryByText("Hidden note")).not.toBeInTheDocument();
-    expect(screen.queryByText("Transfer")).not.toBeInTheDocument();
+    expect(screen.queryByText("Bank transfer")).not.toBeInTheDocument();
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 

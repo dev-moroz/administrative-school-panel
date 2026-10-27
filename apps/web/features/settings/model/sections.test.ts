@@ -19,10 +19,37 @@ describe("SETTINGS_SECTIONS", () => {
   });
 });
 
+describe("Payment methods section", () => {
+  it("is registered behind payment-methods.update", () => {
+    expect(SETTINGS_SECTIONS).toContainEqual(
+      expect.objectContaining({ key: "paymentMethods", href: "/settings/payment-methods", permission: "payment-methods.update" }),
+    );
+  });
+
+  it("is protected by resolveSettingsAccess like any other section", () => {
+    expect(resolveSettingsAccess("/settings/payment-methods", ["currencies.update"])).toEqual({ type: "redirect", to: "/settings" });
+    expect(resolveSettingsAccess("/settings/payment-methods", ["payment-methods.update"])).toEqual({ type: "allow" });
+  });
+});
+
 describe("getAvailableSections", () => {
   it("returns Currencies for a user with currencies.update", () => {
     const result = getAvailableSections(["currencies.update"]);
     expect(result.map((s) => s.href)).toEqual(["/settings/currencies"]);
+  });
+
+  it("returns Payment methods for a user with payment-methods.update", () => {
+    const result = getAvailableSections(["payment-methods.update"]);
+    expect(result.map((s) => s.href)).toEqual(["/settings/payment-methods"]);
+  });
+
+  it("returns both sections, Currencies first, for a user with both permissions", () => {
+    const result = getAvailableSections(["payment-methods.update", "currencies.update"]);
+    expect(result.map((s) => s.href)).toEqual(["/settings/currencies", "/settings/payment-methods"]);
+  });
+
+  it("read access alone opens nothing (the teacher has payment-methods.read)", () => {
+    expect(getAvailableSections(["payment-methods.read", "currencies.read"])).toEqual([]);
   });
 
   it("returns nothing without a matching permission", () => {

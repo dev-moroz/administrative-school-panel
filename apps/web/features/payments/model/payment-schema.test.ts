@@ -38,6 +38,11 @@ describe("createPaymentSchema", () => {
     expect(errorPaths({ method: "" as PaymentFormValues["method"] })).toContain("method");
   });
 
+  it("accepts any non-empty method code (the list comes from the API)", () => {
+    expect(errorPaths({ method: "WISE" })).toEqual([]);
+    expect(errorPaths({ method: "" })).toContain("method");
+  });
+
   it("rejects a currency that is not in the list", () => {
     expect(errorPaths({ currencyCode: "XXX" })).toContain("currencyCode");
   });

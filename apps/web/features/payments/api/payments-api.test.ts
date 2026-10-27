@@ -29,7 +29,7 @@ describe("payments api", () => {
   });
 
   it("createPayment POSTs the payload as JSON", async () => {
-    const payload = { studentId: "s1", amount: "400", currencyCode: "EUR", method: "CASH" as const, lessonsGranted: 8 };
+    const payload = { studentId: "s1", amount: "400", currencyCode: "EUR", method: "CASH", lessonsGranted: 8 };
     await createPayment(payload);
     const [path, init] = first();
     expect(path).toBe("/payments");

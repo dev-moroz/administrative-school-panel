@@ -4,19 +4,21 @@ import userEvent from "@testing-library/user-event";
 import { ApiError, apiFetch } from "@/lib/api";
 import type { Currency } from "@/features/currencies/model/types";
 import { currencies, makeStudent } from "@/features/students/test/fixtures";
+import type { PaymentMethod } from "@/features/payment-methods/model/types";
+import { makePaymentMethod, paymentMethods } from "@/features/payment-methods/test/fixtures";
 import { renderWithProviders } from "@/test/render";
 import { makePayment } from "../test/fixtures";
 import { PaymentSheet } from "./payment-sheet";
 
 vi.mock("@/lib/api", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/lib/api")>()), apiFetch: vi.fn() }));
 
-type Opts = { createError?: ApiError; proofError?: ApiError; currencyList?: Currency[]; s1Currency?: string };
+type Opts = { createError?: ApiError; proofError?: ApiError; currencyList?: Currency[]; methodList?: PaymentMethod[]; s1Currency?: string };
 
-function mockApi({ createError, proofError, currencyList, s1Currency = "EUR" }: Opts = {}) {
+function mockApi({ createError, proofError, currencyList, methodList, s1Currency = "EUR" }: Opts = {}) {
   vi.mocked(apiFetch).mockImplementation(async (path: string, init?: RequestInit) => {
     const url = new URL(path, "http://x");
     const method = init?.method ?? "GET";
-    if (url.pathname === "/auth/me") return { id: "u1", email: "a@b.c", role: "admin", permissions: ["payments.create", "students.read", "currencies.read"] };
+    if (url.pathname === "/auth/me") return { id: "u1", email: "a@b.c", role: "admin", permissions: ["payments.create", "students.read", "currencies.read", "payment-methods.read"] };
     if (url.pathname === "/students" && method === "GET") {
       return {
         items: [
@@ -31,6 +33,7 @@ function mockApi({ createError, proofError, currencyList, s1Currency = "EUR" }: 
     if (url.pathname === "/students/s1") return makeStudent({ id: "s1", defaultCurrencyCode: s1Currency, lessonPrice: "50.00" });
     if (url.pathname === "/students/s2") return makeStudent({ id: "s2", fullName: "Max Kozlov", defaultCurrencyCode: null, lessonPrice: null });
     if (url.pathname === "/currencies") return currencyList ?? currencies;
+    if (url.pathname === "/payment-methods") return methodList ?? paymentMethods;
     if (url.pathname === "/payments" && method === "POST") {
       if (createError) throw createError;
       return makePayment({ id: "p-new" });
@@ -308,6 +311,51 @@ describe("PaymentSheet", () => {
       await pick(user, "Method", "Cash");
       await user.click(screen.getByRole("button", { name: "Save payment" }));
       expect(await screen.findByText("Choose a currency")).toBeInTheDocument();
+      expect(posts()).toEqual([]);
+    });
+  });
+
+  describe("payment methods", () => {
+    const withInactive: PaymentMethod[] = [...paymentMethods, makePaymentMethod({ code: "OLD", name: "Old method", icon: "wallet", isActive: false })];
+
+    it("offers the active methods from the API by name", async () => {
+      mockApi({ methodList: withInactive });
+      const { user } = setup();
+      await user.click(await screen.findByRole("combobox", { name: "Method" }));
+      expect(await screen.findByRole("option", { name: "Cash" })).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: "Card" })).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: "Bank transfer" })).toBeInTheDocument();
+    });
+
+    it("an inactive method is not offered", async () => {
+      mockApi({ methodList: withInactive });
+      const { user } = setup();
+      await user.click(await screen.findByRole("combobox", { name: "Method" }));
+      await screen.findByRole("option", { name: "Cash" });
+      expect(screen.queryByRole("option", { name: "Old method" })).not.toBeInTheDocument();
+    });
+
+    it("a method created in Settings shows up and its code is what gets sent", async () => {
+      mockApi({ methodList: [...paymentMethods, makePaymentMethod({ code: "WISE", name: "Wise", icon: "globe" })] });
+      const { user } = setup();
+      await pick(user, "Student", "Anna Petrova");
+      await waitFor(() => expect(screen.getByRole("combobox", { name: "Currency" })).toHaveTextContent("EUR"));
+      await user.type(screen.getByLabelText("Amount"), "400");
+      await pick(user, "Method", "Wise");
+      expect(screen.getByRole("combobox", { name: "Method" })).toHaveTextContent("Wise");
+      await user.click(screen.getByRole("button", { name: "Save payment" }));
+      await waitFor(() => expect(posts()).toHaveLength(1));
+      expect(body(posts()[0])).toMatchObject({ method: "WISE" });
+    });
+
+    it("submitting without a method is blocked", async () => {
+      mockApi();
+      const { user } = setup();
+      await pick(user, "Student", "Anna Petrova");
+      await waitFor(() => expect(screen.getByRole("combobox", { name: "Currency" })).toHaveTextContent("EUR"));
+      await user.type(screen.getByLabelText("Amount"), "400");
+      await user.click(screen.getByRole("button", { name: "Save payment" }));
+      expect(await screen.findByText("Choose a method")).toBeInTheDocument();
       expect(posts()).toEqual([]);
     });
   });

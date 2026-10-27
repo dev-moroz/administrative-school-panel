@@ -1,4 +1,5 @@
 // Lucide icon names the admin can pick for a payment method; the web app maps them to components.
+// Keep in sync with apps/web/features/payment-methods/model/payment-method-icons.ts.
 export const PAYMENT_METHOD_ICONS = [
   'banknote',
   'credit-card',
@@ -8,4 +9,24 @@ export const PAYMENT_METHOD_ICONS = [
   'smartphone',
   'hand-coins',
   'circle-dollar-sign',
+  'coins',
+  'dollar-sign',
+  'euro',
+  'pound-sterling',
+  'russian-ruble',
+  'badge-dollar-sign',
+  'piggy-bank',
+  'arrow-left-right',
+  'send',
+  'globe',
+  'qr-code',
+  'nfc',
+  'smartphone-nfc',
+  'mail',
+  'receipt',
+  'store',
+  'building-2',
+  'handshake',
+  'wallet-cards',
+  'gift',
 ] as const;

@@ -5,7 +5,7 @@ export function makePayment(patch: Partial<Payment> = {}): Payment {
     id: "p1",
     amount: "400.00",
     currencyCode: "EUR",
-    method: "TRANSFER",
+    method: { code: "TRANSFER", name: "Bank transfer", icon: "landmark" },
     paidAt: new Date(2026, 9, 26, 14, 32).toISOString(),
     comment: null,
     proofUrl: null,

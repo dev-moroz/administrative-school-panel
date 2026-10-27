@@ -33,7 +33,7 @@ describe("PaymentsTable", () => {
   it("shows date with time, student, amount with currency, lessons, method and author", () => {
     renderWithProviders(
       <PaymentsTable
-        payments={[makePayment({ paidAt: at(26, 14, 32), amount: "2400.00", currencyCode: "GBP", method: "TRANSFER", lessonsGranted: 8 })]}
+        payments={[makePayment({ paidAt: at(26, 14, 32), amount: "2400.00", currencyCode: "GBP", method: { code: "TRANSFER", name: "Bank transfer", icon: "landmark" }, lessonsGranted: 8 })]}
       />,
     );
     const cells = cellsOf(dataRows()[0]);
@@ -42,7 +42,7 @@ describe("PaymentsTable", () => {
     expect(cells[CELL.amount]).toHaveTextContent("2400.00");
     expect(cells[CELL.amount]).toHaveTextContent("GBP");
     expect(cells[CELL.lessons]).toHaveTextContent("+8 lessons");
-    expect(cells[CELL.method]).toHaveTextContent("Transfer");
+    expect(cells[CELL.method]).toHaveTextContent("Bank transfer");
     expect(cells[CELL.author]).toHaveTextContent("Olga Smirnova");
   });
 

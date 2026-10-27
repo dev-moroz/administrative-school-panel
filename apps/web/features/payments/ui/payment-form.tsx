@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useActiveCurrencies } from "@/features/currencies/model/use-currencies";
+import { useActivePaymentMethods } from "@/features/payment-methods/model/use-payment-methods";
 import { useStudent } from "@/features/students/model/use-student";
 import { useStudents } from "@/features/students/model/use-students";
 import type { Student } from "@/features/students/model/types";
@@ -23,7 +24,6 @@ import {
   type PaymentFormValues,
 } from "../model/payment-schema";
 import { suggestLessons } from "../model/suggest-lessons";
-import { PAYMENT_METHODS } from "../model/types";
 
 type Props = {
   isSubmitting: boolean;
@@ -52,6 +52,7 @@ export function PaymentForm({ isSubmitting, errorMessage, onSubmit, onCancel, on
   const students = useStudents({ page: 1, pageSize: 100, isActive: true });
   const currenciesQuery = useActiveCurrencies(true);
   const currencies = useMemo(() => currenciesQuery.data ?? [], [currenciesQuery.data]);
+  const methods = useActivePaymentMethods(true).data ?? [];
   const schema = useMemo(() => createPaymentSchema(currencies), [currencies]);
 
   const {
@@ -192,12 +193,12 @@ export function PaymentForm({ isSubmitting, errorMessage, onSubmit, onCancel, on
             render={({ field }) => (
               <Select value={field.value} onValueChange={field.onChange}>
                 <SelectTrigger id="method" className="w-full" aria-invalid={!!errors.method}>
-                  <SelectValue placeholder="—">{field.value ? t(`method.${field.value}`) : undefined}</SelectValue>
+                  <SelectValue placeholder="—">{methods.find((m) => m.code === field.value)?.name}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {PAYMENT_METHODS.map((m) => (
-                    <SelectItem key={m} value={m}>
-                      {t(`method.${m}`)}
+                  {methods.map((m) => (
+                    <SelectItem key={m.code} value={m.code}>
+                      {m.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

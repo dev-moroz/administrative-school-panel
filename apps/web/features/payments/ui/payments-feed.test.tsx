@@ -25,7 +25,7 @@ describe("PaymentsFeed", () => {
     renderWithProviders(
       <PaymentsFeed
         now={now}
-        payments={[makePayment({ comment: "Paid for October", amount: "2400.00", currencyCode: "GBP", method: "TRANSFER", lessonsGranted: 8 })]}
+        payments={[makePayment({ comment: "Paid for October", amount: "2400.00", currencyCode: "GBP", method: { code: "TRANSFER", name: "Bank transfer", icon: "landmark" }, lessonsGranted: 8 })]}
       />,
     );
     const row = screen.getByRole("listitem");
@@ -33,7 +33,7 @@ describe("PaymentsFeed", () => {
     expect(within(row).getByText("+8 lessons")).toBeInTheDocument();
     expect(within(row).getByText("2400.00")).toBeInTheDocument();
     expect(within(row).getByText("GBP")).toBeInTheDocument();
-    expect(within(row).getByText("Transfer")).toBeInTheDocument();
+    expect(within(row).getByText("Bank transfer")).toBeInTheDocument();
     expect(within(row).getByText("Paid for October")).toBeInTheDocument();
     expect(within(row).getByText(/14:32/)).toBeInTheDocument();
     expect(within(row).getByText(/Olga Smirnova/)).toBeInTheDocument();
@@ -44,14 +44,9 @@ describe("PaymentsFeed", () => {
     expect(screen.getByText("+1 lesson")).toBeInTheDocument();
   });
 
-  it.each([
-    ["CASH", "Cash"],
-    ["CARD", "Card"],
-    ["TRANSFER", "Transfer"],
-    ["CRYPTO", "Crypto"],
-  ] as const)("labels method %s as %s", (method, label) => {
-    renderWithProviders(<PaymentsFeed now={now} payments={[makePayment({ method })]} />);
-    expect(screen.getByText(label)).toBeInTheDocument();
+  it("labels the method with the name from the data, including methods created in Settings", () => {
+    renderWithProviders(<PaymentsFeed now={now} payments={[makePayment({ method: { code: "WISE", name: "Wise", icon: "globe" } })]} />);
+    expect(screen.getByText("Wise")).toBeInTheDocument();
   });
 
   it("shows a short comment in full, without a toggle", () => {

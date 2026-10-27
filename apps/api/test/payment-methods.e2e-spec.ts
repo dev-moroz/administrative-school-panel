@@ -1,5 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
+import { PAYMENT_METHOD_ICONS } from '../src/payment-methods/payment-method-icons.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { createTestApp, ensureUser, loginAs, TEST_ORIGIN } from './helpers.js';
 
@@ -34,7 +35,7 @@ describe('payment methods (e2e)', () => {
     await prisma.ledgerEntry.deleteMany({ where: { payment: { student: { fullName: STUDENT_NAME } } } });
     await prisma.payment.deleteMany({ where: { methodCode: { in: ALL_CODES } } });
     await prisma.student.deleteMany({ where: { fullName: STUDENT_NAME } });
-    await prisma.paymentMethod.deleteMany({ where: { code: { in: ALL_CODES } } });
+    await prisma.paymentMethod.deleteMany({ where: { OR: [{ code: { in: ALL_CODES } }, { code: { startsWith: 'ZMI_' } }] } });
   }
 
   beforeAll(async () => {
@@ -149,6 +150,20 @@ describe('payment methods (e2e)', () => {
       expect(Object.keys(res.body).sort()).toEqual(ITEM_KEYS);
       expect(res.body).toEqual({ code: CREATED, name: 'New method', icon: 'bitcoin', isActive: true });
       expect(await prisma.paymentMethod.findUnique({ where: { code: CREATED } })).not.toBeNull();
+    });
+
+    it('whitelists 28 unique icons, including the payment symbols added for the settings UI', () => {
+      expect(PAYMENT_METHOD_ICONS).toHaveLength(28);
+      expect(new Set(PAYMENT_METHOD_ICONS).size).toBe(28);
+      expect(PAYMENT_METHOD_ICONS).toEqual(expect.arrayContaining(['qr-code', 'piggy-bank', 'pound-sterling', 'gift']));
+    });
+
+    it('accepts every whitelisted icon', async () => {
+      for (const [i, icon] of PAYMENT_METHOD_ICONS.entries()) {
+        const code = `ZMI_${i}`;
+        await post('admin', { code, name: `Icon ${icon}`, icon }).expect(201);
+      }
+      await prisma.paymentMethod.deleteMany({ where: { code: { startsWith: 'ZMI_' } } });
     });
 
     it('uppercases the code', async () => {
