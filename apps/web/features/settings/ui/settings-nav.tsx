@@ -12,7 +12,7 @@ export function SettingsNav({ permissions }: { permissions: string[] }) {
   const sections = getAvailableSections(permissions);
 
   return (
-    <nav className="w-56 shrink-0 border-r bg-sidebar p-4">
+    <nav className="w-[8.4rem] shrink-0 border-r bg-sidebar p-4">
       <ul className="flex flex-col gap-1">
         {sections.map((section) => {
           const active = pathname === section.href || pathname.startsWith(`${section.href}/`);
