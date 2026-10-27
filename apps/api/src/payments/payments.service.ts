@@ -27,6 +27,9 @@ export class PaymentsService {
     const currency = await this.prisma.currency.findUnique({ where: { code: dto.currencyCode } });
     if (!currency || !currency.isActive) throw new BadRequestException('Unknown or inactive currency');
 
+    const method = await this.prisma.paymentMethod.findUnique({ where: { code: dto.method } });
+    if (!method || !method.isActive) throw new BadRequestException('Unknown or inactive payment method');
+
     const amount = parseAmount(dto.amount, currency.decimals);
     if (amount === null) {
       throw new BadRequestException(`amount must be a positive number with at most ${currency.decimals} decimal places`);
@@ -43,7 +46,7 @@ export class PaymentsService {
           amount,
           currencyCode: currency.code,
           paidAt,
-          method: dto.method,
+          methodCode: method.code,
           comment: dto.comment || null,
           proofUrl: dto.proofUrl ?? null,
           lessonsGranted: dto.lessonsGranted,

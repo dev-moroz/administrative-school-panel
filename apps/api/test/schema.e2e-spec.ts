@@ -42,6 +42,49 @@ describe('students schema and seed (e2e)', () => {
     expect(currencies.every((c) => c.isActive && c.decimals === 2)).toBe(true);
   });
 
+  it('seed creates the four active payment methods with names and icons', async () => {
+    const methods = await prisma.paymentMethod.findMany({ where: { code: { in: ['CASH', 'CARD', 'TRANSFER', 'CRYPTO'] } } });
+    const byCode = Object.fromEntries(methods.map((m) => [m.code, m]));
+    expect(Object.keys(byCode).sort()).toEqual(['CARD', 'CASH', 'CRYPTO', 'TRANSFER']);
+    expect(methods.every((m) => m.isActive)).toBe(true);
+    expect(byCode.TRANSFER).toMatchObject({ name: 'Bank transfer', icon: 'landmark' });
+    expect(byCode.CASH.name).toBe('Cash');
+    expect(byCode.CARD.name).toBe('Card');
+    expect(byCode.CRYPTO.name).toBe('Crypto');
+  });
+
+  it('seed gives payment-methods.read to the teacher and all three keys to the admin only', async () => {
+    const keysOf = async (role: string) =>
+      (await prisma.rolePermission.findMany({ where: { role: { name: role }, permission: { key: { startsWith: 'payment-methods.' } } }, include: { permission: true } }))
+        .map((l) => l.permission.key)
+        .sort();
+    expect(await keysOf('teacher')).toEqual(['payment-methods.read']);
+    expect(await keysOf('admin')).toEqual(['payment-methods.create', 'payment-methods.read', 'payment-methods.update']);
+    expect(await keysOf('student')).toEqual([]);
+  });
+
+  it('a payment cannot reference a payment method that does not exist', async () => {
+    const admin = await prisma.user.findFirstOrThrow({ where: { role: { name: 'admin' } } });
+    const student = await prisma.student.create({ data: { fullName: `${PREFIX} bad method` } });
+    await expect(
+      prisma.payment.create({
+        data: { studentId: student.id, amount: '1', currencyCode: 'EUR', paidAt: new Date(), methodCode: 'NOPE', lessonsGranted: 1, createdById: admin.id },
+      }),
+    ).rejects.toMatchObject({ code: 'P2003' });
+  });
+
+  it('a payment method used by a payment cannot be deleted', async () => {
+    const admin = await prisma.user.findFirstOrThrow({ where: { role: { name: 'admin' } } });
+    const student = await prisma.student.create({ data: { fullName: `${PREFIX} method in use` } });
+    await prisma.paymentMethod.create({ data: { code: 'ZSCHEMAPM', name: 'Schema test', icon: 'wallet' } });
+    await prisma.payment.create({
+      data: { studentId: student.id, amount: '1', currencyCode: 'EUR', paidAt: new Date(), methodCode: 'ZSCHEMAPM', lessonsGranted: 1, createdById: admin.id },
+    });
+    await expect(prisma.paymentMethod.delete({ where: { code: 'ZSCHEMAPM' } })).rejects.toMatchObject({ code: 'P2003' });
+    await prisma.payment.deleteMany({ where: { methodCode: 'ZSCHEMAPM' } });
+    await prisma.paymentMethod.delete({ where: { code: 'ZSCHEMAPM' } });
+  });
+
   it('seed creates the teacher user with the teacher role, a working password and a Teacher record', async () => {
     const user = await prisma.user.findUniqueOrThrow({
       where: { email: TEST_ENV.TEACHER_EMAIL },
@@ -61,6 +104,7 @@ describe('students schema and seed (e2e)', () => {
     runSeed({ TEACHER_PASSWORD: 'another-password-after-first-run' });
 
     expect(await prisma.currency.count()).toBe(CURRENCY_CODES.length);
+    expect(await prisma.paymentMethod.count({ where: { code: { in: ['CASH', 'CARD', 'TRANSFER', 'CRYPTO'] } } })).toBe(4);
     expect(await prisma.teacher.count({ where: { user: { email: TEST_ENV.TEACHER_EMAIL } } })).toBe(1);
     const after = await prisma.user.findUniqueOrThrow({ where: { email: TEST_ENV.TEACHER_EMAIL } });
     expect(after.passwordHash).toBe(before.passwordHash);

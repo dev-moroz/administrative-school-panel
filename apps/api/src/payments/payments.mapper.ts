@@ -6,7 +6,7 @@ export const PAYMENT_SELECT = {
   amount: true,
   currencyCode: true,
   currency: { select: { decimals: true } },
-  method: true,
+  method: { select: { code: true, name: true, icon: true } },
   paidAt: true,
   comment: true,
   proofUrl: true,

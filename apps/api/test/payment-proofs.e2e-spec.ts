@@ -61,7 +61,7 @@ describe('payment proof files (e2e)', () => {
         amount: '400',
         currencyCode: 'EUR',
         paidAt: new Date(),
-        method: 'TRANSFER',
+        methodCode: 'TRANSFER',
         lessonsGranted: 8,
         createdById: admin.id,
         ...over,

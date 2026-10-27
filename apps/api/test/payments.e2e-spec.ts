@@ -15,6 +15,7 @@ const ADMIN_EMAIL = 'payments-admin@e2e.test';
 const TEACHER_EMAIL = 'payments-teacher@e2e.test';
 const INACTIVE_CODE = 'XPI';
 const ZERO_DECIMALS_CODE = 'XPZ';
+const INACTIVE_METHOD = 'XPM';
 
 const PAYMENT_KEYS = [
   'amount',
@@ -82,6 +83,11 @@ describe('payments (e2e)', () => {
       update: { decimals: 0, isActive: true },
       create: { code: ZERO_DECIMALS_CODE, name: 'Zero decimals (e2e payments)', decimals: 0 },
     });
+    await prisma.paymentMethod.upsert({
+      where: { code: INACTIVE_METHOD },
+      update: { isActive: false },
+      create: { code: INACTIVE_METHOD, name: 'Inactive method (e2e payments)', icon: 'wallet', isActive: false },
+    });
   });
 
   afterAll(async () => {
@@ -90,6 +96,7 @@ describe('payments (e2e)', () => {
     await prisma.payment.deleteMany({ where: students });
     await prisma.student.deleteMany({ where: { fullName: { startsWith: TAG } } });
     await prisma.currency.deleteMany({ where: { code: { in: [INACTIVE_CODE, ZERO_DECIMALS_CODE] } } });
+    await prisma.paymentMethod.deleteMany({ where: { code: INACTIVE_METHOD } });
     await app.close();
   });
 
@@ -141,7 +148,7 @@ describe('payments (e2e)', () => {
 
       const payments = await prisma.payment.findMany({ where: { studentId: student.id } });
       expect(payments).toHaveLength(1);
-      expect(payments[0]).toMatchObject({ currencyCode: 'EUR', method: 'TRANSFER', lessonsGranted: 6, comment: 'first package' });
+      expect(payments[0]).toMatchObject({ currencyCode: 'EUR', methodCode: 'TRANSFER', lessonsGranted: 6, comment: 'first package' });
       expect(payments[0].amount.toString()).toBe('400');
 
       const entries = await prisma.ledgerEntry.findMany({ where: { studentId: student.id } });
@@ -177,7 +184,7 @@ describe('payments (e2e)', () => {
       expect(res.body).toMatchObject({
         amount: '1500.50',
         currencyCode: 'USDC',
-        method: 'TRANSFER',
+        method: { code: 'TRANSFER', name: 'Bank transfer', icon: 'landmark' },
         lessonsGranted: 8,
         comment: null,
         proofUrl: 'https://example.com/receipt.png',
@@ -186,6 +193,7 @@ describe('payments (e2e)', () => {
       expect(res.body.createdBy.email).toBe(TEACHER_EMAIL);
       expect(Object.keys(res.body.createdBy).sort()).toEqual(['email', 'id', 'name']);
       expect(Object.keys(res.body.student).sort()).toEqual(['fullName', 'id']);
+      expect(Object.keys(res.body.method).sort()).toEqual(['code', 'icon', 'name']);
     });
 
     it('paidAt defaults to now and an explicit past date is kept', async () => {
@@ -248,6 +256,9 @@ describe('payments (e2e)', () => {
         ['lessonsGranted as a string', { lessonsGranted: '8' }],
         ['missing lessonsGranted', { lessonsGranted: undefined }],
         ['unknown method', { method: 'PAYPAL' }],
+        ['inactive method', { method: INACTIVE_METHOD }],
+        ['method as an object', { method: { code: 'CASH' } }],
+        ['method in lower case', { method: 'cash' }],
         ['missing method', { method: undefined }],
         ['paidAt in the future (10 minutes ahead, beyond the 5 minute tolerance)', { paidAt: new Date(Date.now() + 10 * 60_000).toISOString() }],
         ['paidAt not a date', { paidAt: 'yesterday' }],

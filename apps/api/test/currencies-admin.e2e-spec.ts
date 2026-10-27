@@ -64,7 +64,7 @@ describe('currencies admin (e2e)', () => {
         amount: '100',
         currencyCode: WITH_PAYMENT,
         paidAt: new Date(),
-        method: 'CASH',
+        methodCode: 'CASH',
         lessonsGranted: 1,
         createdById: admin.id,
       },

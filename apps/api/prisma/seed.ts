@@ -40,6 +40,12 @@ const CURRENCIES = [
     "currencies.update"
 ]
 
+const PAYMENT_METHODS = [
+    "payment-methods.read",
+    "payment-methods.create",
+    "payment-methods.update"
+]
+
 const AUDIT = [
     "audit.read.business",
     "audit.read.system"
@@ -57,6 +63,7 @@ const PERMISSIONS = [
     ...PAYMENTS,
     ...BALANCE,
     ...CURRENCIES,
+    ...PAYMENT_METHODS,
     ...AUDIT,
     ...SYSTEM,
 ];
@@ -70,6 +77,7 @@ const ROLES: Record<string, string[]> = {
         ...PAYMENTS,
         "balance.read",
         "currencies.read",
+        "payment-methods.read",
         "audit.read.business",
     ],
 };
@@ -78,6 +86,13 @@ const CURRENCIES_SEED = [
     { code: "EUR", name: "Euro" },
     { code: "USDT", name: "Tether" },
     { code: "USDC", name: "USD Coin" },
+];
+
+const PAYMENT_METHODS_SEED = [
+    { code: "CASH", name: "Cash", icon: "banknote" },
+    { code: "CARD", name: "Card", icon: "credit-card" },
+    { code: "TRANSFER", name: "Bank transfer", icon: "landmark" },
+    { code: "CRYPTO", name: "Crypto", icon: "bitcoin" },
 ];
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
@@ -124,6 +139,14 @@ async function main() {
             where: { code },
             update: {},
             create: { code, name, decimals: 2 },
+        });
+    }
+
+    for (const { code, name, icon } of PAYMENT_METHODS_SEED) {
+        await prisma.paymentMethod.upsert({
+            where: { code },
+            update: {},
+            create: { code, name, icon },
         });
     }
 

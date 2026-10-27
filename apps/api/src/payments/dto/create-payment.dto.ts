@@ -1,6 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsEnum, IsInt, IsISO8601, IsOptional, IsString, IsUrl, IsUUID, Max, MaxLength, Min, MinLength } from 'class-validator';
-import { PaymentMethod } from '../../generated/prisma/enums.js';
+import { IsInt, IsISO8601, IsOptional, IsString, IsUrl, IsUUID, Matches, Max, MaxLength, Min, MinLength } from 'class-validator';
 import { trim } from '../../students/dto/create-student.dto.js';
 import { MAX_LESSONS_GRANTED, MAX_PAYMENT_COMMENT_LENGTH } from '../payments.constants.js';
 
@@ -18,8 +17,10 @@ export class CreatePaymentDto {
   @MaxLength(10)
   currencyCode!: string;
 
-  @IsEnum(PaymentMethod)
-  method!: PaymentMethod;
+  // Code of an active payment method, checked in the service.
+  @IsString()
+  @Matches(/^[A-Z0-9_]{2,20}$/)
+  method!: string;
 
   @IsInt()
   @Min(1)

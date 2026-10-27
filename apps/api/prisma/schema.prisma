@@ -184,11 +184,15 @@ model LedgerEntry {
   @@map("ledger_entries")
 }
 
-enum PaymentMethod {
-  CASH
-  CARD
-  TRANSFER
-  CRYPTO
+model PaymentMethod {
+  code      String    @id
+  name      String
+  icon      String
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  payments  Payment[]
+
+  @@map("payment_methods")
 }
 
 model Payment {
@@ -199,7 +203,8 @@ model Payment {
   currencyCode   String        @map("currency_code")
   currency       Currency      @relation(fields: [currencyCode], references: [code], onDelete: Restrict)
   paidAt         DateTime      @map("paid_at")
-  method         PaymentMethod
+  methodCode     String        @map("method_code")
+  method         PaymentMethod @relation(fields: [methodCode], references: [code], onDelete: Restrict)
   comment        String?
   proofUrl       String?       @map("proof_url")
   lessonsGranted Int           @map("lessons_granted")
