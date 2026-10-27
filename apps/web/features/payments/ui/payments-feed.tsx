@@ -1,22 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeftRight, Banknote, Bitcoin, CreditCard, type LucideIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { getInitials } from "@/features/students/model/get-initials";
 import { groupPaymentsByDay } from "../model/group-payments-by-day";
-import type { Payment, PaymentMethod } from "../model/types";
+import type { Payment } from "../model/types";
 import { PaymentComment } from "./payment-comment";
+import { PaymentMethodBadge } from "./payment-method-badge";
 import { ProofLink } from "./proof-link";
-
-const METHOD_ICONS: Record<PaymentMethod, LucideIcon> = {
-  CASH: Banknote,
-  CARD: CreditCard,
-  TRANSFER: ArrowLeftRight,
-  CRYPTO: Bitcoin,
-};
 
 type Props = { payments: Payment[]; showStudent?: boolean; now?: Date };
 
@@ -40,7 +33,6 @@ export function PaymentsFeed({ payments, showStudent = true, now }: Props) {
           <h2 className="text-sm font-medium text-muted-foreground">{groupTitle(group.kind, group.key)}</h2>
           <ul className="divide-y rounded-xl border bg-card">
             {group.payments.map((payment) => {
-              const MethodIcon = METHOD_ICONS[payment.method];
               return (
                 <li key={payment.id} className="grid gap-3 p-4">
                   <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4">
@@ -55,10 +47,7 @@ export function PaymentsFeed({ payments, showStudent = true, now }: Props) {
                       )}
                       <div className="flex flex-wrap items-center gap-1.5">
                         <Badge variant="secondary">{t("lessons", { count: payment.lessonsGranted })}</Badge>
-                        <Badge variant="outline" className="gap-1">
-                          <MethodIcon className="size-3" aria-hidden />
-                          {t(`method.${payment.method}`)}
-                        </Badge>
+                        <PaymentMethodBadge method={payment.method} />
                         <ProofLink payment={payment} />
                       </div>
                     </div>

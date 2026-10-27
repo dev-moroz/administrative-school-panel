@@ -4,33 +4,27 @@ import { useState, useSyncExternalStore } from "react";
 
 export type ViewMode = "cards" | "list";
 
-const DEFAULT_MODE: ViewMode = "cards";
-
-function readMode(storageKey: string): ViewMode {
-  try {
-    const saved = localStorage.getItem(storageKey);
-    return saved === "cards" || saved === "list" ? saved : DEFAULT_MODE;
-  } catch {
-    return DEFAULT_MODE;
-  }
-}
-
 function subscribe(onChange: () => void) {
   window.addEventListener("storage", onChange);
   return () => window.removeEventListener("storage", onChange);
 }
 
-// localStorage is an external store: the server snapshot is always the default, so hydration matches.
+// localStorage is an external store: the server snapshot is always the fallback, so hydration matches.
 // The local override keeps the toggle working even when writing to storage fails.
-export function useViewMode(storageKey: string) {
-  const stored = useSyncExternalStore(
-    subscribe,
-    () => readMode(storageKey),
-    () => DEFAULT_MODE,
-  );
-  const [override, setOverride] = useState<ViewMode | null>(null);
+export function useViewMode<T extends string>(storageKey: string, values: readonly T[], fallback: T) {
+  function read(): T {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      return values.includes(saved as T) ? (saved as T) : fallback;
+    } catch {
+      return fallback;
+    }
+  }
 
-  function change(next: ViewMode) {
+  const stored = useSyncExternalStore(subscribe, read, () => fallback);
+  const [override, setOverride] = useState<T | null>(null);
+
+  function change(next: T) {
     setOverride(next);
     try {
       localStorage.setItem(storageKey, next);

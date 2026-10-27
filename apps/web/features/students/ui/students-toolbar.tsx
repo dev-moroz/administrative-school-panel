@@ -1,3 +1,4 @@
+import { LayoutGrid, List } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,7 @@ type Props = {
 
 export function StudentsToolbar(props: Props) {
   const t = useTranslations("Students");
+  const common = useTranslations("Common");
 
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -41,7 +43,14 @@ export function StudentsToolbar(props: Props) {
         <ToggleGroupItem value="inactive">{t("statusInactive")}</ToggleGroupItem>
         <ToggleGroupItem value="all">{t("statusAll")}</ToggleGroupItem>
       </ToggleGroup>
-      <ViewToggle value={props.view} onChange={props.onViewChange} />
+      <ViewToggle
+        value={props.view}
+        onChange={props.onViewChange}
+        options={[
+          { value: "cards", label: common("cards"), icon: LayoutGrid },
+          { value: "list", label: common("list"), icon: List },
+        ]}
+      />
       {props.canCreate && (
         <Button className="ml-auto" onClick={props.onCreate}>
           {t("newStudent")}

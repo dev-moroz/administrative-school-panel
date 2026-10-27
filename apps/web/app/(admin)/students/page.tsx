@@ -11,13 +11,14 @@ import { StudentSheet, type SheetTarget } from "@/features/students/ui/student-s
 import { StudentsPagination } from "@/features/students/ui/students-pagination";
 import { StudentsToolbar, type StatusFilter } from "@/features/students/ui/students-toolbar";
 
+const STUDENT_VIEWS = ["cards", "list"] as const;
 const PAGE_SIZE = 12;
 const IS_ACTIVE: Record<StatusFilter, boolean | undefined> = { active: true, inactive: false, all: undefined };
 
 export default function StudentsPage() {
   const t = useTranslations("Students");
   const { data: me } = useMe();
-  const [view, setView] = useViewMode("students.view");
+  const [view, setView] = useViewMode("students.view", STUDENT_VIEWS, "cards");
   const [searchInput, setSearchInput] = useState("");
   const [status, setStatus] = useState<StatusFilter>("active");
   const [target, setTarget] = useState<SheetTarget>({ kind: "closed" });
