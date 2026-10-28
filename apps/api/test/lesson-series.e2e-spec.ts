@@ -177,6 +177,18 @@ describe('lesson series (e2e)', () => {
       expect(await lessonsOfStudent(studentId)).toHaveLength(HORIZON_WEEKS);
     });
 
+    it('lesson DTO exposes seriesId and originalDate as YYYY-MM-DD', async () => {
+      const { res, studentId } = await createSeries();
+      const from = new Date().toISOString();
+      const to = new Date(Date.now() + 7 * DAY).toISOString();
+      const list = await call('teacher', 'get', `/lessons?from=${from}&to=${to}&studentId=${studentId}`).expect(200);
+      expect(list.body).toHaveLength(1);
+      expect(list.body[0]).toMatchObject({ seriesId: res.body.id, originalDate: tomorrow() });
+
+      const one = await call('teacher', 'get', `/lessons/${list.body[0].id}`).expect(200);
+      expect(one.body).toMatchObject({ seriesId: res.body.id, originalDate: tomorrow() });
+    });
+
     it('repeated generation does not duplicate lessons', async () => {
       const { res } = await createSeries();
       await seriesService.generate(res.body.id, new Date());

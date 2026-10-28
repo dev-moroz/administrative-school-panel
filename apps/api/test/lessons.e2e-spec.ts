@@ -16,7 +16,7 @@ const DAY = 24 * HOUR;
 
 const LESSON_KEYS = [
   'id', 'startsAt', 'durationMin', 'status', 'charged', 'cancelledAt', 'cancelReason',
-  'comment', 'notes', 'student', 'teacher', 'createdAt', 'updatedAt',
+  'comment', 'notes', 'student', 'teacher', 'seriesId', 'originalDate', 'createdAt', 'updatedAt',
 ];
 
 describe('lessons (e2e)', () => {
@@ -178,6 +178,8 @@ describe('lessons (e2e)', () => {
         charged: false,
         cancelledAt: null,
         cancelReason: null,
+        seriesId: null,
+        originalDate: null,
         notes: 'unit 3',
         student: { id: student.id, fullName: student.fullName },
         teacher: { id: teacher.id, fullName: 'Lessons Teacher' },

@@ -10,6 +10,8 @@ export const LESSON_SELECT = {
   cancelReason: { select: { code: true, name: true } },
   comment: true,
   notes: true,
+  seriesId: true,
+  originalDate: true,
   createdAt: true,
   updatedAt: true,
   teacher: { select: { id: true, fullName: true } },
@@ -19,6 +21,10 @@ export const LESSON_SELECT = {
 type LessonRow = Prisma.LessonGetPayload<{ select: typeof LESSON_SELECT }>;
 
 export function toLessonDto(row: LessonRow) {
-  const { participants, ...rest } = row;
-  return { ...rest, student: participants[0]?.student ?? null };
+  const { participants, originalDate, ...rest } = row;
+  return {
+    ...rest,
+    originalDate: originalDate ? originalDate.toISOString().slice(0, 10) : null,
+    student: participants[0]?.student ?? null,
+  };
 }
