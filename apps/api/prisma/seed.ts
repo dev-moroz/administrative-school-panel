@@ -95,6 +95,15 @@ const PAYMENT_METHODS_SEED = [
     { code: "CRYPTO", name: "Crypto", icon: "bitcoin" },
 ];
 
+const CANCEL_REASONS_SEED = [
+    { code: "TEACHER_VACATION", name: "Teacher vacation" },
+    { code: "STUDENT_ILL", name: "Student ill" },
+    { code: "STUDENT_REQUEST", name: "Student request" },
+    { code: "TEACHER_REQUEST", name: "Teacher request" },
+    { code: "CHARGED_BY_MISTAKE", name: "Charged by mistake" },
+    { code: "OTHER", name: "Other" },
+];
+
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
@@ -147,6 +156,14 @@ async function main() {
             where: { code },
             update: {},
             create: { code, name, icon },
+        });
+    }
+
+    for (const { code, name } of CANCEL_REASONS_SEED) {
+        await prisma.cancelReason.upsert({
+            where: { code },
+            update: {},
+            create: { code, name },
         });
     }
 

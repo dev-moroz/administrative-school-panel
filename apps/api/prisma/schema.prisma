@@ -119,6 +119,7 @@ model Teacher {
   createdAt      DateTime         @default(now()) @map("created_at")
   updatedAt      DateTime         @updatedAt @map("updated_at")
   students       StudentTeacher[]
+  lessons        Lesson[]
 
   @@map("teachers")
 }
@@ -143,6 +144,7 @@ model Student {
   teachers                 StudentTeacher[]
   ledgerEntries            LedgerEntry[]
   payments                 Payment[]
+  lessons                  LessonParticipant[]
 
   @@index([fullName])
   @@index([defaultCurrencyCode])
@@ -177,13 +179,17 @@ model LedgerEntry {
   delta       Int
   type        LedgerEntryType
   comment     String?
-  createdById String          @map("created_by_id") @db.Uuid
-  createdBy   User            @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  // null = System (automatic charge).
+  createdById String?         @map("created_by_id") @db.Uuid
+  createdBy   User?           @relation(fields: [createdById], references: [id], onDelete: Restrict)
   paymentId   String?         @unique @map("payment_id") @db.Uuid
   payment     Payment?        @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  lessonId    String?         @map("lesson_id") @db.Uuid
+  lesson      Lesson?         @relation(fields: [lessonId], references: [id], onDelete: Restrict)
   createdAt   DateTime        @default(now()) @map("created_at")
 
   @@index([studentId, createdAt])
+  @@index([lessonId])
   @@map("ledger_entries")
 }
 
@@ -235,4 +241,55 @@ model PaymentProofFile {
   createdAt    DateTime @default(now()) @map("created_at")
 
   @@map("payment_proof_files")
+}
+
+enum LessonStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+model CancelReason {
+  code     String   @id
+  name     String
+  isActive Boolean  @default(true) @map("is_active")
+  lessons  Lesson[]
+
+  @@map("cancel_reasons")
+}
+
+model Lesson {
+  id               String              @id @default(uuid()) @db.Uuid
+  teacherId        String              @map("teacher_id") @db.Uuid
+  teacher          Teacher             @relation(fields: [teacherId], references: [id], onDelete: Restrict)
+  startsAt         DateTime            @map("starts_at")
+  durationMin      Int                 @map("duration_min")
+  status           LessonStatus        @default(SCHEDULED)
+  charged          Boolean             @default(false)
+  cancelledAt      DateTime?           @map("cancelled_at")
+  cancelReasonCode String?             @map("cancel_reason_code")
+  cancelReason     CancelReason?       @relation(fields: [cancelReasonCode], references: [code], onDelete: Restrict)
+  comment          String?
+  notes            String?
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+  participants     LessonParticipant[]
+  ledgerEntries    LedgerEntry[]
+
+  @@index([teacherId, startsAt])
+  @@index([status, startsAt])
+  @@index([cancelReasonCode])
+  @@map("lessons")
+}
+
+model LessonParticipant {
+  lessonId  String  @map("lesson_id") @db.Uuid
+  lesson    Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  studentId String  @map("student_id") @db.Uuid
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
+
+  @@id([lessonId, studentId])
+  @@index([studentId])
+  @@map("lesson_participants")
 }

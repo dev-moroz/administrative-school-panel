@@ -12,7 +12,9 @@ export interface NewLedgerEntry {
   type: LedgerEntryType;
   comment?: string | null;
   paymentId?: string;
-  createdById: string;
+  lessonId?: string;
+  // null = System.
+  createdById: string | null;
 }
 
 type Db = Prisma.TransactionClient | PrismaService;
@@ -38,6 +40,7 @@ export class LedgerService {
         type: entry.type,
         comment: entry.comment ?? null,
         paymentId: entry.paymentId ?? null,
+        lessonId: entry.lessonId ?? null,
         createdById: entry.createdById,
       },
       select: LEDGER_ENTRY_SELECT,

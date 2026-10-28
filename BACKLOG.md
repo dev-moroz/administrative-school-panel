@@ -9,6 +9,7 @@ Nothing here is planned. An item moves to `PLAN.md` only after Anatoly approves 
 - `features/payments/ui/payments-compact-list.tsx` mixes local `getDate()` with `format.dateTime` (time zone mismatch).
 - Admin layout: sidebar toggle and header are commented out (TODO in `app/(admin)/layout.tsx`); rework the page template and bring the toggle back for mobile. Ctrl/Cmd+B still collapses the sidebar.
 - Two tabs refreshing at the same moment can trigger refresh reuse detection (fix with `navigator.locks`).
+- `apps/api/src/ledger/ledger.mapper.spec.ts`: two type-only `tsc` errors since `createdBy` became nullable (stage 5a); tests pass.
 - Replace string permission keys with constants (`permissions.ts`, `as const`, `PermissionKey`) used by the seed and `@RequirePermission` (Anatoly, 2026-10-22: last, when time allows).
 
 ## Notes for future stages

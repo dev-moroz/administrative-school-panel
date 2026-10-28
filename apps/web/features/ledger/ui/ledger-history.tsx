@@ -54,7 +54,7 @@ export function LedgerHistory({ items, isPending, isError, hasMore, isFetchingMo
                 </time>
               </div>
               {entry.comment && <span className="whitespace-pre-wrap text-muted-foreground">{entry.comment}</span>}
-              <span className="text-xs text-muted-foreground">{entry.createdBy.name ?? entry.createdBy.email}</span>
+              <span className="text-xs text-muted-foreground">{entry.createdBy ? (entry.createdBy.name ?? entry.createdBy.email) : t("system")}</span>
             </div>
           </li>
         ))}

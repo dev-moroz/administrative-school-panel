@@ -6,7 +6,8 @@ export type LedgerEntry = {
   type: LedgerEntryType;
   comment: string | null;
   createdAt: string;
-  createdBy: { id: string; email: string; name: string | null };
+  // null = System (automatic charge).
+  createdBy: { id: string; email: string; name: string | null } | null;
 };
 
 export type Balance = { balance: number; isDebt: boolean };

@@ -18,5 +18,5 @@ export function authorName(user: { firstName: string | null; lastName: string | 
 
 export function toLedgerEntryDto(row: LedgerEntryRow) {
   const { createdBy, ...rest } = row;
-  return { ...rest, createdBy: { id: createdBy.id, email: createdBy.email, name: authorName(createdBy) } };
+  return { ...rest, createdBy: createdBy && { id: createdBy.id, email: createdBy.email, name: authorName(createdBy) } };
 }

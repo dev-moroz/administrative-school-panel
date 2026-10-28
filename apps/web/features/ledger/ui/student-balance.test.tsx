@@ -116,6 +116,11 @@ describe("history", () => {
     expect(await screen.findByText("teacher@school.test")).toBeInTheDocument();
   });
 
+  it("shows System for an automatic entry without an author", async () => {
+    setup(ADMIN, { entries: [makeEntry({ type: "LESSON_CHARGE", delta: -1, createdBy: null })] });
+    expect(await screen.findByText("System")).toBeInTheDocument();
+  });
+
   it("renders the date as a <time> element with the ISO value", async () => {
     setup(ADMIN, { entries: [makeEntry({ createdAt: "2026-10-25T14:10:00.000Z" })] });
     const item = (await screen.findAllByRole("listitem"))[0];

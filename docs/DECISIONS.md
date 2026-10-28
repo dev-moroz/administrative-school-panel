@@ -259,3 +259,12 @@ Deliberate simplifications of the MVP (confirmed by Anatoly, 2026-10-23, stage 2
 - **Stage 5 is split** into 5a (lessons, statuses, balance, double-charge protection), 5b (series and generator, original slot, "only this / this and following"), 5c (FullCalendar UI), 5d (freeze, teacher vacation, upcoming lessons in the student card).
 - **Open, for stage 7:** if a wrong charge already triggered the "package is ending" message, what the bot sends after the reversal. Cancelling a lesson from the bot is stage 7 (until then the teacher cancels on the site).
 - **Open, after the MVP:** automatic meeting links (Microsoft Teams). Creating Teams meetings through the Microsoft Graph API needs a work/school Microsoft 365 account; the teacher's account type is unknown (she sends a new link each time). Alternatives to compare later: a permanent link per student stored in the card, Zoom or Google Meet APIs, a Microsoft 365 subscription.
+
+## Lessons API (stage 5a, decided 2026-10-28, Anatoly)
+- Double-charge protection: every lesson change locks the row (`SELECT ... FOR UPDATE`); a ledger entry is written only when `charged` changes (false→true `LESSON_CHARGE -1`, true→false `LESSON_REVERSAL +1`). Invariant: a lesson's entries sum to `charged ? -1 : 0`. The automatic charge uses `FOR UPDATE SKIP LOCKED`.
+- Automatic charge: a cron job every minute (`@nestjs/schedule`) completes ended scheduled lessons and charges them. Its entries have `createdById = null` = System; the history shows "System".
+- Cancellation policy is a separate module: `suggestCharged` takes the rules as input; `CancellationRulesProvider` returns defaults for now and will read settings (per teacher or school) later. Cancelling after the start is charged.
+- Cancel reasons are a table (`CancelReason`: code, name, isActive), seeded; admin UI later in Settings.
+- `CANCELLED` requires an active reason; no-show defaults to charged, reason optional; a retroactive cancel of a `COMPLETED` lesson defaults to not charged (the lesson did not happen).
+- Transitions: SCHEDULED → CANCELLED/NO_SHOW; COMPLETED → CANCELLED/NO_SHOW; CANCELLED ↔ NO_SHOW and toggling `charged`; back to SCHEDULED only before the lesson ends (charge reversed); COMPLETED only by the automatic charge.
+- Moving a lesson (time/duration) only while `SCHEDULED`; delete only `SCHEDULED` without ledger entries (else 409). `GET /lessons` takes `[from, to)`, at most 62 days.

@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module.js';
 import { CurrenciesModule } from './currencies/currencies.module.js';
 import { LedgerModule } from './ledger/ledger.module.js';
+import { LessonsModule } from './lessons/lessons.module.js';
 import { OriginGuard } from './origin.guard.js';
 import { PaymentMethodsModule } from './payment-methods/payment-methods.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
@@ -24,6 +26,7 @@ import { TeachersModule } from './teachers/teachers.module.js';
         skipIf: () => config.get('THROTTLE_DISABLED') === 'true',
       }),
     }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
     StudentsModule,
@@ -32,6 +35,7 @@ import { TeachersModule } from './teachers/teachers.module.js';
     LedgerModule,
     PaymentMethodsModule,
     PaymentsModule,
+    LessonsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: OriginGuard },
