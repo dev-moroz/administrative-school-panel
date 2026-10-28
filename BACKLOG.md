@@ -1,0 +1,36 @@
+# BACKLOG.md — open tails and ideas (not approved)
+
+Nothing here is planned. An item moves to `PLAN.md` only after Anatoly approves it. One line per item; `[stage N]` = where it belongs.
+
+## Waiting for Anatoly's OK (small fixes)
+- `apps/web/vitest.config.ts` → `vitest.config.mts` (Vite `configLoader: 'native'` warning, ESM in a CommonJS package).
+- `messages/en.json`: the `Home` strings are unused (landing page is `/students`).
+- `components/ui/dropdown-menu.tsx` is unused (kept for future menus); hand-written, can be replaced with `shadcn add dropdown-menu`.
+- `features/payments/ui/payments-compact-list.tsx` mixes local `getDate()` with `format.dateTime` (time zone mismatch).
+- Admin layout: sidebar toggle and header are commented out (TODO in `app/(admin)/layout.tsx`); rework the page template and bring the toggle back for mobile. Ctrl/Cmd+B still collapses the sidebar.
+- Two tabs refreshing at the same moment can trigger refresh reuse detection (fix with `navigator.locks`).
+- Replace string permission keys with constants (`permissions.ts`, `as const`, `PermissionKey`) used by the seed and `@RequirePermission` (Anatoly, 2026-10-22: last, when time allows).
+
+## Notes for future stages
+- [stage 5] FullCalendar needs dark theme styling.
+- [stage 5] Decide the double-charge protection (`PLAN.md`, section 5).
+- [stage 5] Open: what happens to existing recurring lessons when the teacher changes her time zone.
+- [stage 7] Telegram avatar for students (cards, rows, panel) — frozen by Anatoly (2026-10-25).
+- [stage 7] Incoming payments through the bot — see `docs/DECISIONS.md`, "Incoming payments through the Telegram bot" and "notes for stage 7".
+- [stage 7 / 9] Monitoring (app up, backup succeeded, Telegram delivered) — discuss in a separate chat before stages 7 and 9.
+- [stage 9] Production volume for `UPLOADS_DIR`.
+- [Users module] Remove the temporary teacher seed (`TEACHER_*`), see `docs/DECISIONS.md`, "Teacher seed is temporary".
+- [Users module] Deactivating a user must revoke all their refresh tokens.
+- [Users module] `User.mustChangePassword` is in `PLAN.md` but not in the schema; add when the admin creates users with temporary passwords.
+- [after MVP] Money remainder added to the next payment's calculation.
+
+## Ideas (idea only)
+- Dashboard on `/` (today's lessons, week/month summary) instead of the `/students` redirect, after stage 5.
+- Roles section in Settings.
+- Several colour schemes via `[data-theme]` blocks; theme toggle label may become icon-only.
+- Unify the two local `Field` components (`payment-form.tsx`, `student-form.tsx`).
+- Use `ListPage` for Lessons.
+- "Add new" in the currency dropdown of the student form.
+- Teacher access to currencies admin (by permission).
+- Hint when the teacher list is empty in the admin student form — frozen (Anatoly, 2026-10-25).
+- A better list layout to replace the payments feed.
