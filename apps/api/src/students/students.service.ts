@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import type { AuthUser } from '../auth/auth.types.js';
 import { Prisma } from '../generated/prisma/client.js';
+import { LessonSeriesService } from '../lesson-series/lesson-series.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateStudentDto } from './dto/create-student.dto.js';
 import { ListStudentsQueryDto } from './dto/list-students-query.dto.js';
@@ -19,7 +20,10 @@ function isForeignKeyViolation(error: unknown) {
 
 @Injectable()
 export class StudentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly series: LessonSeriesService,
+  ) {}
 
   async list(query: ListStudentsQueryDto) {
     const where: Prisma.StudentWhereInput = {};
@@ -73,11 +77,18 @@ export class StudentsService {
     await this.assertCurrencyUsable(dto.defaultCurrencyCode);
     await this.assertPaymentMethodUsable(dto.defaultPaymentMethodCode);
 
+    const { deleteFutureLessons, ...data } = dto;
     try {
-      const student = await this.prisma.student.update({
-        where: { id },
-        data: dto,
-        include: STUDENT_INCLUDE,
+      const student = await this.prisma.$transaction(async (tx) => {
+        if (data.isActive === false) {
+          const now = new Date();
+          const futureLessons = await this.series.countFutureLessons(tx, id, now);
+          if (futureLessons && !deleteFutureLessons) {
+            throw new ConflictException({ message: 'Student has future lessons', futureLessons });
+          }
+          await this.series.dropStudentFuture(tx, id, now);
+        }
+        return tx.student.update({ where: { id }, data, include: STUDENT_INCLUDE });
       });
       return toStudentDto(student);
     } catch (error) {

@@ -59,4 +59,9 @@ export class UpdateStudentDto {
   @ValidateIf((_, value) => value !== undefined)
   @IsBoolean()
   isActive?: boolean;
+
+  // With isActive: false, confirms deleting the student's future scheduled lessons.
+  @IsOptional()
+  @IsBoolean()
+  deleteFutureLessons?: boolean;
 }

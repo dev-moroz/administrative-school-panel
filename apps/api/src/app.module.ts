@@ -6,6 +6,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module.js';
 import { CurrenciesModule } from './currencies/currencies.module.js';
 import { LedgerModule } from './ledger/ledger.module.js';
+import { LessonSeriesModule } from './lesson-series/lesson-series.module.js';
 import { LessonsModule } from './lessons/lessons.module.js';
 import { OriginGuard } from './origin.guard.js';
 import { PaymentMethodsModule } from './payment-methods/payment-methods.module.js';
@@ -36,6 +37,7 @@ import { TeachersModule } from './teachers/teachers.module.js';
     PaymentMethodsModule,
     PaymentsModule,
     LessonsModule,
+    LessonSeriesModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: OriginGuard },

@@ -78,9 +78,9 @@ Principles: money is `Decimal`, not float; every balance and payment change happ
 *Done when:* lessons are created and edited in the calendar; statuses change the balance correctly; recurring lessons are generated from a series; the checkbox is prefilled by the cancellation rules; rescheduling and freeze work.
 - Split 2026-10-28 → DECISIONS: "Lessons and schedule (stage 5 design)".
 - 5a lessons, statuses, automatic charge on lesson end, balance and double-charge protection — done (2026-10-28) → DECISIONS: "Lessons API (stage 5a)".
-- 5b series and the generator (~12-week horizon, original slot, "only this / this and following"; the series stores its own time zone → DECISIONS: "Settings concept") — **next**.
-- 5c FullCalendar UI — todo.
-- 5d freeze, teacher vacation, upcoming lessons in the student card — todo.
+- 5b series and the generator, student deactivation with future lessons — done (2026-10-28) → DECISIONS: "Lesson series (stage 5b)".
+- 5c FullCalendar UI — **next**.
+- 5d freeze, teacher vacation, upcoming lessons in the student card, the deactivation confirmation dialog — todo.
 - Settings: cancellation rules storage (school-wide thresholds, evaluated in the teacher's zone → DECISIONS: "Settings concept") and cancel reasons admin (`/settings/cancel-reasons`) — todo (after 5c, Anatoly, 2026-10-28).
 
 **Stage 6 — dashboard and reports** — **todo**: key figures for the admin, including students with few lessons left; a per-student report for a chosen period (lessons held, missed, cancelled and charged, payments, balance at the start and end), visible to the teacher for her students. The student web page is postponed (the bot replaces it in stage 7).
