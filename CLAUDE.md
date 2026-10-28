@@ -8,6 +8,7 @@
 - Tokens are limited: work in stages, one session per stage, narrow requests, don't re-read unnecessarily.
 - Communication language: Russian.
 - **Code comments: keep them to a minimum, and write them in English only.**
+- Read files with the built-in Read/Glob/Grep tools, not `cat` with globs, `cd` or `grep` in Bash; Bash is for running commands (tests, git, pnpm).
 
 ## Development workflow (applies to every task)
 Anatoly acts as the manager: he approves the plan and the tests, reviews the result and confirms. Claude writes the code. Goal: no wasted steps or rework, save context and tokens.
