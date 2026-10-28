@@ -268,3 +268,11 @@ Deliberate simplifications of the MVP (confirmed by Anatoly, 2026-10-23, stage 2
 - `CANCELLED` requires an active reason; no-show defaults to charged, reason optional; a retroactive cancel of a `COMPLETED` lesson defaults to not charged (the lesson did not happen).
 - Transitions: SCHEDULED → CANCELLED/NO_SHOW; COMPLETED → CANCELLED/NO_SHOW; CANCELLED ↔ NO_SHOW and toggling `charged`; back to SCHEDULED only before the lesson ends (charge reversed); COMPLETED only by the automatic charge.
 - Moving a lesson (time/duration) only while `SCHEDULED`; delete only `SCHEDULED` without ledger entries (else 409). `GET /lessons` takes `[from, to)`, at most 62 days.
+
+## Settings concept (design session, decided 2026-10-28, Anatoly)
+- Two levels. **School** (system settings, one record): cancellation rule thresholds (morning/day/evening boundaries, the "less than an hour" window), the low-balance threshold N, school contacts and payment details for the bot, bot message templates, the default time zone. **Teacher** (profile): base time zone, working hours. Reference lists (currencies, payment methods, cancel reasons) stay as they are.
+- No "teacher = business account" shortcut: school-level settings live at the school level from the start.
+- Time zones: the teacher's zone is the base for the schedule and for evaluating the cancellation rules; the school zone is only the default for a new teacher. The thresholds themselves are the same for the whole school.
+- Changing the teacher's base zone does not move lessons (absolute time is kept); only the cancellation windows shift, and a lesson's morning/day/evening category may change. Requirement for 5b: `LessonSeries` stores its own time zone, captured at creation, so generation does not drift after a zone change.
+- Working hours and days off belong to the teacher (an online school has no global days off). The calendar highlights the working hours; a lesson outside them asks for confirmation and is not blocked.
+- Open: whether the base zone is changed only by hand in the profile (display zone follows the browser) or the app offers "switch to the current zone" on login; Claude recommends the former.

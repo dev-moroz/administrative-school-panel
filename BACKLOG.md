@@ -15,7 +15,6 @@ Nothing here is planned. An item moves to `PLAN.md` only after Anatoly approves 
 ## Notes for future stages
 - [stage 5] FullCalendar needs dark theme styling.
 - [stage 5] Decide the double-charge protection (`PLAN.md`, section 5).
-- [stage 5] Open: what happens to existing recurring lessons when the teacher changes her time zone.
 - [stage 7] Telegram avatar for students (cards, rows, panel) — frozen by Anatoly (2026-10-25).
 - [stage 7] Incoming payments through the bot — see `docs/DECISIONS.md`, "Incoming payments through the Telegram bot" and "notes for stage 7".
 - [stage 7 / 9] Monitoring (app up, backup succeeded, Telegram delivered) — discuss in a separate chat before stages 7 and 9.
@@ -28,6 +27,8 @@ Nothing here is planned. An item moves to `PLAN.md` only after Anatoly approves 
 ## Ideas (idea only)
 - Dashboard on `/` (today's lessons, week/month summary) instead of the `/students` redirect, after stage 5.
 - Roles section in Settings.
+- Settings (school): contacts and payment details, bot message templates, low-balance N, default time zone → DECISIONS: "Settings concept".
+- Teacher profile: working hours (calendar highlight, confirm outside) and days off → DECISIONS: "Settings concept".
 - Several colour schemes via `[data-theme]` blocks; theme toggle label may become icon-only.
 - Unify the two local `Field` components (`payment-form.tsx`, `student-form.tsx`).
 - Use `ListPage` for Lessons.
