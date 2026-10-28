@@ -4,7 +4,7 @@ Only the step in progress lives here. On commit the entry is cleared and the ste
 History: git log and `docs/archive/STATUS-until-2026-10-28.md` (do not read unless Anatoly asks).
 
 **Current step:** stage 5c (FullCalendar UI).
-**Phase:** tests (frontend)  <!-- plan | tests | implementation | report -->
+**Phase:** implementation (frontend committed; open tail below)  <!-- plan | tests | implementation | report -->
 
 ## Approved plan
 - Backend: lesson DTO gets `seriesId` and `originalDate` (null for one-off lessons); e2e test on `GET /lessons` (and single lesson).
@@ -21,5 +21,8 @@ History: git log and `docs/archive/STATUS-until-2026-10-28.md` (do not read unle
 
 ## Notes
 - Order: backend tests and code first, then frontend.
-- Backend part done and committed (DTO `seriesId`, `originalDate` as YYYY-MM-DD, e2e green). Next: frontend tests (`features/lessons/`), not yet written.
+- Backend part done and committed (DTO `seriesId`, `originalDate` as YYYY-MM-DD, e2e green).
+- Frontend tests approved. Remarks (Anatoly): no wrapper component, the page `app/(admin)/lessons/page.tsx` holds the wiring like payments (test `page.test.tsx`); no notes in the lesson form in the MVP; a lesson's student can't be changed; payload helpers live in `lesson-schema.ts` (like `payment-schema.ts`); UI texts approved as in the tests.
 - Permissions: `lessons.read|create|update|delete`, `lesson-series.manage`; cancel-preview returns `{ suggestedCharged }`.
+- Review fixes (Anatoly, 2026-10-28): cancel reasons were missing in the local DB, seed re-run; calendar fits the screen height (hours scroll inside, no hour cropping); FullCalendar v7 (`@fullcalendar/react` + `core`), Monarch theme with the green palette, following light/dark theme. Status colors are checked by Anatoly.
+- **Open tail, next chat (Anatoly):** status-change comment goes into the ledger entry too, format "<reason name>: <comment>" (only the reason when there is no comment); backend e2e test first. Frontend: "Back to scheduled" opens a small form with an optional comment.
