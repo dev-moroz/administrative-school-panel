@@ -79,7 +79,7 @@ Principles: money is `Decimal`, not float; every balance and payment change happ
 - Split 2026-10-28 → DECISIONS: "Lessons and schedule (stage 5 design)".
 - 5a lessons, statuses, automatic charge on lesson end, balance and double-charge protection — done (2026-10-28) → DECISIONS: "Lessons API (stage 5a)".
 - 5b series and the generator, student deactivation with future lessons — done (2026-10-28) → DECISIONS: "Lesson series (stage 5b)".
-- 5c FullCalendar UI — **next**.
+- 5c FullCalendar UI — done (2026-10-29).
 - 5d freeze, teacher vacation, the deactivation confirmation dialog — todo (upcoming lessons moved to 5f).
 - 5e remaining lessons on the students list tile — todo → DECISIONS: "Student card: balance and Schedule tab".
 - 5f "Schedule" tab in the student card (next 6 lessons) — todo → same section.
