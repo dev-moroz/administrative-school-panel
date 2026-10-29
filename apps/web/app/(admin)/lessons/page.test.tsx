@@ -31,11 +31,11 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: v
 
 // patchError/postError are thrown only while the request has no force: true.
 type Warning = { code: string; date: string; reason: string };
-type Opts = { lessons?: Lesson[]; suggestedCharged?: boolean; patchError?: ApiError; postError?: ApiError; deleteError?: ApiError; seriesWarnings?: Warning[] };
+type Opts = { lessons?: Lesson[]; suggestedCharged?: boolean; patchError?: ApiError; postError?: ApiError; deleteError?: ApiError; statusError?: ApiError; seriesWarnings?: Warning[] };
 
 const forced = (init?: RequestInit) => Boolean(init?.body && JSON.parse(String(init.body)).force);
 
-function mockApi({ lessons = [], suggestedCharged = false, patchError, postError, deleteError, seriesWarnings = [] }: Opts = {}) {
+function mockApi({ lessons = [], suggestedCharged = false, patchError, postError, deleteError, statusError, seriesWarnings = [] }: Opts = {}) {
   vi.mocked(apiFetch).mockImplementation(async (path: string, init?: RequestInit) => {
     const url = new URL(path, "http://x");
     const method = init?.method ?? "GET";
@@ -61,7 +61,10 @@ function mockApi({ lessons = [], suggestedCharged = false, patchError, postError
     if (lessonMatch) {
       const lesson = lessons.find((l) => l.id === lessonMatch[1]) ?? makeLesson({ id: lessonMatch[1] });
       if (lessonMatch[2] === "/cancel-preview") return { suggestedCharged };
-      if (lessonMatch[2] === "/status") return { ...lesson, status: JSON.parse(String(init?.body)).status };
+      if (lessonMatch[2] === "/status") {
+        if (statusError && !forced(init)) throw statusError;
+        return { ...lesson, status: JSON.parse(String(init?.body)).status };
+      }
       if (method === "PATCH") {
         if (patchError && !forced(init)) throw patchError;
         return lesson;
@@ -250,6 +253,55 @@ describe("LessonsPage", () => {
       await user.click(await screen.findByRole("button", { name: "Back to scheduled" }));
       await waitFor(() => expect(writes()).toHaveLength(1));
       expect(writes()[0]).toMatchObject({ path: "/lessons/l1/status", method: "POST", body: { status: "SCHEDULED" } });
+    });
+  });
+
+  describe("back to scheduled conflict", () => {
+    const cancelled = () => makeLesson({ status: "CANCELLED", cancelReason: { code: "STUDENT_FREEZE", name: "Student freeze" } });
+    const restoreError = (patch: { absence?: unknown; overlaps?: unknown[] }) =>
+      new ApiError(409, undefined, { code: "LESSON_RESTORE_CONFLICT", absence: null, overlaps: [], ...patch });
+    const freeze = {
+      id: "a1",
+      kind: "STUDENT_FREEZE",
+      startsOn: "2026-11-01T00:00:00.000Z",
+      endsOn: "2026-11-10T00:00:00.000Z",
+      student: { id: "s1", fullName: "Anna Petrova" },
+      teacher: null,
+    };
+
+    it("names the absence and restores with force after confirmation", async () => {
+      const { user } = await setup({ lessons: [cancelled()], statusError: restoreError({ absence: freeze }) });
+      await openLesson(user);
+      await user.click(await screen.findByRole("button", { name: "Back to scheduled" }));
+      const dialog = await screen.findByRole("alertdialog");
+      expect(dialog).toHaveTextContent("Student freeze · Anna Petrova");
+      expect(dialog).toHaveTextContent("2026-11-01 – 2026-11-10");
+      await user.click(within(dialog).getByRole("button", { name: "Restore anyway" }));
+      await waitFor(() => expect(writes()).toHaveLength(2));
+      expect(writes()[1]).toEqual({ path: "/lessons/l1/status", method: "POST", body: { status: "SCHEDULED", force: true } });
+    });
+
+    it("lists overlapping lessons when the time is busy", async () => {
+      const { user } = await setup({
+        lessons: [cancelled()],
+        statusError: restoreError({
+          overlaps: [{ id: "l9", startsAt: new Date(2026, 10, 3, 10, 30).toISOString(), durationMin: 60, student: { id: "s2", fullName: "Boris Ivanov" } }],
+        }),
+      });
+      await openLesson(user);
+      await user.click(await screen.findByRole("button", { name: "Back to scheduled" }));
+      const dialog = await screen.findByRole("alertdialog");
+      expect(dialog).toHaveTextContent("Boris Ivanov");
+      expect(dialog).not.toHaveTextContent("Student freeze");
+    });
+
+    it("cancelling the dialog keeps the lesson cancelled", async () => {
+      const { user } = await setup({ lessons: [cancelled()], statusError: restoreError({ absence: freeze }) });
+      await openLesson(user);
+      await user.click(await screen.findByRole("button", { name: "Back to scheduled" }));
+      await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Cancel" }));
+      await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+      expect(writes()).toHaveLength(1);
     });
   });
 

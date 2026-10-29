@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { LogOut, Settings as SettingsIcon } from "lucide-react";
+import { CircleUser, LogOut, Settings as SettingsIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { logout, meQueryKey, useMe } from "@/features/auth";
+import { getProfileSections } from "@/features/profile/model/sections";
 import { getAvailableSections } from "@/features/settings";
 import {
   Sidebar,
@@ -39,6 +40,7 @@ export function AppSidebar() {
   const items = me
     ? NAV_ITEMS.filter((item) => me.permissions.includes(item.permission))
     : [];
+  const showProfile = me ? getProfileSections(me).length > 0 : false;
   const showSettings = me ? getAvailableSections(me.permissions).length > 0 : false;
 
   return (
@@ -80,6 +82,16 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <ThemeToggle />
           </SidebarMenuItem>
+          {showProfile && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild size="lg" className="text-base [&_svg]:size-5" isActive={pathname.startsWith("/profile")}>
+                <Link href="/profile">
+                  <CircleUser />
+                  <span>{t("profile")}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           {showSettings && (
             <SidebarMenuItem>
               <SidebarMenuButton

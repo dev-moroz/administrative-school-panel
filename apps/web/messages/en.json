@@ -19,6 +19,7 @@
     "lessons": "Lessons",
     "payments": "Payments",
     "settings": "Settings",
+    "profile": "My profile",
     "logout": "Sign out"
   },
   "Settings": {
@@ -150,7 +151,8 @@
     "toastCreated": "Student created",
     "section": {
       "balance": "Balance",
-      "payments": "Payments"
+      "payments": "Payments",
+      "absences": "Absences"
     }
   },
   "Ledger": {
@@ -314,6 +316,55 @@
     "deleteTitle": "Delete this lesson?",
     "deleteDescription": "The lesson will be removed from the calendar.",
     "deleteConflict": "This lesson can't be deleted: it already affected the balance. Cancel it instead.",
-    "deleteFailed": "Could not delete the lesson. Try again."
+    "deleteFailed": "Could not delete the lesson. Try again.",
+    "restoreTitle": "Restore this lesson?",
+    "restoreAbsence": "The lesson is inside an absence:",
+    "restoreOverlaps": "This time is already taken by:",
+    "restoreAnyway": "Restore anyway",
+    "absenceKind": {
+      "STUDENT_FREEZE": "Student freeze",
+      "TEACHER_VACATION": "Teacher vacation"
+    }
+  },
+  "Profile": {
+    "absences": "Absences"
+  },
+  "Absences": {
+    "title": "Absences",
+    "add": "Add absence",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "cancel": "Cancel",
+    "retry": "Retry",
+    "empty": "No absences",
+    "loadError": "Could not load absences.",
+    "fieldFrom": "From",
+    "fieldTo": "To",
+    "fieldComment": "Comment",
+    "commentPlaceholder": "Reason: vacation, sick leave…",
+    "state": {
+      "future": "Planned",
+      "ongoing": "Ongoing",
+      "past": "Past"
+    },
+    "errRequired": "Pick a date",
+    "errPastStart": "Cannot start before today",
+    "errPastEnd": "Cannot end before today",
+    "errEndBeforeStart": "The end is before the start",
+    "errComment": "Comment is too long",
+    "errOverlap": "This period overlaps another absence",
+    "saveFailed": "Could not save the absence. Try again.",
+    "toastSaved": "Absence saved",
+    "toastDeleted": "Absence deleted",
+    "deleteTitle": "Delete this absence?",
+    "deleteDescription": "Its cancelled lessons will go back to the schedule where possible.",
+    "deleteFailed": "Could not delete the absence. Try again.",
+    "notRestored": "{count, plural, one {# lesson was} other {# lessons were}} not restored",
+    "notRestoredReason": {
+      "OVERLAP": "the time is taken",
+      "ABSENCE": "inside another absence",
+      "MANUAL": "changed by hand"
+    }
   }
 }

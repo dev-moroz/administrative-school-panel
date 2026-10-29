@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AbsenceList } from "@/features/absences/ui/absence-list";
 import { useMe } from "@/features/auth";
 import { StudentBalance } from "@/features/ledger/ui/student-balance";
 import { StudentPayments } from "@/features/payments/ui/student-payments";
 
-type Section = "balance" | "payments";
+type Section = "balance" | "payments" | "absences";
 type Props = { studentId: string; onDirtyChange: (dirty: boolean) => void };
 
 export function StudentSections({ studentId, onDirtyChange }: Props) {
@@ -18,6 +19,7 @@ export function StudentSections({ studentId, onDirtyChange }: Props) {
   const available: Section[] = [];
   if (me?.permissions.includes("balance.read")) available.push("balance");
   if (me?.permissions.includes("payments.read")) available.push("payments");
+  if (me?.permissions.includes("absences.manage")) available.push("absences");
   if (available.length === 0) return null;
 
   const active = available.includes(selected) ? selected : available[0];
@@ -40,6 +42,11 @@ export function StudentSections({ studentId, onDirtyChange }: Props) {
       {available.includes("payments") && (
         <TabsContent value="payments" className="text-base">
           <StudentPayments studentId={studentId} />
+        </TabsContent>
+      )}
+      {available.includes("absences") && (
+        <TabsContent value="absences" className="text-base">
+          <AbsenceList owner={{ studentId }} />
         </TabsContent>
       )}
     </Tabs>

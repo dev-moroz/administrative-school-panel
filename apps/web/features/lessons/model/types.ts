@@ -40,7 +40,19 @@ export type UpdateLessonPayload = { startsAt?: string; durationMin?: number; for
 export type LessonOverlap = { id: string; startsAt: string; durationMin: number; student: { id: string; fullName: string } | null };
 export type SeriesWarning = { code: "SERIES_SLOT_SKIPPED"; date: string; reason: "OVERLAP" };
 export type SeriesResult = { id: string; warnings: SeriesWarning[] };
-export type StatusPayload = { status: LessonStatus; charged?: boolean; reason?: string; comment?: string };
+export type StatusPayload = { status: LessonStatus; charged?: boolean; reason?: string; comment?: string; force?: boolean };
+// Absence dates arrive as ISO timestamps here (not mapped to YYYY-MM-DD by the API).
+export type RestoreConflict = {
+  absence: {
+    id: string;
+    kind: "STUDENT_FREEZE" | "TEACHER_VACATION";
+    startsOn: string;
+    endsOn: string;
+    student: { id: string; fullName: string } | null;
+    teacher: { id: string; fullName: string } | null;
+  } | null;
+  overlaps: LessonOverlap[];
+};
 export type CancelPreview = { suggestedCharged: boolean };
 export type CreateSeriesPayload = { studentId: string; weekday: number; startTime: string; durationMin: number; startsOn: string };
 export type SplitSeriesPayload = { fromLessonId: string; weekday?: number; startTime?: string; durationMin?: number };

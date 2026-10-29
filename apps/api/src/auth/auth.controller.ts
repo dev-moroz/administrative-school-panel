@@ -73,6 +73,6 @@ export class AuthController {
   @Authenticated()
   @Get('me')
   me(@CurrentUser() user: AuthUser) {
-    return { id: user.id, email: user.email, role: user.role, permissions: [...user.permissions] };
+    return { id: user.id, email: user.email, role: user.role, teacherId: user.teacherId, permissions: [...user.permissions] };
   }
 }

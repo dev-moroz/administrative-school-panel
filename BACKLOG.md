@@ -30,7 +30,10 @@ Nothing here is planned. An item moves to `PLAN.md` only after Anatoly approves 
 - [after MVP] Money remainder added to the next payment's calculation.
 
 ## Ideas (idea only)
-- Where the teacher sets her vacation (her profile or a separate Settings section) and who else may — grill later.
+- [stage 5] Absences UI polish (profile page, student tab) — Anatoly, next chat.
+- My profile: personal data editing (name, time zone…).
+- Admin manages other teachers' absences.
+- Absence reasons dictionary (now the reason is in the comment).
 - Calendar toggle "show cancelled lessons" (cancelled stay visible for now).
 - Dashboard on `/` (today's lessons, week/month summary) instead of the `/students` redirect, after stage 5.
 - Roles section in Settings.

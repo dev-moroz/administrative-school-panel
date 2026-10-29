@@ -1,7 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../src/prisma/prisma.service.js';
-import { createTestApp, ensureUser, loginAs } from './helpers.js';
+import { createTestApp, ensureTeacher, ensureUser, loginAs } from './helpers.js';
 
 type Actor = 'anonymous' | 'student' | 'teacher' | 'admin';
 const ACTORS: Actor[] = ['anonymous', 'student', 'teacher', 'admin'];
@@ -51,6 +51,17 @@ describe('auth (e2e)', () => {
     expect(res.body.role).toBe('teacher');
     expect(res.body.permissions).toContain('students.read.all');
     expect(res.body.permissions).not.toContain('students.delete');
+  });
+
+  it('GET /auth/me returns the teacher id of a teacher and null without a teacher record', async () => {
+    const teacher = await ensureTeacher(app, 'me-teacher@e2e.test', 'Me Teacher');
+    const teacherCookie = await loginAs(app, 'me-teacher@e2e.test');
+
+    const own = await request(server).get('/auth/me').set('Cookie', teacherCookie).expect(200);
+    expect(own.body.teacherId).toBe(teacher.id);
+
+    const admin = await request(server).get('/auth/me').set('Cookie', cookies.admin).expect(200);
+    expect(admin.body.teacherId).toBeNull();
   });
 
   it('keeps only the user id in the access token', () => {

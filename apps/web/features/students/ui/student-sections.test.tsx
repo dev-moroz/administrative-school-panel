@@ -19,6 +19,7 @@ function setup(permissions = BOTH) {
   vi.mocked(apiFetch).mockImplementation(async (path: string, init?: RequestInit) => {
     const url = new URL(path, "http://x");
     if (url.pathname === "/auth/me") return { id: "u1", email: "a@b.c", role: "admin", permissions };
+    if (url.pathname === "/absences") return [];
     if (url.pathname === "/payments") return { items: [makePayment()], total: 1, page: 1, pageSize: 10 };
     const result = handleLedger(ledger, path, init);
     if (result === undefined) throw new Error(`unexpected ${init?.method ?? "GET"} ${path}`);
@@ -83,6 +84,20 @@ describe("StudentSections", () => {
     expect(payments).toHaveAttribute("aria-selected", "true");
     expect(screen.queryByRole("tab", { name: "Balance" })).not.toBeInTheDocument();
     expect(await screen.findByText("400.00")).toBeVisible();
+  });
+
+  it("offers the Absences tab with absences.manage and loads the student's absences", async () => {
+    setup([...BOTH, "absences.manage"]);
+    await userEvent.click(await screen.findByRole("tab", { name: "Absences" }));
+    expect(await screen.findByRole("button", { name: "Add absence" })).toBeVisible();
+    const call = vi.mocked(apiFetch).mock.calls.map(([p]) => new URL(String(p), "http://x")).find((u) => u.pathname === "/absences")!;
+    expect(call.searchParams.get("studentId")).toBe("s1");
+  });
+
+  it("hides the Absences tab without absences.manage", async () => {
+    setup();
+    await screen.findByRole("tab", { name: "Balance" });
+    expect(screen.queryByRole("tab", { name: "Absences" })).not.toBeInTheDocument();
   });
 
   it("renders nothing without balance.read and payments.read", async () => {

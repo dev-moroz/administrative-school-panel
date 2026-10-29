@@ -4,6 +4,7 @@ export type AuthUser = {
   id: string;
   email: string;
   role: string;
+  teacherId: string | null;
   permissions: ReadonlySet<string>;
 };
 

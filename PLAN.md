@@ -85,8 +85,8 @@ Principles: money is `Decimal`, not float; every balance and payment change happ
 - 5e `manuallyChanged` flag on lessons (backfill for existing data; series use it instead of comparing the time) — done (2026-10-29) → DECISIONS: "Manual changes flag (stage 5e)".
 - 5f overlap check: warning on manual create/move, the generator skips a busy slot once (`SeriesSkip`) — done (2026-10-29) → DECISIONS: "Overlap check (stage 5f)".
 - 5g absences API: student freeze and teacher vacation, edit and restore rules — done (2026-10-29) → DECISIONS: "Absences API (stage 5g)".
-- 5h absences UI and "Back to schedule" with confirmation — next.
-- 5i student deactivation confirmation dialog — todo.
+- 5h absences UI and "Back to schedule" with confirmation — done (2026-10-30) → DECISIONS: "Absences UI (stage 5h)".
+- 5i student deactivation confirmation dialog — next.
 - 5j remaining lessons on the students list tile — todo → DECISIONS: "Student card: balance and Schedule tab".
 - 5k "Schedule" tab in the student card (next 6 lessons) — todo → same section.
 - Settings: cancellation rules storage (school-wide thresholds, evaluated in the teacher's zone → DECISIONS: "Settings concept") and cancel reasons admin (`/settings/cancel-reasons`) — todo (after 5c, Anatoly, 2026-10-28).

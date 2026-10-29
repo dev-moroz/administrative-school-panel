@@ -85,3 +85,22 @@ describe("AppSidebar settings item", () => {
     expect(screen.getByRole("button", { name: "Sign out" })).toBeInTheDocument();
   });
 });
+
+describe("AppSidebar My profile item", () => {
+  beforeEach(() => {
+    useMe.mockReset();
+    usePathname.mockReset().mockReturnValue("/students");
+  });
+
+  it("shows My profile for a user with a teacher record", () => {
+    useMe.mockReturnValue({ data: { id: "1", email: "a@b.c", role: "teacher", teacherId: "t1", permissions: ["absences.manage"] } });
+    renderSidebar();
+    expect(screen.getByRole("link", { name: "My profile" })).toHaveAttribute("href", "/profile");
+  });
+
+  it("hides My profile without a teacher record", () => {
+    useMe.mockReturnValue({ data: { id: "1", email: "a@b.c", role: "admin", teacherId: null, permissions: ["absences.manage"] } });
+    renderSidebar();
+    expect(screen.queryByRole("link", { name: "My profile" })).not.toBeInTheDocument();
+  });
+});

@@ -6,10 +6,11 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 import { toStatusPayload, type CancelFormValues } from "../model/cancel-schema";
-import type { Lesson, StatusPayload } from "../model/types";
+import type { Lesson, RestoreConflict, StatusPayload } from "../model/types";
 import { useChangeLessonStatus } from "../model/use-lessons";
 import { CancelForm } from "./cancel-form";
 import { DeleteLessonDialog } from "./delete-lesson-dialog";
+import { RestoreConflictDialog } from "./restore-conflict-dialog";
 
 type Props = { lesson: Lesson; canDelete: boolean; onDone: () => void };
 
@@ -18,6 +19,7 @@ export function LessonStatusActions({ lesson, canDelete, onDone }: Props) {
   const change = useChangeLessonStatus();
   const [action, setAction] = useState<CancelFormValues["status"] | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [conflict, setConflict] = useState<RestoreConflict | null>(null);
 
   function send(payload: StatusPayload) {
     change.mutate(
@@ -31,7 +33,26 @@ export function LessonStatusActions({ lesson, canDelete, onDone }: Props) {
     );
   }
 
-  const error = change.error && t(change.error instanceof ApiError && change.error.status === 409 ? "statusConflict" : "statusFailed");
+  function restore(force = false) {
+    change.mutate(
+      { id: lesson.id, payload: { status: "SCHEDULED", ...(force && { force }) } },
+      {
+        onSuccess: () => {
+          setConflict(null);
+          toast.success(t("toastStatus"));
+          onDone();
+        },
+        onError: (err) => {
+          const body = err instanceof ApiError ? (err.body as ({ code?: string } & RestoreConflict) | undefined) : undefined;
+          if (body?.code === "LESSON_RESTORE_CONFLICT") setConflict({ absence: body.absence, overlaps: body.overlaps ?? [] });
+          else setConflict(null);
+        },
+      },
+    );
+  }
+
+  const error =
+    change.error && !conflict ? t(change.error instanceof ApiError && change.error.status === 409 ? "statusConflict" : "statusFailed") : null;
 
   if (action) {
     return (
@@ -53,10 +74,19 @@ export function LessonStatusActions({ lesson, canDelete, onDone }: Props) {
     return (
       <div className="grid justify-items-start gap-2">
         {(lesson.status === "CANCELLED" || lesson.status === "NO_SHOW") && (
-          <Button variant="outline" disabled={change.isPending} onClick={() => send({ status: "SCHEDULED" })}>
+          <Button variant="outline" disabled={change.isPending} onClick={() => restore()}>
             {t("backToScheduled")}
           </Button>
         )}
+        <RestoreConflictDialog
+          conflict={conflict}
+          isPending={change.isPending}
+          onConfirm={() => restore(true)}
+          onCancel={() => {
+            change.reset();
+            setConflict(null);
+          }}
+        />
         {error && (
           <p role="alert" className="text-sm text-destructive">
             {error}

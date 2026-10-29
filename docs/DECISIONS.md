@@ -328,3 +328,11 @@ These are the rules for every time-related change. They are not re-discussed; an
 - Lessons not restored are returned as `warnings: [{ code: 'ABSENCE_LESSON_NOT_RESTORED', lessonId, reason: 'OVERLAP' | 'ABSENCE' | 'MANUAL' }]`; with `ABSENCE` the link moves to the other absence. After a restore the owner's series are regenerated.
 - `DELETE /absences/:id` answers 200 with `{ warnings }` (204 has no body). `GET /absences` requires `studentId` or `teacherId`; a date range filter can be added when the calendar needs it.
 - Manual back to scheduled checks absence and overlap together: 409 `LESSON_RESTORE_CONFLICT` `{ absence | null, overlaps }`, `force: true` restores and unlinks. Until 5h the web shows it as a plain error.
+
+## Absences UI (stage 5h, decided 2026-10-29/30, Anatoly)
+- `/auth/me` returns `teacherId` (null without a Teacher record).
+- Student freeze: "Absences" tab in the student card (`absences.manage`). Teacher vacation: **"My profile"** area (`/profile`, separate from Settings, same second sidebar `SectionNav`), section `/profile/absences`; each teacher sees only own absences. The area and its nav item exist only when a section is available (teacher record + `absences.manage`).
+- Reason (vacation, sick leave…) goes into the comment; no reasons dictionary.
+- Edit rules mirror the API: a started absence keeps its start and cannot be deleted; the end not before today; only changed fields are sent. Not restored lessons → warning toast with reasons.
+- "Back to scheduled" on 409 `LESSON_RESTORE_CONFLICT` shows a dialog naming the absence and/or the overlaps; "Restore anyway" repeats with `force: true`.
+- `absences.manage` comes only from the seed: run `prisma db seed` after deploying 5g/5h.

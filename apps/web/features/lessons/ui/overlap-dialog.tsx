@@ -36,9 +36,24 @@ export function useOverlapConfirm() {
 
 type OverlapDialogProps = { open: boolean; overlaps: LessonOverlap[]; onConfirm: () => void; onCancel: () => void };
 
-export function OverlapDialog({ open, overlaps, onConfirm, onCancel }: OverlapDialogProps) {
+export function OverlapList({ overlaps }: { overlaps: LessonOverlap[] }) {
   const t = useTranslations("Lessons");
   const format = useFormatter();
+
+  return (
+    <ul className="grid gap-1 text-sm">
+      {overlaps.map((o) => (
+        <li key={o.id}>
+          {o.student?.fullName ?? "—"} · {format.dateTime(new Date(o.startsAt), { dateStyle: "medium", timeStyle: "short" })} ·{" "}
+          {t("durationShort", { value: o.durationMin })}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function OverlapDialog({ open, overlaps, onConfirm, onCancel }: OverlapDialogProps) {
+  const t = useTranslations("Lessons");
 
   return (
     <AlertDialog open={open} onOpenChange={(next) => !next && onCancel()}>
@@ -47,14 +62,7 @@ export function OverlapDialog({ open, overlaps, onConfirm, onCancel }: OverlapDi
           <AlertDialogTitle>{t("overlapTitle")}</AlertDialogTitle>
           <AlertDialogDescription>{t("overlapDescription")}</AlertDialogDescription>
         </AlertDialogHeader>
-        <ul className="grid gap-1 text-sm">
-          {overlaps.map((o) => (
-            <li key={o.id}>
-              {o.student?.fullName ?? "—"} · {format.dateTime(new Date(o.startsAt), { dateStyle: "medium", timeStyle: "short" })} ·{" "}
-              {t("durationShort", { value: o.durationMin })}
-            </li>
-          ))}
-        </ul>
+        <OverlapList overlaps={overlaps} />
         <AlertDialogFooter>
           <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
           {/* A plain button: closing the dialog means "cancel". */}

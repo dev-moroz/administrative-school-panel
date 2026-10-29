@@ -68,6 +68,7 @@ export class AuthGuard implements CanActivate {
         id: true,
         email: true,
         isActive: true,
+        teacher: { select: { id: true } },
         role: {
           select: {
             name: true,
@@ -82,6 +83,7 @@ export class AuthGuard implements CanActivate {
       id: user.id,
       email: user.email,
       role: user.role.name,
+      teacherId: user.teacher?.id ?? null,
       permissions: new Set(user.role.rolePermissions.map((rp) => rp.permission.key)),
     };
   }
