@@ -84,7 +84,6 @@ export default function LessonsPage() {
   return (
     // Fills the screen height so the hours scroll inside the calendar.
     <div className="flex h-[calc(100svh-2rem)] min-h-[480px] flex-col gap-4">
-      <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
       <div className="min-h-0 flex-1">
         <CalendarView
           events={events}

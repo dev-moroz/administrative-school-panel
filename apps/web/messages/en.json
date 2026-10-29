@@ -257,7 +257,6 @@
     }
   },
   "Lessons": {
-    "title": "Lessons",
     "newLesson": "New lesson",
     "lesson": "Lesson",
     "newLessonDescription": "Pick a student and a time.",

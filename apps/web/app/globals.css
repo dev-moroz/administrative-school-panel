@@ -180,7 +180,3 @@
     @apply font-sans;
   }
 }
-/* Colors come from calendar-view.tsx; a cancelled lesson is also struck through. */
-.fc .lesson-cancelled {
-  text-decoration: line-through;
-}

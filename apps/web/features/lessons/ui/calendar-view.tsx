@@ -28,10 +28,10 @@ const DEFAULT_DURATION_MS = 60 * 60_000;
 
 // Monarch palette variables, so the colors follow the light and dark scheme.
 const STATUS_COLORS: Record<LessonStatus, { color: string; contrastColor: string }> = {
-  SCHEDULED: { color: "var(--fc-monarch-primary)", contrastColor: "var(--fc-monarch-primary-foreground)" },
-  COMPLETED: { color: "var(--fc-monarch-secondary)", contrastColor: "var(--fc-monarch-secondary-foreground)" },
+  SCHEDULED: { color: "var(--fc-monarch-secondary)", contrastColor: "var(--fc-monarch-secondary-foreground)" },
+  COMPLETED: { color: "var(--fc-monarch-primary)", contrastColor: "var(--fc-monarch-primary-foreground)" },
   CANCELLED: { color: "var(--fc-monarch-strong)", contrastColor: "var(--fc-monarch-muted-foreground)" },
-  NO_SHOW: { color: "var(--fc-monarch-tertiary)", contrastColor: "var(--fc-monarch-tertiary-foreground)" },
+  NO_SHOW: { color: "var(--fc-monarch-strong)", contrastColor: "var(--fc-monarch-muted-foreground)" },
 };
 
 // The only place that knows FullCalendar: the rest of the app works with our types.
