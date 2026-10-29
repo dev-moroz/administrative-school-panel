@@ -35,8 +35,11 @@ export type CalendarEvent = {
   className: string;
 };
 
-export type CreateLessonPayload = { studentId: string; startsAt: string; durationMin: number };
-export type UpdateLessonPayload = { startsAt?: string; durationMin?: number };
+export type CreateLessonPayload = { studentId: string; startsAt: string; durationMin: number; force?: boolean };
+export type UpdateLessonPayload = { startsAt?: string; durationMin?: number; force?: boolean };
+export type LessonOverlap = { id: string; startsAt: string; durationMin: number; student: { id: string; fullName: string } | null };
+export type SeriesWarning = { code: "SERIES_SLOT_SKIPPED"; date: string; reason: "OVERLAP" };
+export type SeriesResult = { id: string; warnings: SeriesWarning[] };
 export type StatusPayload = { status: LessonStatus; charged?: boolean; reason?: string; comment?: string };
 export type CancelPreview = { suggestedCharged: boolean };
 export type CreateSeriesPayload = { studentId: string; weekday: number; startTime: string; durationMin: number; startsOn: string };

@@ -2,6 +2,8 @@ export class ApiError extends Error {
   constructor(
     readonly status: number,
     message?: string,
+    // Parsed JSON error body: { code, message, ...data } for coded errors.
+    readonly body?: unknown,
   ) {
     super(message ?? `Request failed with status ${status}`);
   }
@@ -34,7 +36,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     res = await send();
   }
 
-  if (!res.ok) throw new ApiError(res.status);
+  if (!res.ok) throw new ApiError(res.status, undefined, await res.json().catch(() => undefined));
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }

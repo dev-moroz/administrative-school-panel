@@ -5,11 +5,14 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { useMe } from "@/features/auth";
 import { rangeToFormValues, rangeToUpdatePayload, toSplitPayload, toUpdatePayload, type LessonFormValues } from "@/features/lessons/model/lesson-schema";
+import { getOverlaps } from "@/features/lessons/model/overlap";
 import { toCalendarEvents } from "@/features/lessons/model/to-calendar-events";
 import type { DateRange, Lesson, TimeRange } from "@/features/lessons/model/types";
 import { useLessons, useSplitSeries, useUpdateLesson } from "@/features/lessons/model/use-lessons";
+import { useSeriesWarnings } from "@/features/lessons/model/use-series-warnings";
 import { CalendarView, type CalendarViewProps } from "@/features/lessons/ui/calendar-view";
 import { LessonSheet, type LessonSheetState } from "@/features/lessons/ui/lesson-sheet";
+import { OverlapDialog, useOverlapConfirm } from "@/features/lessons/ui/overlap-dialog";
 import { SeriesScopeDialog, type SeriesScope } from "@/features/lessons/ui/series-scope-dialog";
 
 // A change to a series lesson waits here until the user picks its scope.
@@ -32,6 +35,8 @@ export default function LessonsPage() {
   const [scope, setScope] = useState<ScopeRequest | null>(null);
   const update = useUpdateLesson();
   const split = useSplitSeries();
+  const overlap = useOverlapConfirm();
+  const warnSkipped = useSeriesWarnings();
 
   const findLesson = (id: string) => lessons.data?.find((l) => l.id === id);
 
@@ -39,12 +44,22 @@ export default function LessonsPage() {
     const lesson = findLesson(id);
     if (!lesson) return revert();
     if (lesson.seriesId) return setScope({ lesson, kind: "drag", range: { start, end }, revert });
+    const payload = rangeToUpdatePayload({ start, end });
+    const failed = () => {
+      revert();
+      toast.error(t("moveFailed"));
+    };
     update.mutate(
-      { id, payload: rangeToUpdatePayload({ start, end }) },
+      { id, payload },
       {
-        onError: () => {
-          revert();
-          toast.error(t("moveFailed"));
+        onError: (error) => {
+          const overlaps = getOverlaps(error);
+          if (!overlaps) return failed();
+          overlap.ask({
+            overlaps,
+            onConfirm: () => update.mutate({ id, payload: { ...payload, force: true } }, { onError: failed }),
+            onCancel: revert,
+          });
         },
       },
     );
@@ -52,27 +67,51 @@ export default function LessonsPage() {
 
   function chooseScope(choice: SeriesScope) {
     if (!scope) return;
-    const { lesson } = scope;
-    const values = scope.kind === "edit" ? scope.values : rangeToFormValues(scope.range);
-    const done = {
-      onSuccess: () => {
-        setScope(null);
-        if (scope.kind === "edit") {
-          toast.success(t("toastSaved"));
-          setSheet(null);
-        }
-      },
-      onError: () => {
-        setScope(null);
-        if (scope.kind === "drag") scope.revert();
-        toast.error(t(scope.kind === "drag" ? "moveFailed" : "saveFailed"));
-      },
+    const current = scope;
+    const { lesson } = current;
+    const values = current.kind === "edit" ? current.values : rangeToFormValues(current.range);
+    const revert = () => current.kind === "drag" && current.revert();
+    const onSuccess = () => {
+      setScope(null);
+      if (current.kind === "edit") {
+        toast.success(t("toastSaved"));
+        setSheet(null);
+      }
+    };
+    const onError = () => {
+      setScope(null);
+      revert();
+      toast.error(t(current.kind === "drag" ? "moveFailed" : "saveFailed"));
     };
     if (choice === "this") {
-      const payload = scope.kind === "edit" ? toUpdatePayload(values) : rangeToUpdatePayload(scope.range);
-      update.mutate({ id: lesson.id, payload }, done);
+      const payload = current.kind === "edit" ? toUpdatePayload(values) : rangeToUpdatePayload(current.range);
+      update.mutate(
+        { id: lesson.id, payload },
+        {
+          onSuccess,
+          onError: (error) => {
+            const overlaps = getOverlaps(error);
+            if (!overlaps) return onError();
+            setScope(null);
+            overlap.ask({
+              overlaps,
+              onConfirm: () => update.mutate({ id: lesson.id, payload: { ...payload, force: true } }, { onSuccess, onError }),
+              onCancel: revert,
+            });
+          },
+        },
+      );
     } else {
-      split.mutate({ seriesId: lesson.seriesId!, payload: toSplitPayload(lesson.id, values) }, done);
+      split.mutate(
+        { seriesId: lesson.seriesId!, payload: toSplitPayload(lesson.id, values) },
+        {
+          onSuccess: (result) => {
+            onSuccess();
+            warnSkipped(result);
+          },
+          onError,
+        },
+      );
     }
   }
 
@@ -110,6 +149,7 @@ export default function LessonsPage() {
         onChoose={chooseScope}
         onCancel={cancelScope}
       />
+      <OverlapDialog {...overlap.dialog} />
     </div>
   );
 }

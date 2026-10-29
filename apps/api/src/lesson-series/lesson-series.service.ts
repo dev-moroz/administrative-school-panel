@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { BASE_TIME_ZONE } from '../common/base-time-zone.js';
 import type { Prisma } from '../generated/prisma/client.js';
+import { findOverlaps } from '../lessons/overlaps.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateSeriesDto } from './dto/create-series.dto.js';
 import { EndSeriesDto } from './dto/end-series.dto.js';
@@ -12,6 +13,8 @@ type Tx = Prisma.TransactionClient;
 type Series = Prisma.LessonSeriesGetPayload<object>;
 
 export const HORIZON_DAYS = 28;
+
+export type SeriesWarning = { code: 'SERIES_SLOT_SKIPPED'; date: string; reason: 'OVERLAP' };
 
 @Injectable()
 export class LessonSeriesService {
@@ -42,8 +45,8 @@ export class LessonSeriesService {
           endsOn: dto.endsOn ? fromYmd(dto.endsOn) : null,
         },
       });
-      await this.generateTx(tx, series, new Date());
-      return this.getTx(tx, series.id);
+      const warnings = await this.generateTx(tx, series, new Date());
+      return { ...(await this.getTx(tx, series.id)), warnings };
     });
   }
 
@@ -110,8 +113,8 @@ export class LessonSeriesService {
         where: { seriesId: id, originalDate: { gte: pivot.originalDate } },
         data: { seriesId: next.id },
       });
-      await this.generateTx(tx, next, new Date());
-      return this.getTx(tx, next.id);
+      const warnings = await this.generateTx(tx, next, new Date());
+      return { ...(await this.getTx(tx, next.id)), warnings };
     });
   }
 
@@ -167,9 +170,10 @@ export class LessonSeriesService {
     });
   }
 
-  private async generateTx(tx: Tx, series: Series, now: Date) {
+  // Busy slots are never overlapped: each gets one SeriesSkip row and is not retried.
+  private async generateTx(tx: Tx, series: Series, now: Date): Promise<SeriesWarning[]> {
     const student = await tx.student.findUniqueOrThrow({ where: { id: series.studentId }, select: { isActive: true } });
-    if (!student.isActive) return;
+    if (!student.isActive) return [];
 
     const today = localDate(now, BASE_TIME_ZONE);
     const until = addDays(today, HORIZON_DAYS);
@@ -178,18 +182,24 @@ export class LessonSeriesService {
       today,
       until,
     );
-    const existing = new Set(
-      (
-        await tx.lesson.findMany({
-          where: { seriesId: series.id, originalDate: { in: slots.map(fromYmd) } },
-          select: { originalDate: true },
-        })
-      ).map((l) => toYmd(l.originalDate!)),
-    );
+    const inSlots = { seriesId: series.id, originalDate: { in: slots.map(fromYmd) } };
+    const lessons = await tx.lesson.findMany({ where: inSlots, select: { originalDate: true } });
+    const skips = await tx.seriesSkip.findMany({ where: inSlots, select: { originalDate: true } });
+    const existing = new Set([...lessons, ...skips].map((l) => toYmd(l.originalDate!)));
 
+    const warnings: SeriesWarning[] = [];
     for (const date of slots) {
       const startsAt = zonedToUtc(date, series.startTime, BASE_TIME_ZONE);
       if (existing.has(date) || startsAt <= now) continue;
+      const [conflict] = await findOverlaps(tx, { teacherId: series.teacherId, startsAt, durationMin: series.durationMin });
+      if (conflict) {
+        await tx.seriesSkip.create({
+          data: { seriesId: series.id, originalDate: fromYmd(date), reason: 'OVERLAP', conflictLessonId: conflict.id },
+        });
+        this.logger.warn(`Series ${series.id}: slot ${date} skipped, overlaps lesson ${conflict.id}`);
+        warnings.push({ code: 'SERIES_SLOT_SKIPPED', date, reason: 'OVERLAP' });
+        continue;
+      }
       await tx.lesson.create({
         data: {
           teacherId: series.teacherId,
@@ -202,6 +212,7 @@ export class LessonSeriesService {
       });
     }
     await tx.lessonSeries.update({ where: { id: series.id }, data: { generatedUntil: fromYmd(until) } });
+    return warnings;
   }
 
   private async getTx(tx: Tx | PrismaService, id: string) {

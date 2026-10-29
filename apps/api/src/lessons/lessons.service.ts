@@ -11,6 +11,7 @@ import { ListLessonsQueryDto } from './dto/list-lessons-query.dto.js';
 import { UpdateLessonDto } from './dto/update-lesson.dto.js';
 import { isAllowedTransition, ledgerChange } from './lesson-rules.js';
 import { MAX_RANGE_DAYS } from './lessons.constants.js';
+import { assertNoOverlaps } from './overlaps.js';
 import { LESSON_SELECT, toLessonDto } from './lessons.mapper.js';
 
 type Tx = Prisma.TransactionClient;
@@ -38,10 +39,13 @@ export class LessonsService {
     const teacherId = student.teachers[0]?.teacherId;
     if (!teacherId) throw new BadRequestException('Student has no teacher');
 
+    const startsAt = new Date(dto.startsAt);
+    if (!dto.force) await assertNoOverlaps(this.prisma, { teacherId, startsAt, durationMin: dto.durationMin });
+
     const row = await this.prisma.lesson.create({
       data: {
         teacherId,
-        startsAt: new Date(dto.startsAt),
+        startsAt,
         durationMin: dto.durationMin,
         notes: dto.notes || null,
         participants: { create: { studentId: student.id } },
@@ -84,6 +88,14 @@ export class LessonsService {
       const moved =
         (dto.startsAt !== undefined && new Date(dto.startsAt).getTime() !== lesson.startsAt.getTime()) ||
         (dto.durationMin !== undefined && dto.durationMin !== lesson.durationMin);
+      if (moved && !dto.force) {
+        await assertNoOverlaps(tx, {
+          teacherId: lesson.teacherId,
+          startsAt: dto.startsAt !== undefined ? new Date(dto.startsAt) : lesson.startsAt,
+          durationMin: dto.durationMin ?? lesson.durationMin,
+          excludeLessonId: id,
+        });
+      }
       const row = await tx.lesson.update({
         where: { id },
         data: {

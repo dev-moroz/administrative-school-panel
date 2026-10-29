@@ -1,6 +1,6 @@
 import { apiFetch } from "@/lib/api";
-import type { CreateSeriesPayload } from "../model/types";
+import type { SeriesResult, CreateSeriesPayload } from "../model/types";
 
 export function createSeries(payload: CreateSeriesPayload) {
-  return apiFetch<{ id: string }>("/lesson-series", { method: "POST", body: JSON.stringify(payload) });
+  return apiFetch<SeriesResult>("/lesson-series", { method: "POST", body: JSON.stringify(payload) });
 }

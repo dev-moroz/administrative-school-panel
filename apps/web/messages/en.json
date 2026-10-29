@@ -280,6 +280,10 @@
     "saveFailed": "Could not save the lesson. Try again.",
     "saveConflict": "This lesson can't be changed anymore.",
     "moveFailed": "Could not move the lesson.",
+    "overlapTitle": "This time is already taken",
+    "overlapDescription": "The teacher already has a lesson at this time:",
+    "saveAnyway": "Save anyway",
+    "slotsSkipped": "Some lessons were not created, the time is taken: {dates}",
     "status": {
       "SCHEDULED": "Scheduled",
       "COMPLETED": "Completed",

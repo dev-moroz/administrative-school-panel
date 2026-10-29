@@ -27,11 +27,15 @@ vi.mock("@/features/lessons/ui/calendar-view", () => ({
 }));
 
 vi.mock("@/lib/api", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/lib/api")>()), apiFetch: vi.fn() }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }));
 
-type Opts = { lessons?: Lesson[]; suggestedCharged?: boolean; patchError?: ApiError; deleteError?: ApiError };
+// patchError/postError are thrown only while the request has no force: true.
+type Warning = { code: string; date: string; reason: string };
+type Opts = { lessons?: Lesson[]; suggestedCharged?: boolean; patchError?: ApiError; postError?: ApiError; deleteError?: ApiError; seriesWarnings?: Warning[] };
 
-function mockApi({ lessons = [], suggestedCharged = false, patchError, deleteError }: Opts = {}) {
+const forced = (init?: RequestInit) => Boolean(init?.body && JSON.parse(String(init.body)).force);
+
+function mockApi({ lessons = [], suggestedCharged = false, patchError, postError, deleteError, seriesWarnings = [] }: Opts = {}) {
   vi.mocked(apiFetch).mockImplementation(async (path: string, init?: RequestInit) => {
     const url = new URL(path, "http://x");
     const method = init?.method ?? "GET";
@@ -47,8 +51,11 @@ function mockApi({ lessons = [], suggestedCharged = false, patchError, deleteErr
       return { items: [{ id: "s1", fullName: "Anna Petrova", telegramUsername: null, isActive: true }], total: 1, page: 1, pageSize: 100 };
     }
     if (url.pathname === "/lessons" && method === "GET") return lessons;
-    if (url.pathname === "/lessons" && method === "POST") return makeLesson({ id: "l-new" });
-    if (url.pathname === "/lesson-series" && method === "POST") return { id: "sr-new" };
+    if (url.pathname === "/lessons" && method === "POST") {
+      if (postError && !forced(init)) throw postError;
+      return makeLesson({ id: "l-new" });
+    }
+    if (url.pathname === "/lesson-series" && method === "POST") return { id: "sr-new", warnings: seriesWarnings };
     if (url.pathname === "/cancel-reasons") return cancelReasons;
     const lessonMatch = url.pathname.match(/^\/lessons\/([^/]+)(\/status|\/cancel-preview)?$/);
     if (lessonMatch) {
@@ -56,7 +63,7 @@ function mockApi({ lessons = [], suggestedCharged = false, patchError, deleteErr
       if (lessonMatch[2] === "/cancel-preview") return { suggestedCharged };
       if (lessonMatch[2] === "/status") return { ...lesson, status: JSON.parse(String(init?.body)).status };
       if (method === "PATCH") {
-        if (patchError) throw patchError;
+        if (patchError && !forced(init)) throw patchError;
         return lesson;
       }
       if (method === "DELETE") {
@@ -65,7 +72,7 @@ function mockApi({ lessons = [], suggestedCharged = false, patchError, deleteErr
       }
       return lesson;
     }
-    if (url.pathname.match(/^\/lesson-series\/[^/]+\/split$/)) return { id: "sr-split" };
+    if (url.pathname.match(/^\/lesson-series\/[^/]+\/split$/)) return { id: "sr-split", warnings: seriesWarnings };
     if (url.pathname.match(/^\/students\/[^/]+\/balance$/)) return { balance: 5, isDebt: false };
     throw new Error(`unexpected ${method} ${path}`);
   });
@@ -100,12 +107,20 @@ async function openLesson(user: User, title = "Anna Petrova") {
   await user.click(await within(screen.getByTestId("calendar")).findByRole("button", { name: title }));
 }
 
+const overlapError = () =>
+  new ApiError(409, undefined, {
+    code: "LESSON_OVERLAP",
+    overlaps: [{ id: "l9", startsAt: new Date(2026, 10, 4, 9, 30).toISOString(), durationMin: 60, student: { id: "s2", fullName: "Boris Ivanov" } }],
+  });
+
 const seriesLesson = () => makeLesson({ id: "l1", seriesId: "sr1", originalDate: "2026-11-03" });
 
 describe("LessonsPage", () => {
   beforeEach(() => {
     vi.mocked(apiFetch).mockReset();
     vi.mocked(toast.error).mockReset();
+    vi.mocked(toast.success).mockReset();
+    vi.mocked(toast.warning).mockReset();
   });
 
   it("loads lessons for the visible range and shows them as events", async () => {
@@ -279,6 +294,110 @@ describe("LessonsPage", () => {
         // Browser is in Belgrade (vitest.config.ts); series slots go to the server in Moscow time (+2h).
         body: { fromLessonId: "l1", weekday: 3, startTime: "11:00", durationMin: 90 },
       });
+    });
+  });
+
+  describe("overlap warning", () => {
+    const moved = { start: new Date(2026, 10, 4, 9, 0), end: new Date(2026, 10, 4, 10, 30) };
+
+    it("a drag onto a busy time asks; 'Save anyway' repeats the PATCH with force", async () => {
+      const { user } = await setup({ lessons: [makeLesson()], patchError: overlapError() });
+      const revert = vi.fn();
+      act(() => view.onEventChange({ id: "l1", ...moved, revert }));
+      const dialog = await screen.findByRole("alertdialog");
+      expect(within(dialog).getByText(/Boris Ivanov/)).toBeInTheDocument();
+      await user.click(within(dialog).getByRole("button", { name: "Save anyway" }));
+      await waitFor(() => expect(writes()).toHaveLength(2));
+      expect(writes()[1]).toEqual({
+        path: "/lessons/l1",
+        method: "PATCH",
+        body: { startsAt: moved.start.toISOString(), durationMin: 90, force: true },
+      });
+      expect(revert).not.toHaveBeenCalled();
+      expect(toast.error).not.toHaveBeenCalled();
+    });
+
+    it("declining the warning reverts the drag and saves nothing more", async () => {
+      const { user } = await setup({ lessons: [makeLesson()], patchError: overlapError() });
+      const revert = vi.fn();
+      act(() => view.onEventChange({ id: "l1", ...moved, revert }));
+      const dialog = await screen.findByRole("alertdialog");
+      await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
+      await waitFor(() => expect(revert).toHaveBeenCalled());
+      expect(writes()).toHaveLength(1);
+      expect(toast.error).not.toHaveBeenCalled();
+    });
+
+    it("'Only this lesson' on a series lesson goes through the same warning", async () => {
+      const { user } = await setup({ lessons: [seriesLesson()], patchError: overlapError() });
+      act(() => view.onEventChange({ id: "l1", ...moved, revert: vi.fn() }));
+      await user.click(await screen.findByRole("button", { name: "Only this lesson" }));
+      await user.click(await screen.findByRole("button", { name: "Save anyway" }));
+      await waitFor(() => expect(writes()).toHaveLength(2));
+      expect(writes()[1]).toMatchObject({ path: "/lessons/l1", method: "PATCH", body: { force: true } });
+    });
+
+    it("creating a lesson on a busy time asks; 'Save anyway' repeats the POST with force", async () => {
+      const { user } = await setup({ postError: overlapError() });
+      act(() => view.onSlotSelect({ start: new Date(2026, 10, 3, 14, 0), end: new Date(2026, 10, 3, 15, 0) }));
+      await pick(user, "Student", "Anna Petrova");
+      await user.click(screen.getByRole("button", { name: "Save lesson" }));
+      await user.click(await screen.findByRole("button", { name: "Save anyway" }));
+      await waitFor(() => expect(writes()).toHaveLength(2));
+      expect(writes()[1]).toMatchObject({ path: "/lessons", method: "POST", body: { studentId: "s1", force: true } });
+      await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    });
+
+    it("editing a lesson in the sheet onto a busy time asks before saving", async () => {
+      const { user } = await setup({ lessons: [makeLesson()], patchError: overlapError() });
+      await openLesson(user);
+      const duration = await screen.findByLabelText("Duration (min)");
+      await user.clear(duration);
+      await user.type(duration, "90");
+      await user.click(screen.getByRole("button", { name: "Save lesson" }));
+      await user.click(await screen.findByRole("button", { name: "Save anyway" }));
+      await waitFor(() => expect(writes()).toHaveLength(2));
+      expect(writes()[1]).toMatchObject({ path: "/lessons/l1", method: "PATCH", body: { durationMin: 90, force: true } });
+    });
+  });
+
+  describe("skipped series slots", () => {
+    const skipped = [
+      { code: "SERIES_SLOT_SKIPPED", date: "2026-11-10", reason: "OVERLAP" },
+      { code: "SERIES_SLOT_SKIPPED", date: "2026-11-24", reason: "OVERLAP" },
+    ];
+
+    async function createWeekly(user: User) {
+      act(() => view.onSlotSelect({ start: new Date(2026, 10, 3, 14, 0), end: new Date(2026, 10, 3, 15, 0) }));
+      await pick(user, "Student", "Anna Petrova");
+      await user.click(screen.getByRole("switch", { name: "Repeat weekly" }));
+      await user.click(screen.getByRole("button", { name: "Save lesson" }));
+    }
+
+    it("creating a series warns about the skipped dates, translated on the client", async () => {
+      const { user } = await setup({ seriesWarnings: skipped });
+      await createWeekly(user);
+      await waitFor(() => expect(toast.warning).toHaveBeenCalledTimes(1));
+      const text = String(vi.mocked(toast.warning).mock.calls[0][0]);
+      expect(text).toContain("Nov 10");
+      expect(text).toContain("Nov 24");
+      expect(text).not.toContain("SERIES_SLOT_SKIPPED");
+      expect(toast.success).toHaveBeenCalled();
+    });
+
+    it("no warning when nothing was skipped", async () => {
+      const { user } = await setup();
+      await createWeekly(user);
+      await waitFor(() => expect(toast.success).toHaveBeenCalled());
+      expect(toast.warning).not.toHaveBeenCalled();
+    });
+
+    it("'This and following' warns about the dates its new series skipped", async () => {
+      const { user } = await setup({ lessons: [seriesLesson()], seriesWarnings: skipped.slice(0, 1) });
+      act(() => view.onEventChange({ id: "l1", start: new Date(2026, 10, 4, 9, 0), end: new Date(2026, 10, 4, 10, 0), revert: vi.fn() }));
+      await user.click(await screen.findByRole("button", { name: "This and following" }));
+      await waitFor(() => expect(toast.warning).toHaveBeenCalledTimes(1));
+      expect(String(vi.mocked(toast.warning).mock.calls[0][0])).toContain("Nov 10");
     });
   });
 

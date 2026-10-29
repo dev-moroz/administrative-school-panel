@@ -99,12 +99,20 @@ describe('lesson series (e2e)', () => {
     cookies.admin = await loginAs(app, 'series-admin@e2e.test');
   });
 
-  afterAll(async () => {
+  // Every test uses the same teacher and slot; leftovers would block generation as overlaps.
+  async function cleanup() {
     const student = { fullName: { startsWith: TAG } };
     await prisma.ledgerEntry.deleteMany({ where: { student } });
     await prisma.lesson.deleteMany({ where: { participants: { some: { student } } } });
+    await prisma.seriesSkip.deleteMany({ where: { series: { student } } });
     await prisma.lessonSeries.deleteMany({ where: { student } });
-    await prisma.student.deleteMany({ where: student });
+  }
+
+  afterEach(cleanup);
+
+  afterAll(async () => {
+    await cleanup();
+    await prisma.student.deleteMany({ where: { fullName: { startsWith: TAG } } });
     await prisma.teacher.update({ where: { id: teacher.id }, data: { timeZone: TEACHER_TZ } });
     await app.close();
   });
@@ -159,10 +167,11 @@ describe('lesson series (e2e)', () => {
   });
 
   describe('create and generate', () => {
-    it('returns only DTO fields, without a time zone', async () => {
+    it('returns only DTO fields plus warnings, without a time zone', async () => {
       const { res } = await createSeries();
       expect(res.status).toBe(201);
-      expect(Object.keys(res.body).sort()).toEqual([...SERIES_KEYS].sort());
+      expect(Object.keys(res.body).sort()).toEqual([...SERIES_KEYS, 'warnings'].sort());
+      expect(res.body.warnings).toEqual([]);
       expect(res.body).not.toHaveProperty('timeZone');
       expect(res.body.endsOn).toBeNull();
     });
@@ -261,6 +270,103 @@ describe('lesson series (e2e)', () => {
     });
   });
 
+  describe('overlaps (generator)', () => {
+    async function busyLesson(date: string, time: string, opts: { durationMin?: number; status?: string } = {}) {
+      const student = await seedStudent();
+      return prisma.lesson.create({
+        data: {
+          teacherId: teacher.id,
+          startsAt: zonedToUtc(date, time, TZ),
+          durationMin: opts.durationMin ?? 60,
+          status: (opts.status ?? 'SCHEDULED') as never,
+          participants: { create: { studentId: student.id } },
+        },
+      });
+    }
+    const skipsOf = (seriesId: string) => prisma.seriesSkip.findMany({ where: { seriesId } });
+
+    it('skips a busy slot, records it once and generates the other slots', async () => {
+      const busy = await busyLesson(tomorrow(), '10:30');
+      const { res } = await createSeries();
+      const lessons = await lessonsOf(res.body.id);
+      expect(lessons).toHaveLength(HORIZON_WEEKS - 1);
+      expect(lessons.map((l) => ymd(l.originalDate))).not.toContain(tomorrow());
+
+      const skips = await skipsOf(res.body.id);
+      expect(skips).toHaveLength(1);
+      expect(skips[0]).toMatchObject({ reason: 'OVERLAP', conflictLessonId: busy.id });
+      expect(ymd(skips[0].originalDate)).toBe(tomorrow());
+    });
+
+    it('never retries a skipped slot, even after the time is freed', async () => {
+      const busy = await busyLesson(tomorrow(), '10:00');
+      const { res } = await createSeries();
+      await prisma.lesson.update({ where: { id: busy.id }, data: { status: 'CANCELLED' } });
+
+      await seriesService.generate(res.body.id, new Date());
+      await seriesService.generateAll(new Date());
+      expect(await lessonsOf(res.body.id)).toHaveLength(HORIZON_WEEKS - 1);
+      expect(await skipsOf(res.body.id)).toHaveLength(1);
+    });
+
+    it('a back-to-back lesson does not block the slot', async () => {
+      await busyLesson(tomorrow(), '09:00');
+      await busyLesson(tomorrow(), '11:00');
+      const { res } = await createSeries();
+      expect(await lessonsOf(res.body.id)).toHaveLength(HORIZON_WEEKS);
+      expect(await skipsOf(res.body.id)).toHaveLength(0);
+    });
+
+    it('a cancelled lesson does not block the slot', async () => {
+      await busyLesson(tomorrow(), '10:00', { status: 'CANCELLED' });
+      const { res } = await createSeries();
+      expect(await lessonsOf(res.body.id)).toHaveLength(HORIZON_WEEKS);
+      expect(await skipsOf(res.body.id)).toHaveLength(0);
+    });
+
+    it('a second series on the same slot is skipped entirely', async () => {
+      const { res: first } = await createSeries();
+      const { res: second } = await createSeries();
+      expect(await lessonsOf(first.body.id)).toHaveLength(HORIZON_WEEKS);
+      expect(await lessonsOf(second.body.id)).toHaveLength(0);
+      expect(await skipsOf(second.body.id)).toHaveLength(HORIZON_WEEKS);
+    });
+
+    it('creation reports skipped slots as warnings with a code, not text', async () => {
+      await busyLesson(tomorrow(), '10:00');
+      await busyLesson(addDays(tomorrow(), 14), '10:00');
+      const { res } = await createSeries();
+      expect(res.status).toBe(201);
+      expect(res.body.warnings).toEqual([
+        { code: 'SERIES_SLOT_SKIPPED', date: tomorrow(), reason: 'OVERLAP' },
+        { code: 'SERIES_SLOT_SKIPPED', date: addDays(tomorrow(), 14), reason: 'OVERLAP' },
+      ]);
+    });
+
+    it('split reports the slots its new series skipped', async () => {
+      const { res } = await createSeries();
+      const [, pivot] = await lessonsOf(res.body.id);
+      await busyLesson(ymd(pivot.originalDate), '12:00');
+      const split = await call('teacher', 'post', `/lesson-series/${res.body.id}/split`, { fromLessonId: pivot.id, startTime: '12:00' }).expect(201);
+      expect(split.body.warnings).toEqual([{ code: 'SERIES_SLOT_SKIPPED', date: ymd(pivot.originalDate), reason: 'OVERLAP' }]);
+    });
+
+    it('GET does not carry warnings', async () => {
+      await busyLesson(tomorrow(), '10:00');
+      const { res } = await createSeries();
+      const one = await call('teacher', 'get', `/lesson-series/${res.body.id}`).expect(200);
+      expect(one.body).not.toHaveProperty('warnings');
+    });
+
+    it('a top-up skips a busy slot on the new horizon date', async () => {
+      const { res } = await createSeries();
+      await busyLesson(addDays(tomorrow(), 7 * HORIZON_WEEKS), '10:00');
+      await seriesService.generate(res.body.id, new Date(Date.now() + 7 * DAY));
+      expect(await lessonsOf(res.body.id)).toHaveLength(HORIZON_WEEKS);
+      expect(await skipsOf(res.body.id)).toHaveLength(1);
+    });
+  });
+
   describe('this and following (split)', () => {
     it('closes the old series, regenerates untouched lessons and keeps changed ones', async () => {
       const { res, studentId } = await createSeries();
@@ -275,7 +381,8 @@ describe('lesson series (e2e)', () => {
         startTime: '12:00',
       });
       expect(split.status).toBe(201);
-      expect(Object.keys(split.body).sort()).toEqual([...SERIES_KEYS].sort());
+      expect(Object.keys(split.body).sort()).toEqual([...SERIES_KEYS, 'warnings'].sort());
+      expect(split.body.warnings).toEqual([]);
       expect(split.body.startsOn).toBe(ymd(pivot.originalDate));
 
       const closed = await prisma.lessonSeries.findUniqueOrThrow({ where: { id: res.body.id } });
@@ -300,7 +407,7 @@ describe('lesson series (e2e)', () => {
 
     it('rejects a split from a lesson of another series', async () => {
       const a = await createSeries();
-      const b = await createSeries();
+      const b = await createSeries('teacher', { startTime: '15:00' });
       const [foreign] = await lessonsOf(b.res.body.id);
       const res = await call('teacher', 'post', `/lesson-series/${a.res.body.id}/split`, { fromLessonId: foreign.id, startTime: '12:00' });
       expect(res.status).toBe(400);
@@ -388,7 +495,7 @@ describe('lesson series (e2e)', () => {
     it('flags series lessons that differ from their slot or were cancelled by hand', async () => {
       const { res } = await createSeries();
       const [untouched, moved, longer, cancelled] = await lessonsOf(res.body.id);
-      const second = await createSeries();
+      const second = await createSeries('teacher', { startTime: '15:00' });
       const [completed, noShow] = await lessonsOf(second.res.body.id);
       const oneOff = await prisma.lesson.create({
         data: {

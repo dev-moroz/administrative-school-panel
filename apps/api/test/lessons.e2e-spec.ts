@@ -13,6 +13,8 @@ const ACTORS: Actor[] = ['anonymous', 'student', 'teacher', 'admin'];
 const TAG = `e2e${Date.now().toString(36)}`;
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
+// Lessons of one teacher must not overlap, so each default slot gets its own 6-hour window.
+const FREE_BASE = Date.now() + 40 * DAY;
 
 const LESSON_KEYS = [
   'id', 'startsAt', 'durationMin', 'status', 'charged', 'cancelledAt', 'cancelReason',
@@ -27,6 +29,8 @@ describe('lessons (e2e)', () => {
   let teacher: { id: string };
   const cookies: Partial<Record<Actor, string>> = {};
   let counter = 0;
+  let slots = 0;
+  const slot = () => new Date(FREE_BASE + (slots += 1) * 6 * HOUR);
 
   function call(actor: Actor, method: Method, path: string, body?: object) {
     const req = request(server)[method](path).set('Origin', TEST_ORIGIN);
@@ -46,7 +50,7 @@ describe('lessons (e2e)', () => {
     const lesson = await prisma.lesson.create({
       data: {
         teacherId: teacher.id,
-        startsAt: opts.startsAt ?? new Date(Date.now() + 3 * DAY),
+        startsAt: opts.startsAt ?? slot(),
         durationMin: opts.durationMin ?? 60,
         status: (opts.status ?? 'SCHEDULED') as never,
         charged: opts.charged ?? false,
@@ -109,7 +113,7 @@ describe('lessons (e2e)', () => {
         run: async (actor) =>
           call(actor, 'post', '/lessons', {
             studentId: (await seedStudent()).id,
-            startsAt: new Date(Date.now() + 2 * DAY).toISOString(),
+            startsAt: slot().toISOString(),
             durationMin: 60,
           }),
       },
@@ -167,7 +171,7 @@ describe('lessons (e2e)', () => {
   describe('POST /lessons', () => {
     it('creates a scheduled lesson for the student and their teacher', async () => {
       const student = await seedStudent();
-      const startsAt = new Date(Date.now() + 2 * DAY).toISOString();
+      const startsAt = slot().toISOString();
       const res = await call('teacher', 'post', '/lessons', { studentId: student.id, startsAt, durationMin: 45, notes: 'unit 3' }).expect(201);
 
       expect(Object.keys(res.body).sort()).toEqual([...LESSON_KEYS].sort());
@@ -255,7 +259,7 @@ describe('lessons (e2e)', () => {
   describe('PATCH /lessons/:id', () => {
     it('reschedules a scheduled lesson and updates notes', async () => {
       const { lesson } = await seedLesson();
-      const startsAt = new Date(Date.now() + 4 * DAY).toISOString();
+      const startsAt = slot().toISOString();
       const res = await call('teacher', 'patch', `/lessons/${lesson.id}`, { startsAt, durationMin: 90, notes: 'moved' }).expect(200);
       expect(res.body).toMatchObject({ startsAt, durationMin: 90, notes: 'moved', status: 'SCHEDULED' });
     });
@@ -479,6 +483,104 @@ describe('lessons (e2e)', () => {
         status: 'COMPLETED',
         manuallyChanged: false,
       });
+    });
+  });
+
+  describe('overlaps', () => {
+    const MIN = 60_000;
+    const create = (studentId: string, startsAt: Date, durationMin = 60, extra: object = {}) =>
+      call('teacher', 'post', '/lessons', { studentId, startsAt: startsAt.toISOString(), durationMin, ...extra });
+
+    it('409 LESSON_OVERLAP with the conflicting lessons, nothing created', async () => {
+      const { lesson, studentId: busyStudent } = await seedLesson();
+      const student = await seedStudent();
+      const res = await create(student.id, new Date(lesson.startsAt.getTime() + 30 * MIN)).expect(409);
+      expect(res.body.code).toBe('LESSON_OVERLAP');
+      expect(res.body.overlaps).toHaveLength(1);
+      expect(res.body.overlaps[0]).toMatchObject({
+        id: lesson.id,
+        startsAt: lesson.startsAt.toISOString(),
+        durationMin: 60,
+        student: { id: busyStudent },
+      });
+      expect(await prisma.lesson.count({ where: { participants: { some: { studentId: student.id } } } })).toBe(0);
+    });
+
+    it('creates anyway with force: true', async () => {
+      const { lesson } = await seedLesson();
+      const student = await seedStudent();
+      await create(student.id, lesson.startsAt, 60, { force: true }).expect(201);
+    });
+
+    it('back-to-back lessons do not conflict', async () => {
+      const { lesson } = await seedLesson();
+      const student = await seedStudent();
+      await create(student.id, new Date(lesson.startsAt.getTime() + 60 * MIN)).expect(201);
+      await create(student.id, new Date(lesson.startsAt.getTime() - 45 * MIN), 45).expect(201);
+    });
+
+    it('a lesson inside a longer one conflicts', async () => {
+      const { lesson } = await seedLesson({ durationMin: 120 });
+      const student = await seedStudent();
+      await create(student.id, new Date(lesson.startsAt.getTime() + 30 * MIN), 30).expect(409);
+    });
+
+    it('a cancelled lesson does not occupy time', async () => {
+      const { lesson } = await seedLesson({ status: 'CANCELLED' });
+      const student = await seedStudent();
+      await create(student.id, lesson.startsAt).expect(201);
+    });
+
+    it.each(['COMPLETED', 'NO_SHOW'])('a %s lesson occupies time', async (status) => {
+      const { lesson } = await seedLesson({ status, charged: true });
+      const student = await seedStudent();
+      await create(student.id, lesson.startsAt).expect(409);
+    });
+
+    it("another teacher's lesson does not conflict", async () => {
+      const other = await ensureTeacher(app, 'lessons-other-teacher@e2e.test', 'Other Teacher');
+      const otherStudent = await seedStudent();
+      const startsAt = slot();
+      await prisma.lesson.create({
+        data: { teacherId: other.id, startsAt, durationMin: 60, participants: { create: { studentId: otherStudent.id } } },
+      });
+      const student = await seedStudent();
+      await create(student.id, startsAt).expect(201);
+    });
+
+    it('moving onto a busy time is 409 and keeps the lesson; force moves it', async () => {
+      const { lesson: busy } = await seedLesson();
+      const { lesson } = await seedLesson();
+      const body = { startsAt: new Date(busy.startsAt.getTime() + 15 * MIN).toISOString() };
+      const res = await call('teacher', 'patch', `/lessons/${lesson.id}`, body).expect(409);
+      expect(res.body).toMatchObject({ code: 'LESSON_OVERLAP', overlaps: [{ id: busy.id }] });
+      expect((await prisma.lesson.findUniqueOrThrow({ where: { id: lesson.id } })).startsAt).toEqual(lesson.startsAt);
+
+      await call('teacher', 'patch', `/lessons/${lesson.id}`, { ...body, force: true }).expect(200);
+    });
+
+    it('extending the duration into the next lesson is 409', async () => {
+      const { lesson } = await seedLesson();
+      await seedLesson({ startsAt: new Date(lesson.startsAt.getTime() + 60 * MIN) });
+      await call('teacher', 'patch', `/lessons/${lesson.id}`, { durationMin: 90 }).expect(409);
+    });
+
+    it('a lesson does not conflict with itself when moved within its own time', async () => {
+      const { lesson } = await seedLesson();
+      await call('teacher', 'patch', `/lessons/${lesson.id}`, {
+        startsAt: new Date(lesson.startsAt.getTime() + 15 * MIN).toISOString(),
+      }).expect(200);
+    });
+
+    it('editing only notes is not checked even if the lesson already overlaps', async () => {
+      const { lesson } = await seedLesson();
+      await seedLesson({ startsAt: lesson.startsAt });
+      await call('teacher', 'patch', `/lessons/${lesson.id}`, { notes: 'still here' }).expect(200);
+    });
+
+    it('400 on a non-boolean force', async () => {
+      const student = await seedStudent();
+      await create(student.id, slot(), 60, { force: 'yes' }).expect(400);
     });
   });
 

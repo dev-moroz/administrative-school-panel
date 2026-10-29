@@ -13,8 +13,11 @@ Nothing here is planned. An item moves to `PLAN.md` only after Anatoly approves 
 - Replace string permission keys with constants (`permissions.ts`, `as const`, `PermissionKey`) used by the seed and `@RequirePermission` (Anatoly, 2026-10-22: last, when time allows).
 
 ## Notes for future stages
-- [stage 6] Generator conflicts (skipped busy slots) must go to notifications; until then only the log and audit.
-- [stage 6] A conflict notification appears once; later runs show only new conflicts.
+- [stage 6] Generator conflicts: one notification per `SeriesSkip` row (until then only the log).
+- [stage 9] Generator skips (`SeriesSkip`) go to the audit.
+- [stage 5] Calendar: highlight lessons that overlap another lesson (color or border), design to discuss.
+- A "restore a skipped slot" action for `SeriesSkip`.
+- Move existing API errors to codes (`{ code, message }`).
 - [stage 5] FullCalendar needs dark theme styling.
 - [stage 5] Decide the double-charge protection (`PLAN.md`, section 5).
 - [stage 8] Telegram avatar for students (cards, rows, panel) — frozen by Anatoly (2026-10-25).

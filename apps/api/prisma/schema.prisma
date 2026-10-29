@@ -305,10 +305,24 @@ model LessonSeries {
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
   lessons        Lesson[]
+  skips          SeriesSkip[]
 
   @@index([studentId])
   @@index([teacherId])
   @@map("lesson_series")
+}
+
+// A series slot the generator decided not to create; it is never retried.
+model SeriesSkip {
+  seriesId         String       @map("series_id") @db.Uuid
+  series           LessonSeries @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  originalDate     DateTime     @map("original_date") @db.Date
+  reason           String
+  conflictLessonId String?      @map("conflict_lesson_id") @db.Uuid
+  createdAt        DateTime     @default(now()) @map("created_at")
+
+  @@id([seriesId, originalDate])
+  @@map("series_skips")
 }
 
 model LessonParticipant {

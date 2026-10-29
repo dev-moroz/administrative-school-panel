@@ -8,10 +8,13 @@ import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ApiError } from "@/lib/api";
 import { lessonToFormValues, toCreatePayload, toSeriesPayload, toUpdatePayload, type LessonFormValues } from "../model/lesson-schema";
+import { getOverlaps } from "../model/overlap";
 import type { Lesson } from "../model/types";
 import { useCreateLesson, useCreateSeries, useUpdateLesson } from "../model/use-lessons";
+import { useSeriesWarnings } from "../model/use-series-warnings";
 import { LessonForm } from "./lesson-form";
 import { LessonStatusActions } from "./lesson-status-actions";
+import { OverlapDialog, useOverlapConfirm } from "./overlap-dialog";
 
 export type LessonSheetState = { kind: "create"; values: LessonFormValues } | { kind: "lesson"; lesson: Lesson };
 
@@ -93,30 +96,52 @@ function LessonSheetBody({ state, permissions, onDone, onCancel, onDirtyChange, 
   const createLesson = useCreateLesson();
   const createSeries = useCreateSeries();
   const update = useUpdateLesson();
+  const overlap = useOverlapConfirm();
+  const warnSkipped = useSeriesWarnings();
   const saved = () => {
     toast.success(t("toastSaved"));
     onDone();
   };
+  // On an overlap the server asks first; "Save anyway" repeats the request with force.
+  const confirmOverlap = (retry: () => void) => (error: Error) => {
+    const overlaps = getOverlaps(error);
+    if (overlaps) overlap.ask({ overlaps, onConfirm: retry });
+  };
 
   const error = createLesson.error ?? createSeries.error ?? update.error;
-  const errorMessage = error && t(error instanceof ApiError && error.status === 409 ? "saveConflict" : "saveFailed");
+  const errorMessage =
+    error && !getOverlaps(error) ? t(error instanceof ApiError && error.status === 409 ? "saveConflict" : "saveFailed") : null;
   const isSubmitting = createLesson.isPending || createSeries.isPending || update.isPending;
 
   if (state.kind === "create") {
     return (
-      <LessonForm
-        defaultValues={state.values}
-        canRepeat={permissions.canManageSeries}
-        isSubmitting={isSubmitting}
-        errorMessage={errorMessage}
-        onCancel={onCancel}
-        onDirtyChange={onDirtyChange}
-        onSubmit={(values) =>
-          values.repeatWeekly
-            ? createSeries.mutate(toSeriesPayload(values), { onSuccess: saved })
-            : createLesson.mutate(toCreatePayload(values), { onSuccess: saved })
-        }
-      />
+      <>
+        <LessonForm
+          defaultValues={state.values}
+          canRepeat={permissions.canManageSeries}
+          isSubmitting={isSubmitting}
+          errorMessage={errorMessage}
+          onCancel={onCancel}
+          onDirtyChange={onDirtyChange}
+          onSubmit={(values) => {
+            if (values.repeatWeekly) {
+              createSeries.mutate(toSeriesPayload(values), {
+                onSuccess: (result) => {
+                  saved();
+                  warnSkipped(result);
+                },
+              });
+              return;
+            }
+            const payload = toCreatePayload(values);
+            createLesson.mutate(payload, {
+              onSuccess: saved,
+              onError: confirmOverlap(() => createLesson.mutate({ ...payload, force: true }, { onSuccess: saved })),
+            });
+          }}
+        />
+        <OverlapDialog {...overlap.dialog} />
+      </>
     );
   }
 
@@ -140,10 +165,19 @@ function LessonSheetBody({ state, permissions, onDone, onCancel, onDirtyChange, 
         errorMessage={errorMessage}
         onCancel={onCancel}
         onDirtyChange={onDirtyChange}
-        onSubmit={(values) =>
-          lesson.seriesId ? onSeriesEdit(lesson, values) : update.mutate({ id: lesson.id, payload: toUpdatePayload(values) }, { onSuccess: saved })
-        }
+        onSubmit={(values) => {
+          if (lesson.seriesId) return onSeriesEdit(lesson, values);
+          const payload = toUpdatePayload(values);
+          update.mutate(
+            { id: lesson.id, payload },
+            {
+              onSuccess: saved,
+              onError: confirmOverlap(() => update.mutate({ id: lesson.id, payload: { ...payload, force: true } }, { onSuccess: saved })),
+            },
+          );
+        }}
       />
+      <OverlapDialog {...overlap.dialog} />
       <Separator />
       <LessonStatusActions lesson={lesson} canDelete={permissions.canDelete} onDone={onDone} />
     </div>

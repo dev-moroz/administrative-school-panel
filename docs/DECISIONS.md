@@ -315,3 +315,8 @@ These are the rules for every time-related change. They are not re-discussed; an
 - Backfill: a series lesson is flagged if its start differs from the Moscow slot, its duration differs from the series, or it is `CANCELLED`/`NO_SHOW`; completed and one-off lessons are not flagged.
 - Move/duration change sets the flag only when the value actually changes; any manual status change sets it.
 - `manuallyChanged` is in the lesson DTO; the lesson sheet subtitle shows "· Changed manually".
+
+## Overlap check (stage 5f, decided 2026-10-29, Anatoly)
+- Manual create/move (time or duration actually changed) on a busy time returns 409 `LESSON_OVERLAP` with the overlapping lessons; the web asks "Save anyway" and repeats with `force: true`. Back to scheduled is not checked here (goes with manual restore in 5g).
+- The generator never overlaps: a busy slot gets one `SeriesSkip` row (series, original date, reason, conflicting lesson) and a `logger.warn` (console), and is never retried even if the time frees up. Absences are not written there. Stage 6 notifications fire on a `SeriesSkip` row.
+- **API codes, not text:** errors are `{ code, message (English, for developers), ...data }`; responses with side effects carry `warnings: [{ code, ...data }]`. The web translates by code; stage 6 notifications reuse the same codes. Series create and split return `warnings` (`SERIES_SLOT_SKIPPED`); GET does not.
