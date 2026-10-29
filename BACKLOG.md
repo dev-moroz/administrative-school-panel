@@ -43,3 +43,4 @@ Nothing here is planned. An item moves to `PLAN.md` only after Anatoly approves 
 - Teacher access to currencies admin (by permission).
 - Hint when the teacher list is empty in the admin student form — frozen (Anatoly, 2026-10-25).
 - A better list layout to replace the payments feed.
+- Per-lesson "restore or not" table for hand-changed lessons when an absence is shortened or deleted (5g: they stay cancelled with `MANUAL`; Anatoly: needs its own analysis).

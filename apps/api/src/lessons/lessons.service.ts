@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { findCoveringAbsence } from '../absences/absence-queries.js';
 import { CancellationRulesProvider } from '../cancellation-policy/cancellation-rules.provider.js';
 import { suggestCharged } from '../cancellation-policy/suggest-charged.js';
 import type { Prisma } from '../generated/prisma/client.js';
@@ -11,7 +12,7 @@ import { ListLessonsQueryDto } from './dto/list-lessons-query.dto.js';
 import { UpdateLessonDto } from './dto/update-lesson.dto.js';
 import { isAllowedTransition, ledgerChange } from './lesson-rules.js';
 import { MAX_RANGE_DAYS } from './lessons.constants.js';
-import { assertNoOverlaps } from './overlaps.js';
+import { assertNoOverlaps, findOverlaps } from './overlaps.js';
 import { LESSON_SELECT, toLessonDto } from './lessons.mapper.js';
 
 type Tx = Prisma.TransactionClient;
@@ -118,6 +119,8 @@ export class LessonsService {
         throw new ConflictException(`Cannot change status from ${lesson.status} to ${dto.status}`);
       }
 
+      if (dto.status === 'SCHEDULED' && !dto.force) await this.assertCanRestore(tx, lesson);
+
       if (dto.status === 'CANCELLED' && !dto.reason) throw new BadRequestException('reason is required');
       if (dto.reason && dto.status !== 'SCHEDULED') {
         const reason = await tx.cancelReason.findFirst({ where: { code: dto.reason, isActive: true } });
@@ -138,6 +141,7 @@ export class LessonsService {
           manuallyChanged: true,
           cancelledAt,
           cancelReasonCode: dto.status === 'SCHEDULED' ? null : (dto.reason ?? null),
+          ...(dto.status === 'SCHEDULED' && { absenceId: null }),
           ...(dto.comment !== undefined && { comment: dto.comment || null }),
         },
       });
@@ -191,6 +195,26 @@ export class LessonsService {
       }
     }
     return completed;
+  }
+
+  private async assertCanRestore(
+    tx: Tx,
+    lesson: { id: string; startsAt: Date; durationMin: number; teacherId: string; participants: { studentId: string }[] },
+  ) {
+    const absence = await findCoveringAbsence(tx, {
+      startsAt: lesson.startsAt,
+      teacherId: lesson.teacherId,
+      studentIds: lesson.participants.map((p) => p.studentId),
+    });
+    const overlaps = await findOverlaps(tx, { ...lesson, excludeLessonId: lesson.id });
+    if (absence || overlaps.length) {
+      throw new ConflictException({
+        code: 'LESSON_RESTORE_CONFLICT',
+        message: 'Lesson is inside an absence or overlaps other lessons',
+        absence,
+        overlaps,
+      });
+    }
   }
 
   private async suggest(

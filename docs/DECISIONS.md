@@ -320,3 +320,11 @@ These are the rules for every time-related change. They are not re-discussed; an
 - Manual create/move (time or duration actually changed) on a busy time returns 409 `LESSON_OVERLAP` with the overlapping lessons; the web asks "Save anyway" and repeats with `force: true`. Back to scheduled is not checked here (goes with manual restore in 5g).
 - The generator never overlaps: a busy slot gets one `SeriesSkip` row (series, original date, reason, conflicting lesson) and a `logger.warn` (console), and is never retried even if the time frees up. Absences are not written there. Stage 6 notifications fire on a `SeriesSkip` row.
 - **API codes, not text:** errors are `{ code, message (English, for developers), ...data }`; responses with side effects carry `warnings: [{ code, ...data }]`. The web translates by code; stage 6 notifications reuse the same codes. Series create and split return `warnings` (`SERIES_SLOT_SKIPPED`); GET does not.
+
+## Absences API (stage 5g, decided 2026-10-29, Anatoly)
+- `Absence` (kind `STUDENT_FREEZE` / `TEACHER_VACATION`, exactly one owner by DB check, inclusive Moscow days); `Lesson.absenceId` (SetNull). Endpoints `/absences` under `absences.manage` (admin, teacher; replaces the unused `freezes.manage`). Cancel reason `STUDENT_FREEZE` added.
+- Absences of the same owner must not intersect: 409 `ABSENCE_OVERLAP`.
+- An absence also cancels hand-changed scheduled lessons, but they are never restored automatically (`reason: 'MANUAL'`); the teacher restores them by hand.
+- Lessons not restored are returned as `warnings: [{ code: 'ABSENCE_LESSON_NOT_RESTORED', lessonId, reason: 'OVERLAP' | 'ABSENCE' | 'MANUAL' }]`; with `ABSENCE` the link moves to the other absence. After a restore the owner's series are regenerated.
+- `DELETE /absences/:id` answers 200 with `{ warnings }` (204 has no body). `GET /absences` requires `studentId` or `teacherId`; a date range filter can be added when the calendar needs it.
+- Manual back to scheduled checks absence and overlap together: 409 `LESSON_RESTORE_CONFLICT` `{ absence | null, overlaps }`, `force: true` restores and unlinks. Until 5h the web shows it as a plain error.

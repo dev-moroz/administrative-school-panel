@@ -373,7 +373,7 @@ describe('lessons (e2e)', () => {
     });
 
     it('back to SCHEDULED before the end reverses a charge and clears the cancellation', async () => {
-      const { lesson } = await seedLesson({ startsAt: new Date(Date.now() + 20 * 60_000) });
+      const { lesson } = await seedLesson();
       await status(lesson.id, { status: 'CANCELLED', reason: 'STUDENT_REQUEST', charged: true }).expect(200);
       const res = await status(lesson.id, { status: 'SCHEDULED' }).expect(200);
       expect(res.body).toMatchObject({ status: 'SCHEDULED', charged: false, cancelledAt: null, cancelReason: null });
@@ -597,7 +597,7 @@ describe('lessons (e2e)', () => {
     });
 
     it('409 for a scheduled lesson that has ledger entries (charged, then back to scheduled)', async () => {
-      const { lesson } = await seedLesson({ startsAt: new Date(Date.now() + 20 * 60_000) });
+      const { lesson } = await seedLesson();
       await call('teacher', 'post', `/lessons/${lesson.id}/status`, { status: 'CANCELLED', reason: 'OTHER', charged: true }).expect(200);
       await call('teacher', 'post', `/lessons/${lesson.id}/status`, { status: 'SCHEDULED' }).expect(200);
       await call('teacher', 'delete', `/lessons/${lesson.id}`).expect(409);

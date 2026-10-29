@@ -27,6 +27,7 @@ model User {
   ledgerEntries       LedgerEntry[]
   payments            Payment[]
   paymentProofFiles   PaymentProofFile[]
+  absences            Absence[]
 
   @@index([roleId])
   @@map("users")
@@ -121,6 +122,7 @@ model Teacher {
   students       StudentTeacher[]
   lessons        Lesson[]
   lessonSeries   LessonSeries[]
+  absences       Absence[]
 
   @@map("teachers")
 }
@@ -147,6 +149,7 @@ model Student {
   payments                 Payment[]
   lessons                  LessonParticipant[]
   lessonSeries             LessonSeries[]
+  absences                 Absence[]
 
   @@index([fullName])
   @@index([defaultCurrencyCode])
@@ -282,11 +285,14 @@ model Lesson {
   series           LessonSeries?       @relation(fields: [seriesId], references: [id], onDelete: Restrict)
   originalDate     DateTime?           @map("original_date") @db.Date
   manuallyChanged  Boolean             @default(false) @map("manually_changed")
+  absenceId        String?             @map("absence_id") @db.Uuid
+  absence          Absence?            @relation(fields: [absenceId], references: [id], onDelete: SetNull)
 
   @@unique([seriesId, originalDate])
   @@index([teacherId, startsAt])
   @@index([status, startsAt])
   @@index([cancelReasonCode])
+  @@index([absenceId])
   @@map("lessons")
 }
 
@@ -334,4 +340,31 @@ model LessonParticipant {
   @@id([lessonId, studentId])
   @@index([studentId])
   @@map("lesson_participants")
+}
+
+enum AbsenceKind {
+  STUDENT_FREEZE
+  TEACHER_VACATION
+}
+
+// Whole Moscow days, both ends inclusive; exactly one owner (DB check).
+model Absence {
+  id          String      @id @default(uuid()) @db.Uuid
+  kind        AbsenceKind
+  studentId   String?     @map("student_id") @db.Uuid
+  student     Student?    @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  teacherId   String?     @map("teacher_id") @db.Uuid
+  teacher     Teacher?    @relation(fields: [teacherId], references: [id], onDelete: Restrict)
+  startsOn    DateTime    @map("starts_on") @db.Date
+  endsOn      DateTime    @map("ends_on") @db.Date
+  comment     String?
+  createdById String      @map("created_by_id") @db.Uuid
+  createdBy   User        @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  lessons     Lesson[]
+
+  @@index([studentId, startsOn])
+  @@index([teacherId, startsOn])
+  @@map("absences")
 }

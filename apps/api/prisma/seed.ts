@@ -20,7 +20,7 @@ const LESSONS = [
     "lessons.delete",
 
     "lesson-series.manage",
-    "freezes.manage",
+    "absences.manage",
     "schedule-rules.manage"
 ];
 
@@ -97,6 +97,7 @@ const PAYMENT_METHODS_SEED = [
 
 const CANCEL_REASONS_SEED = [
     { code: "TEACHER_VACATION", name: "Teacher vacation" },
+    { code: "STUDENT_FREEZE", name: "Student freeze" },
     { code: "STUDENT_ILL", name: "Student ill" },
     { code: "STUDENT_REQUEST", name: "Student request" },
     { code: "TEACHER_REQUEST", name: "Teacher request" },

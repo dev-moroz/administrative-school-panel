@@ -24,4 +24,9 @@ export class ChangeStatusDto {
   @IsString()
   @MaxLength(MAX_COMMENT_LENGTH)
   comment?: string;
+
+  // Back to scheduled despite an absence or an overlap, after the user confirmed.
+  @IsOptional()
+  @IsBoolean()
+  force?: boolean;
 }

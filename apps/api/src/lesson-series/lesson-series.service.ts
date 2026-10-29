@@ -171,6 +171,10 @@ export class LessonSeriesService {
   }
 
   // Busy slots are never overlapped: each gets one SeriesSkip row and is not retried.
+  generateInTx(tx: Tx, series: Series, now: Date) {
+    return this.generateTx(tx, series, now);
+  }
+
   private async generateTx(tx: Tx, series: Series, now: Date): Promise<SeriesWarning[]> {
     const student = await tx.student.findUniqueOrThrow({ where: { id: series.studentId }, select: { isActive: true } });
     if (!student.isActive) return [];
@@ -186,11 +190,21 @@ export class LessonSeriesService {
     const lessons = await tx.lesson.findMany({ where: inSlots, select: { originalDate: true } });
     const skips = await tx.seriesSkip.findMany({ where: inSlots, select: { originalDate: true } });
     const existing = new Set([...lessons, ...skips].map((l) => toYmd(l.originalDate!)));
+    // Dates inside an absence of the student or the teacher are not generated and not recorded.
+    const absences = await tx.absence.findMany({
+      where: {
+        OR: [{ studentId: series.studentId }, { teacherId: series.teacherId }],
+        startsOn: { lt: fromYmd(until) },
+        endsOn: { gte: fromYmd(today) },
+      },
+      select: { startsOn: true, endsOn: true },
+    });
+    const inAbsence = (date: string) => absences.some((a) => toYmd(a.startsOn) <= date && date <= toYmd(a.endsOn));
 
     const warnings: SeriesWarning[] = [];
     for (const date of slots) {
       const startsAt = zonedToUtc(date, series.startTime, BASE_TIME_ZONE);
-      if (existing.has(date) || startsAt <= now) continue;
+      if (existing.has(date) || startsAt <= now || inAbsence(date)) continue;
       const [conflict] = await findOverlaps(tx, { teacherId: series.teacherId, startsAt, durationMin: series.durationMin });
       if (conflict) {
         await tx.seriesSkip.create({
