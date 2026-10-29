@@ -16,7 +16,7 @@ const DAY = 24 * HOUR;
 
 const LESSON_KEYS = [
   'id', 'startsAt', 'durationMin', 'status', 'charged', 'cancelledAt', 'cancelReason',
-  'comment', 'notes', 'student', 'teacher', 'seriesId', 'originalDate', 'createdAt', 'updatedAt',
+  'comment', 'notes', 'student', 'teacher', 'seriesId', 'originalDate', 'manuallyChanged', 'createdAt', 'updatedAt',
 ];
 
 describe('lessons (e2e)', () => {
@@ -180,6 +180,7 @@ describe('lessons (e2e)', () => {
         cancelReason: null,
         seriesId: null,
         originalDate: null,
+        manuallyChanged: false,
         notes: 'unit 3',
         student: { id: student.id, fullName: student.fullName },
         teacher: { id: teacher.id, fullName: 'Lessons Teacher' },
@@ -420,6 +421,64 @@ describe('lessons (e2e)', () => {
       const { lesson } = await seedLesson({ startsAt: new Date(Date.now() - 2 * HOUR), status: 'COMPLETED', charged: true });
       const res = await call('teacher', 'get', `/lessons/${lesson.id}/cancel-preview`).expect(200);
       expect(res.body).toEqual({ suggestedCharged: false });
+    });
+  });
+
+  describe('manuallyChanged flag', () => {
+    const flagOf = async (id: string) => (await prisma.lesson.findUniqueOrThrow({ where: { id } })).manuallyChanged;
+    const status = (id: string, body: object) => call('teacher', 'post', `/lessons/${id}/status`, body);
+
+    it('moving a lesson sets the flag', async () => {
+      const { lesson } = await seedLesson();
+      const res = await call('teacher', 'patch', `/lessons/${lesson.id}`, {
+        startsAt: new Date(lesson.startsAt.getTime() + HOUR).toISOString(),
+      }).expect(200);
+      expect(res.body.manuallyChanged).toBe(true);
+      expect(await flagOf(lesson.id)).toBe(true);
+    });
+
+    it('changing the duration sets the flag', async () => {
+      const { lesson } = await seedLesson();
+      await call('teacher', 'patch', `/lessons/${lesson.id}`, { durationMin: 90 }).expect(200);
+      expect(await flagOf(lesson.id)).toBe(true);
+    });
+
+    it('editing only notes does not set the flag', async () => {
+      const { lesson } = await seedLesson();
+      await call('teacher', 'patch', `/lessons/${lesson.id}`, { notes: 'unit 4' }).expect(200);
+      expect(await flagOf(lesson.id)).toBe(false);
+    });
+
+    it('sending the same start and duration does not set the flag', async () => {
+      const { lesson } = await seedLesson();
+      await call('teacher', 'patch', `/lessons/${lesson.id}`, {
+        startsAt: lesson.startsAt.toISOString(),
+        durationMin: lesson.durationMin,
+      }).expect(200);
+      expect(await flagOf(lesson.id)).toBe(false);
+    });
+
+    it('cancelling sets the flag and going back to scheduled keeps it', async () => {
+      const { lesson } = await seedLesson();
+      const res = await status(lesson.id, { status: 'CANCELLED', reason: 'STUDENT_ILL' }).expect(200);
+      expect(res.body.manuallyChanged).toBe(true);
+      await status(lesson.id, { status: 'SCHEDULED' }).expect(200);
+      expect(await flagOf(lesson.id)).toBe(true);
+    });
+
+    it('no-show sets the flag', async () => {
+      const { lesson } = await seedLesson({ startsAt: new Date(Date.now() - 10 * 60_000) });
+      await status(lesson.id, { status: 'NO_SHOW' }).expect(200);
+      expect(await flagOf(lesson.id)).toBe(true);
+    });
+
+    it('the automatic charge does not set the flag', async () => {
+      const { lesson } = await seedLesson({ startsAt: new Date(Date.now() - 2 * HOUR) });
+      await lessons.completeDue(new Date());
+      expect(await prisma.lesson.findUniqueOrThrow({ where: { id: lesson.id } })).toMatchObject({
+        status: 'COMPLETED',
+        manuallyChanged: false,
+      });
     });
   });
 

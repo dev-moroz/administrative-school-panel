@@ -183,6 +183,18 @@ describe("LessonsPage", () => {
   });
 
   describe("status", () => {
+    it("shows 'Changed manually' only for a lesson changed by hand", async () => {
+      const { user } = await setup({
+        lessons: [makeLesson(), makeLesson({ id: "l2", manuallyChanged: true, student: { id: "s2", fullName: "Boris Ivanov" } })],
+      });
+      await openLesson(user);
+      await screen.findByText("Scheduled");
+      expect(screen.queryByText("Changed manually")).not.toBeInTheDocument();
+      await user.keyboard("{Escape}");
+      await openLesson(user, "Boris Ivanov");
+      expect(await screen.findByText("Changed manually")).toBeInTheDocument();
+    });
+
     it("cancel requires a reason", async () => {
       const { user } = await setup({ lessons: [makeLesson()] });
       await openLesson(user);

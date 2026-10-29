@@ -1,9 +1,12 @@
 import type { INestApplication } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import request from 'supertest';
 import { LessonSeriesService } from '../src/lesson-series/lesson-series.service.js';
 import { zonedToUtc } from '../src/lesson-series/series-slots.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { apiRoot } from './env.js';
 import { createTestApp, ensureTeacher, ensureUser, loginAs, TEST_ORIGIN } from './helpers.js';
 
 type Actor = 'anonymous' | 'student' | 'teacher' | 'admin';
@@ -327,6 +330,105 @@ describe('lesson series (e2e)', () => {
       expect(left.map((l) => l.id)).toEqual([...old.slice(0, 2), old[3]].map((l) => l.id));
       await seriesService.generate(res.body.id, new Date(Date.now() + 30 * DAY));
       expect(await lessonsOf(res.body.id)).toHaveLength(3);
+    });
+  });
+
+  describe('manuallyChanged', () => {
+    // Moves a lesson away and back: the time matches the slot again, but the lesson was changed by hand.
+    async function moveAndReturn(lesson: { id: string; startsAt: Date }) {
+      const away = new Date(lesson.startsAt.getTime() + 3_600_000).toISOString();
+      await call('teacher', 'patch', `/lessons/${lesson.id}`, { startsAt: away }).expect(200);
+      await call('teacher', 'patch', `/lessons/${lesson.id}`, { startsAt: lesson.startsAt.toISOString() }).expect(200);
+    }
+
+    it('end keeps a lesson moved and returned to its slot', async () => {
+      const { res } = await createSeries();
+      const old = await lessonsOf(res.body.id);
+      await moveAndReturn(old[3]);
+      await call('teacher', 'post', `/lesson-series/${res.body.id}/end`, { endsOn: ymd(old[1].originalDate) }).expect(200);
+      expect((await lessonsOf(res.body.id)).map((l) => l.id)).toEqual([old[0].id, old[1].id, old[3].id]);
+    });
+
+    it('split keeps a lesson moved and returned to its slot and regenerates untouched ones', async () => {
+      const { res, studentId } = await createSeries();
+      const old = await lessonsOf(res.body.id);
+      await moveAndReturn(old[2]);
+      const split = await call('teacher', 'post', `/lesson-series/${res.body.id}/split`, {
+        fromLessonId: old[1].id,
+        startTime: '12:00',
+      }).expect(201);
+
+      const all = await lessonsOfStudent(studentId);
+      const kept = all.find((l) => l.id === old[2].id)!;
+      expect(kept.startsAt.toISOString()).toBe(old[2].startsAt.toISOString());
+      expect(kept.seriesId).toBe(split.body.id);
+      expect(all.find((l) => l.id === old[1].id)).toBeUndefined();
+      expect(all.find((l) => l.id === old[3].id)).toBeUndefined();
+      const regenerated = all.filter((l) => l.seriesId === split.body.id && l.id !== old[2].id);
+      expect(regenerated.map((l) => l.startsAt.toISOString())).toEqual(
+        regenerated.map((l) => zonedToUtc(ymd(l.originalDate), '12:00', TZ).toISOString()),
+      );
+      expect(regenerated).toHaveLength(2);
+    });
+
+    it('generated lessons start without the flag', async () => {
+      const { res } = await createSeries();
+      expect((await lessonsOf(res.body.id)).every((l) => !l.manuallyChanged)).toBe(true);
+    });
+  });
+
+  describe('manuallyChanged backfill migration', () => {
+    function backfillSql() {
+      const dir = join(apiRoot, 'prisma/migrations');
+      const name = readdirSync(dir).find((d) => d.endsWith('_lesson_manually_changed'))!;
+      const sql = readFileSync(join(dir, name, 'migration.sql'), 'utf8');
+      return sql.slice(sql.indexOf('-- backfill'));
+    }
+
+    it('flags series lessons that differ from their slot or were cancelled by hand', async () => {
+      const { res } = await createSeries();
+      const [untouched, moved, longer, cancelled] = await lessonsOf(res.body.id);
+      const second = await createSeries();
+      const [completed, noShow] = await lessonsOf(second.res.body.id);
+      const oneOff = await prisma.lesson.create({
+        data: {
+          teacherId: teacher.id,
+          startsAt: new Date(Date.now() + 3 * DAY),
+          durationMin: 60,
+          status: 'CANCELLED',
+          participants: { create: { studentId: second.studentId } },
+        },
+      });
+
+      const ids = [untouched, moved, longer, cancelled, completed, noShow, oneOff].map((l) => l.id);
+      const rollback = new Error('rollback');
+      let flags: Record<string, boolean> = {};
+      await prisma
+        .$transaction(async (tx) => {
+          await tx.lesson.update({ where: { id: moved.id }, data: { startsAt: new Date(moved.startsAt.getTime() + 3_600_000) } });
+          await tx.lesson.update({ where: { id: longer.id }, data: { durationMin: 90 } });
+          await tx.lesson.update({ where: { id: cancelled.id }, data: { status: 'CANCELLED' } });
+          await tx.lesson.update({ where: { id: completed.id }, data: { status: 'COMPLETED', charged: true } });
+          await tx.lesson.update({ where: { id: noShow.id }, data: { status: 'NO_SHOW' } });
+          await tx.lesson.updateMany({ where: { id: { in: ids } }, data: { manuallyChanged: false } });
+          await tx.$executeRawUnsafe(backfillSql());
+          const rows = await tx.lesson.findMany({ where: { id: { in: ids } }, select: { id: true, manuallyChanged: true } });
+          flags = Object.fromEntries(rows.map((r) => [r.id, r.manuallyChanged]));
+          throw rollback;
+        })
+        .catch((e) => {
+          if (e !== rollback) throw e;
+        });
+
+      expect(flags).toEqual({
+        [untouched.id]: false,
+        [moved.id]: true,
+        [longer.id]: true,
+        [cancelled.id]: true,
+        [completed.id]: false,
+        [noShow.id]: true,
+        [oneOff.id]: false,
+      });
     });
   });
 

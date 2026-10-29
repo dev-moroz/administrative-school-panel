@@ -310,3 +310,8 @@ These are the rules for every time-related change. They are not re-discussed; an
 - **Overlaps (system-wide):** one lesson per teacher per time interval. Busy = scheduled, completed or no-show; cancelled lessons do not occupy time. Any interval intersection is a conflict; back-to-back is not. **Soft for people** (warning, can create anyway), **strict for automation** (the generator and absence restore never create overlaps; the generator skips and writes to the log and audit until stage 6). Existing overlaps in the data are left as they are.
 - **`manuallyChanged` flag on a lesson:** set by any manual action (move, cancel, restore, duration change) and never cleared; generator, series and absences never touch such lessons. Cancellation by an absence does not set it; editing only the comment or notes does not set it.
 - **Cancelled lessons stay visible (grey) in the calendar**; they are the tool for undoing a cancellation.
+
+## Manual changes flag (stage 5e, decided 2026-10-29, Anatoly)
+- Backfill: a series lesson is flagged if its start differs from the Moscow slot, its duration differs from the series, or it is `CANCELLED`/`NO_SHOW`; completed and one-off lessons are not flagged.
+- Move/duration change sets the flag only when the value actually changes; any manual status change sets it.
+- `manuallyChanged` is in the lesson DTO; the lesson sheet subtitle shows "· Changed manually".

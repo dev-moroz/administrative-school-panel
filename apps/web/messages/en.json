@@ -296,6 +296,7 @@
     "reasonPlaceholder": "Select a reason",
     "errReason": "Choose a reason",
     "fieldCharged": "Charge the lesson",
+    "changedManually": "Changed manually",
     "suggestCharge": "Late cancellation: the rules suggest charging this lesson",
     "fieldComment": "Comment",
     "confirmCancel": "Confirm cancellation",

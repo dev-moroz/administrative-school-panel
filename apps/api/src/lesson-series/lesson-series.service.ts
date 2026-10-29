@@ -154,22 +154,17 @@ export class LessonSeriesService {
     await this.deleteUntouched(tx, series, addDays(endsOn, 1));
   }
 
-  // Deletes lessons of the series from the given slot date that still match the series slot.
+  // Deletes lessons of the series from the given slot date that were never changed by hand.
   private async deleteUntouched(tx: Tx, series: Series, fromDate: string) {
-    const lessons = await tx.lesson.findMany({
+    await tx.lesson.deleteMany({
       where: {
         seriesId: series.id,
         originalDate: { gte: fromYmd(fromDate) },
         status: 'SCHEDULED',
-        durationMin: series.durationMin,
+        manuallyChanged: false,
         ledgerEntries: { none: {} },
       },
-      select: { id: true, startsAt: true, originalDate: true },
     });
-    const untouched = lessons.filter(
-      (l) => l.startsAt.getTime() === zonedToUtc(toYmd(l.originalDate!), series.startTime, BASE_TIME_ZONE).getTime(),
-    );
-    if (untouched.length) await tx.lesson.deleteMany({ where: { id: { in: untouched.map((l) => l.id) } } });
   }
 
   private async generateTx(tx: Tx, series: Series, now: Date) {

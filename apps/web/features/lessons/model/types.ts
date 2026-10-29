@@ -12,6 +12,7 @@ export type Lesson = {
   notes: string | null;
   seriesId: string | null;
   originalDate: string | null;
+  manuallyChanged: boolean;
   createdAt: string;
   updatedAt: string;
   teacher: { id: string; fullName: string } | null;

@@ -12,6 +12,7 @@ export const LESSON_SELECT = {
   notes: true,
   seriesId: true,
   originalDate: true,
+  manuallyChanged: true,
   createdAt: true,
   updatedAt: true,
   teacher: { select: { id: true, fullName: true } },

@@ -13,6 +13,7 @@ export function makeLesson(patch: Partial<Lesson> = {}): Lesson {
     notes: null,
     seriesId: null,
     originalDate: null,
+    manuallyChanged: false,
     createdAt: "2026-10-28T10:00:00.000Z",
     updatedAt: "2026-10-28T10:00:00.000Z",
     teacher: { id: "t1", fullName: "Olga Smirnova" },

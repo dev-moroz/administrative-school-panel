@@ -49,7 +49,15 @@ export function LessonSheet({ state, permissions, onClose, onSeriesEdit }: Props
         <SheetContent className="sm:max-w-md">
           <SheetHeader>
             <SheetTitle>{t(lesson ? "lesson" : "newLesson")}</SheetTitle>
-            <SheetDescription>{lesson ? t(`status.${lesson.status}`) : t("newLessonDescription")}</SheetDescription>
+            <SheetDescription>
+              {lesson ? t(`status.${lesson.status}`) : t("newLessonDescription")}
+              {lesson?.manuallyChanged && (
+                <>
+                  {" · "}
+                  <span>{t("changedManually")}</span>
+                </>
+              )}
+            </SheetDescription>
           </SheetHeader>
           <div className="flex-1 overflow-y-auto px-4 pb-4">
             {state && (

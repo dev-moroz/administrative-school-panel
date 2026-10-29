@@ -281,6 +281,7 @@ model Lesson {
   seriesId         String?             @map("series_id") @db.Uuid
   series           LessonSeries?       @relation(fields: [seriesId], references: [id], onDelete: Restrict)
   originalDate     DateTime?           @map("original_date") @db.Date
+  manuallyChanged  Boolean             @default(false) @map("manually_changed")
 
   @@unique([seriesId, originalDate])
   @@index([teacherId, startsAt])

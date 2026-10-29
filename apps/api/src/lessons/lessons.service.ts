@@ -81,12 +81,16 @@ export class LessonsService {
       if ((dto.startsAt !== undefined || dto.durationMin !== undefined) && lesson.status !== 'SCHEDULED') {
         throw new ConflictException('Only a scheduled lesson can be moved');
       }
+      const moved =
+        (dto.startsAt !== undefined && new Date(dto.startsAt).getTime() !== lesson.startsAt.getTime()) ||
+        (dto.durationMin !== undefined && dto.durationMin !== lesson.durationMin);
       const row = await tx.lesson.update({
         where: { id },
         data: {
           ...(dto.startsAt !== undefined && { startsAt: new Date(dto.startsAt) }),
           ...(dto.durationMin !== undefined && { durationMin: dto.durationMin }),
           ...(dto.notes !== undefined && { notes: dto.notes || null }),
+          ...(moved && { manuallyChanged: true }),
         },
         select: LESSON_SELECT,
       });
@@ -119,6 +123,7 @@ export class LessonsService {
         data: {
           status: dto.status,
           charged,
+          manuallyChanged: true,
           cancelledAt,
           cancelReasonCode: dto.status === 'SCHEDULED' ? null : (dto.reason ?? null),
           ...(dto.comment !== undefined && { comment: dto.comment || null }),
