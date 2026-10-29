@@ -81,8 +81,8 @@ Principles: money is `Decimal`, not float; every balance and payment change happ
 - 5b series and the generator, student deactivation with future lessons — done (2026-10-28) → DECISIONS: "Lesson series (stage 5b)".
 - 5c FullCalendar UI — done (2026-10-29).
 - Split of 5d–5k 2026-10-29 → DECISIONS: "Absences, overlaps and manual changes (stage 5d design)".
-- 5d base time zone Moscow (series, generator, forms) — next → DECISIONS: "Base time zone: Moscow".
-- 5e `manuallyChanged` flag on lessons (backfill for existing data; series use it instead of comparing the time) — todo.
+- 5d base time zone Moscow (series, generator, forms) — done (2026-10-29) → DECISIONS: "Base time zone: Moscow".
+- 5e `manuallyChanged` flag on lessons (backfill for existing data; series use it instead of comparing the time) — next.
 - 5f overlap check: warning on manual create/move, the generator skips a busy slot and writes to the log and audit — todo.
 - 5g absences API: student freeze and teacher vacation, edit and restore rules — todo.
 - 5h absences UI and "Back to schedule" with confirmation — todo.

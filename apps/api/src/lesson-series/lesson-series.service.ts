@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BASE_TIME_ZONE } from '../common/base-time-zone.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateSeriesDto } from './dto/create-series.dto.js';
@@ -37,7 +38,6 @@ export class LessonSeriesService {
           weekday: dto.weekday,
           startTime: dto.startTime,
           durationMin: dto.durationMin,
-          timeZone: teacher.timeZone,
           startsOn: fromYmd(dto.startsOn),
           endsOn: dto.endsOn ? fromYmd(dto.endsOn) : null,
         },
@@ -99,7 +99,6 @@ export class LessonSeriesService {
           weekday: dto.weekday ?? old.weekday,
           startTime: dto.startTime ?? old.startTime,
           durationMin: dto.durationMin ?? old.durationMin,
-          timeZone: old.timeZone,
           startsOn: pivot.originalDate,
           endsOn: old.endsOn,
         },
@@ -133,7 +132,7 @@ export class LessonSeriesService {
   async dropStudentFuture(tx: Tx, studentId: string, now: Date) {
     const series = await tx.lessonSeries.findMany({ where: { studentId } });
     for (const s of series) {
-      const today = localDate(now, s.timeZone);
+      const today = localDate(now, BASE_TIME_ZONE);
       if (!s.endsOn || toYmd(s.endsOn) > today) {
         await tx.lessonSeries.update({ where: { id: s.id }, data: { endsOn: fromYmd(today) } });
       }
@@ -168,7 +167,7 @@ export class LessonSeriesService {
       select: { id: true, startsAt: true, originalDate: true },
     });
     const untouched = lessons.filter(
-      (l) => l.startsAt.getTime() === zonedToUtc(toYmd(l.originalDate!), series.startTime, series.timeZone).getTime(),
+      (l) => l.startsAt.getTime() === zonedToUtc(toYmd(l.originalDate!), series.startTime, BASE_TIME_ZONE).getTime(),
     );
     if (untouched.length) await tx.lesson.deleteMany({ where: { id: { in: untouched.map((l) => l.id) } } });
   }
@@ -177,7 +176,7 @@ export class LessonSeriesService {
     const student = await tx.student.findUniqueOrThrow({ where: { id: series.studentId }, select: { isActive: true } });
     if (!student.isActive) return;
 
-    const today = localDate(now, series.timeZone);
+    const today = localDate(now, BASE_TIME_ZONE);
     const until = addDays(today, HORIZON_DAYS);
     const slots = slotDates(
       { weekday: series.weekday, startsOn: toYmd(series.startsOn), endsOn: series.endsOn && toYmd(series.endsOn) },
@@ -194,7 +193,7 @@ export class LessonSeriesService {
     );
 
     for (const date of slots) {
-      const startsAt = zonedToUtc(date, series.startTime, series.timeZone);
+      const startsAt = zonedToUtc(date, series.startTime, BASE_TIME_ZONE);
       if (existing.has(date) || startsAt <= now) continue;
       await tx.lesson.create({
         data: {

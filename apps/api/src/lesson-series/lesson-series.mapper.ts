@@ -5,7 +5,6 @@ export const SERIES_SELECT = {
   weekday: true,
   startTime: true,
   durationMin: true,
-  timeZone: true,
   startsOn: true,
   endsOn: true,
   createdAt: true,

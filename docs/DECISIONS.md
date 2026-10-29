@@ -293,7 +293,7 @@ These are the rules for every time-related change. They are not re-discussed; an
 - **Input is in the viewer's browser zone too** (Anatoly: "what you type is what you see"): the admin in Belgrade types 14:00, the system converts it to Moscow time for storage; for a series the result is stored as the Moscow weekday/time.
 - Storage of a lesson moment stays UTC (`startsAt`); "built relative to Moscow" concerns series slots and generation.
 - No per-teacher or per-user base zones. Many teachers in many zones change nothing: one standard, only the display adapts.
-- Open (decide in the substep plan): what to do with series already stored in another zone (`Europe/Belgrade` by default) — recalculate to Moscow or leave; the fate of `Teacher.timeZone`'s default and `LessonSeries.timeZone`.
+- Resolved in 5d (2026-10-29): `LessonSeries.timeZone` is dropped; existing data is not recalculated (dev only, no production); `Teacher.timeZone` stays for the cancellation rules, default `Europe/Moscow`. Web converts series input with `toBaseParts` (`apps/web/lib/base-time-zone.ts`).
 
 ## Student card: balance and Schedule tab (design session, decided 2026-10-29, Anatoly)
 - **Students list tile** shows the remaining paid lessons = the ledger balance (paid minus charged); scheduled lessons do not reduce it. Negative is red, at or below the school low-balance threshold N is yellow, otherwise no highlight. The money remainder is not shown on the tile.

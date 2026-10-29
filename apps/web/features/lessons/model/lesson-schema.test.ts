@@ -63,15 +63,31 @@ describe("payloads", () => {
     });
   });
 
-  it("toSeriesPayload takes weekday (1 = Monday) and time from the local date", () => {
+  // The browser zone is Europe/Belgrade (vitest.config.ts): UTC+1 in November, Moscow is UTC+3.
+  it("toSeriesPayload converts the browser input to Moscow weekday, time and date", () => {
     expect(toSeriesPayload({ ...valid, repeatWeekly: true })).toEqual({
       studentId: "s1",
       weekday: 2,
-      startTime: "10:30",
+      startTime: "12:30",
       durationMin: 60,
       startsOn: "2026-11-03",
     });
-    expect(toSeriesPayload({ ...valid, date: "2026-11-08" }).weekday).toBe(7);
+  });
+
+  it("toSeriesPayload changes only the hours when Moscow is the same day", () => {
+    expect(toSeriesPayload({ ...valid, date: "2026-11-02", time: "08:00" })).toMatchObject({
+      weekday: 1,
+      startTime: "10:00",
+      startsOn: "2026-11-02",
+    });
+  });
+
+  it("toSeriesPayload moves weekday and start date past Moscow midnight", () => {
+    expect(toSeriesPayload({ ...valid, date: "2026-11-08", time: "23:30" })).toMatchObject({
+      weekday: 1,
+      startTime: "01:30",
+      startsOn: "2026-11-09",
+    });
   });
 
   it("toUpdatePayload has no student (a lesson cannot change student)", () => {
@@ -81,8 +97,9 @@ describe("payloads", () => {
     });
   });
 
-  it("toSplitPayload starts the new series from the given lesson", () => {
-    expect(toSplitPayload("l1", valid)).toEqual({ fromLessonId: "l1", weekday: 2, startTime: "10:30", durationMin: 60 });
+  it("toSplitPayload converts the new slot to Moscow time", () => {
+    expect(toSplitPayload("l1", valid)).toEqual({ fromLessonId: "l1", weekday: 2, startTime: "12:30", durationMin: 60 });
+    expect(toSplitPayload("l1", { ...valid, date: "2026-11-08", time: "23:30" })).toMatchObject({ weekday: 1, startTime: "01:30" });
   });
 
   it("rangeToUpdatePayload turns a dragged range into start and duration", () => {

@@ -114,7 +114,7 @@ model Teacher {
   userId         String           @unique @map("user_id") @db.Uuid
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   fullName       String           @map("full_name")
-  timeZone       String           @default("Europe/Belgrade") @map("time_zone")
+  timeZone       String           @default("Europe/Moscow") @map("time_zone")
   telegramChatId BigInt?          @unique @map("telegram_chat_id")
   createdAt      DateTime         @default(now()) @map("created_at")
   updatedAt      DateTime         @updatedAt @map("updated_at")
@@ -298,7 +298,6 @@ model LessonSeries {
   weekday        Int
   startTime      String    @map("start_time")
   durationMin    Int       @map("duration_min")
-  timeZone       String    @map("time_zone")
   startsOn       DateTime  @map("starts_on") @db.Date
   endsOn         DateTime? @map("ends_on") @db.Date
   generatedUntil DateTime? @map("generated_until") @db.Date

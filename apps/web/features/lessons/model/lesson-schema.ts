@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { toBaseParts } from "@/lib/base-time-zone";
 import type { CreateLessonPayload, CreateSeriesPayload, Lesson, SplitSeriesPayload, TimeRange, UpdateLessonPayload } from "./types";
 
 export const MIN_DURATION_MIN = 15;
@@ -27,15 +28,13 @@ const minutesBetween = ({ start, end }: TimeRange) => Math.round((end.getTime() 
 
 // Form values are in the browser time zone; the server gets an instant.
 const localStart = (v: LessonFormValues) => new Date(`${v.date}T${v.time}`);
-// ISO weekday: 1 = Monday ... 7 = Sunday.
-const weekday = (v: LessonFormValues) => localStart(v).getDay() || 7;
-
 export function toCreatePayload(v: LessonFormValues): CreateLessonPayload {
   return { studentId: v.studentId, startsAt: localStart(v).toISOString(), durationMin: Number(v.durationMin) };
 }
 
 export function toSeriesPayload(v: LessonFormValues): CreateSeriesPayload {
-  return { studentId: v.studentId, weekday: weekday(v), startTime: v.time, durationMin: Number(v.durationMin), startsOn: v.date };
+  const base = toBaseParts(localStart(v));
+  return { studentId: v.studentId, weekday: base.weekday, startTime: base.time, durationMin: Number(v.durationMin), startsOn: base.date };
 }
 
 export function toUpdatePayload(v: LessonFormValues): UpdateLessonPayload {
@@ -43,7 +42,8 @@ export function toUpdatePayload(v: LessonFormValues): UpdateLessonPayload {
 }
 
 export function toSplitPayload(fromLessonId: string, v: LessonFormValues): SplitSeriesPayload {
-  return { fromLessonId, weekday: weekday(v), startTime: v.time, durationMin: Number(v.durationMin) };
+  const base = toBaseParts(localStart(v));
+  return { fromLessonId, weekday: base.weekday, startTime: base.time, durationMin: Number(v.durationMin) };
 }
 
 export function rangeToUpdatePayload(range: TimeRange): UpdateLessonPayload {

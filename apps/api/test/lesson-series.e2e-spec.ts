@@ -11,12 +11,14 @@ type Method = 'get' | 'post' | 'patch' | 'delete';
 const ACTORS: Actor[] = ['anonymous', 'student', 'teacher', 'admin'];
 
 const TAG = `e2e${Date.now().toString(36)}`;
-const TZ = 'Europe/Belgrade';
+// Series slots are Moscow wall time; the teacher zone must not matter.
+const TZ = 'Europe/Moscow';
+const TEACHER_TZ = 'Asia/Tokyo';
 const DAY = 24 * 3_600_000;
 const HORIZON_WEEKS = 4;
 
 const SERIES_KEYS = [
-  'id', 'student', 'teacher', 'weekday', 'startTime', 'durationMin', 'timeZone',
+  'id', 'student', 'teacher', 'weekday', 'startTime', 'durationMin',
   'startsOn', 'endsOn', 'createdAt', 'updatedAt',
 ];
 
@@ -85,7 +87,7 @@ describe('lesson series (e2e)', () => {
     seriesService = app.get(LessonSeriesService);
 
     teacher = await ensureTeacher(app, 'series-teacher@e2e.test', 'Series Teacher');
-    await prisma.teacher.update({ where: { id: teacher.id }, data: { timeZone: TZ } });
+    await prisma.teacher.update({ where: { id: teacher.id }, data: { timeZone: TEACHER_TZ } });
     await ensureUser(app, 'series-student@e2e.test', 'student');
     await ensureUser(app, 'series-admin@e2e.test', 'admin');
 
@@ -100,7 +102,7 @@ describe('lesson series (e2e)', () => {
     await prisma.lesson.deleteMany({ where: { participants: { some: { student } } } });
     await prisma.lessonSeries.deleteMany({ where: { student } });
     await prisma.student.deleteMany({ where: student });
-    await prisma.teacher.update({ where: { id: teacher.id }, data: { timeZone: TZ } });
+    await prisma.teacher.update({ where: { id: teacher.id }, data: { timeZone: TEACHER_TZ } });
     await app.close();
   });
 
@@ -154,15 +156,15 @@ describe('lesson series (e2e)', () => {
   });
 
   describe('create and generate', () => {
-    it('returns only DTO fields and captures the teacher zone', async () => {
+    it('returns only DTO fields, without a time zone', async () => {
       const { res } = await createSeries();
       expect(res.status).toBe(201);
       expect(Object.keys(res.body).sort()).toEqual([...SERIES_KEYS].sort());
-      expect(res.body.timeZone).toBe(TZ);
+      expect(res.body).not.toHaveProperty('timeZone');
       expect(res.body.endsOn).toBeNull();
     });
 
-    it('generates exactly 4 weeks of lessons at the local slot time', async () => {
+    it('generates exactly 4 weeks of lessons at the Moscow slot time, whatever the teacher zone', async () => {
       const { res, studentId } = await createSeries();
       const lessons = await lessonsOf(res.body.id);
       expect(lessons).toHaveLength(HORIZON_WEEKS);
@@ -226,11 +228,11 @@ describe('lesson series (e2e)', () => {
 
     it('a teacher zone change does not shift generation', async () => {
       const { res } = await createSeries();
-      await prisma.teacher.update({ where: { id: teacher.id }, data: { timeZone: 'Asia/Tokyo' } });
+      await prisma.teacher.update({ where: { id: teacher.id }, data: { timeZone: 'America/New_York' } });
       try {
         await seriesService.generate(res.body.id, new Date(Date.now() + 7 * DAY));
       } finally {
-        await prisma.teacher.update({ where: { id: teacher.id }, data: { timeZone: TZ } });
+        await prisma.teacher.update({ where: { id: teacher.id }, data: { timeZone: TEACHER_TZ } });
       }
       const lessons = await lessonsOf(res.body.id);
       const last = lessons[lessons.length - 1];

@@ -145,7 +145,8 @@ describe("LessonsPage", () => {
       await user.click(screen.getByRole("switch", { name: "Repeat weekly" }));
       await user.click(screen.getByRole("button", { name: "Save lesson" }));
       await waitFor(() => expect(writes()).toHaveLength(1));
-      expect(writes()[0]).toMatchObject({ path: "/lesson-series", method: "POST", body: { studentId: "s1", weekday: 2, startTime: "14:00" } });
+      // Browser is in Belgrade (vitest.config.ts); series slots go to the server in Moscow time (+2h).
+      expect(writes()[0]).toMatchObject({ path: "/lesson-series", method: "POST", body: { studentId: "s1", weekday: 2, startTime: "16:00" } });
     });
   });
 
@@ -176,7 +177,8 @@ describe("LessonsPage", () => {
       await user.click(await screen.findByRole("button", { name: "Save lesson" }));
       await user.click(await screen.findByRole("button", { name: "This and following" }));
       await waitFor(() => expect(writes()).toHaveLength(1));
-      expect(writes()[0]).toMatchObject({ path: "/lesson-series/sr1/split", method: "POST", body: { fromLessonId: "l1", startTime: "10:00" } });
+      // Browser is in Belgrade (vitest.config.ts); series slots go to the server in Moscow time (+2h).
+      expect(writes()[0]).toMatchObject({ path: "/lesson-series/sr1/split", method: "POST", body: { fromLessonId: "l1", startTime: "12:00" } });
     });
   });
 
@@ -262,7 +264,8 @@ describe("LessonsPage", () => {
       expect(writes()[0]).toEqual({
         path: "/lesson-series/sr1/split",
         method: "POST",
-        body: { fromLessonId: "l1", weekday: 3, startTime: "09:00", durationMin: 90 },
+        // Browser is in Belgrade (vitest.config.ts); series slots go to the server in Moscow time (+2h).
+        body: { fromLessonId: "l1", weekday: 3, startTime: "11:00", durationMin: 90 },
       });
     });
   });
