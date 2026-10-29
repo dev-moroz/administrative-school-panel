@@ -49,7 +49,7 @@ Admin panel for an English school (one-on-one lessons): students, lessons and ca
 - Package = a fixed number of lessons (usually 8), the price varies; no expiry yet (maybe later). Currencies: an extendable list (initially EUR, USDT, USDC); each student has a default currency and a lesson price in the profile, and the payment currency can be changed per payment. Payment amount ÷ lesson price suggests the number of lessons; the remainder is kept as money next to the lessons. The payment method is recorded.
 - Lessons: recurring (from a template) and one-off.
 - Cancellation rules (in the teacher's time zone): morning before 12:00, daytime from 12:00, evening from 17:00. Cancelling a morning lesson on the same day, or a daytime/evening lesson less than an hour before, means the lesson is charged. The checkbox on the lesson has the final say.
-- The teacher's time zone is the base (schedule and cancellation rules), changeable in settings. The student's zone is for display only. Daylight saving time is not tracked separately.
+- **Time zones (mandatory, `docs/DECISIONS.md`, "Base time zone: Moscow"):** one system base zone `Europe/Moscow` for all lessons, series and the generator; the teacher's zone is used only for the cancellation rules; display and input are in the viewer's browser zone. Daylight saving time is not tracked separately.
 - Telegram: a bot for students (balance, a reminder when N lessons are left) and notifications to the teacher. The student web cabinet is postponed. Details — `docs/DECISIONS.md`.
 
 ## Security (priority)

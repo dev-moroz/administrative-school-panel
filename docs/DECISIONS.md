@@ -283,3 +283,19 @@ Deliberate simplifications of the MVP (confirmed by Anatoly, 2026-10-23, stage 2
 - Changing the teacher's base zone does not move lessons (absolute time is kept); only the cancellation windows shift, and a lesson's morning/day/evening category may change. Requirement for 5b: `LessonSeries` stores its own time zone, captured at creation, so generation does not drift after a zone change.
 - Working hours and days off belong to the teacher (an online school has no global days off). The calendar highlights the working hours; a lesson outside them asks for confirmation and is not blocked.
 - Open: whether the base zone is changed only by hand in the profile (display zone follows the browser) or the app offers "switch to the current zone" on login; Claude recommends the former.
+
+## Base time zone: Moscow (design session, decided 2026-10-29, Anatoly) — MANDATORY
+These are the rules for every time-related change. They are not re-discussed; any code that breaks them is a bug.
+- **One system base time zone: `Europe/Moscow`.** Every lesson time is built relative to it: one-off lessons, series, the series generator, splits. Moscow has no daylight saving time, so the base never shifts.
+- **A series stores its weekday and start time as Moscow wall time.** The generator creates every lesson at that same Moscow time. The series does not take the teacher's zone (replaces "the series captures the teacher's zone" from 5b and "the teacher's zone is the base for the schedule" from "Settings concept").
+- **The teacher's zone is used for one thing only: evaluating the cancellation rules** (morning/day/evening and the "less than an hour" window). Example: the teacher is at +10, it is still morning for her, so a student can cancel an evening lesson without a charge.
+- **Display is always in the viewer's browser zone**: calendar, student "Schedule" tab, any lesson time on the site. Teacher or admin, anywhere in the world, sees when the lesson happens in their own local time. The calendar already works this way.
+- **Input is in the viewer's browser zone too** (Anatoly: "what you type is what you see"): the admin in Belgrade types 14:00, the system converts it to Moscow time for storage; for a series the result is stored as the Moscow weekday/time.
+- Storage of a lesson moment stays UTC (`startsAt`); "built relative to Moscow" concerns series slots and generation.
+- No per-teacher or per-user base zones. Many teachers in many zones change nothing: one standard, only the display adapts.
+- Open (decide in the substep plan): what to do with series already stored in another zone (`Europe/Belgrade` by default) — recalculate to Moscow or leave; the fate of `Teacher.timeZone`'s default and `LessonSeries.timeZone`.
+
+## Student card: balance and Schedule tab (design session, decided 2026-10-29, Anatoly)
+- **Students list tile** shows the remaining paid lessons = the ledger balance (paid minus charged); scheduled lessons do not reduce it. Negative is red, at or below the school low-balance threshold N is yellow, otherwise no highlight. The money remainder is not shown on the tile.
+- **Student page gets a "Schedule" tab** next to the existing tabs: the next 6 future lessons of any status (date and time, duration, teacher, status). Cancelled ones show the reason and the comment. Colors come from the same status scheme as the calendar through shared theme variables, so a calendar color change applies here too. Past lessons are not shown.
+- Open: the stage 5 design said the teacher can cancel upcoming lessons from this block; whether the tab is read-only or has actions is decided in its substep plan.
