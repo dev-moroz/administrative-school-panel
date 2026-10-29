@@ -165,6 +165,7 @@ function LessonSummary({ lesson }: { lesson: Lesson }) {
       )}
       {lesson.comment && (
         <>
+          <div role="separator" className="col-span-2 my-1 border-t" />
           <dt className="text-muted-foreground">{t("fieldComment")}</dt>
           <dd className="whitespace-pre-wrap">{lesson.comment}</dd>
         </>
