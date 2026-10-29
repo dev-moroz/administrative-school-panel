@@ -52,11 +52,11 @@ Principles: money is `Decimal`, not float; every balance and payment change happ
 *Done when:* login/logout via httpOnly cookie works; the permission guard reads from the DB; the "role × endpoint" e2e auth tests pass; the interface is in English via next-intl; the `teacher` role exists in the seed and is covered by the tests.
 - Beyond the plan, done: throttling and strict `OriginGuard` (2026-10-22/23) → DECISIONS: "Sessions and refresh"; admin shell, `SessionGuard`, refresh on 401 (2026-10-22) → DECISIONS: "Frontend structure".
 
-**Docker check** — **done (2026-10-26)** **(moved to after stage 3, Anatoly, 2026-10-25; a quick check only, the full packaging stays in stage 9)**: trial build of the api and web images, run in containers, check env/architecture.
+**Docker check** — **done (2026-10-26)** **(moved to after stage 3, Anatoly, 2026-10-25; a quick check only, the full packaging stays in stage 10)**: trial build of the api and web images, run in containers, check env/architecture.
 *Done when:* the api and web images build and start, login works in the containers.
 
 **Stage 2 — students** — **done (2026-10-25)**: student CRUD (create, edit, deactivate), server-side search and pagination, `Currency`/`Teacher`/`Student`/`StudentTeacher` in the schema. Students have no `User` and no web login; no emails in this stage (decided 2026-10-23). *Tables, filters, search, pagination, server state (TanStack Query), optimistic updates.*
-*Done when:* the teacher creates and edits a student (name, Telegram nickname, English level, comment, default currency, lesson price); the list has search and pagination; the card shows the Telegram status "not invited". The invite link, `TelegramInvite` and the bot handshake are in stage 7. Mailpit stays in `docker-compose.yml` but is unused until the Users module and password reset.
+*Done when:* the teacher creates and edits a student (name, Telegram nickname, English level, comment, default currency, lesson price); the list has search and pagination; the card shows the Telegram status "not invited". The invite link, `TelegramInvite` and the bot handshake are in stage 8. Mailpit stays in `docker-compose.yml` but is unused until the Users module and password reset.
 - Beyond the plan, done: inactive students marked in the list (2026-10-25) → DECISIONS: "Entity UI".
 
 **Stage 3 — balance ledger** — **done (2026-10-25, backend and frontend)**: `ledger` module, balance calculation, manual adjustment with a comment. *Prisma transactions, service layer, unit tests.*
@@ -80,22 +80,29 @@ Principles: money is `Decimal`, not float; every balance and payment change happ
 - 5a lessons, statuses, automatic charge on lesson end, balance and double-charge protection — done (2026-10-28) → DECISIONS: "Lessons API (stage 5a)".
 - 5b series and the generator, student deactivation with future lessons — done (2026-10-28) → DECISIONS: "Lesson series (stage 5b)".
 - 5c FullCalendar UI — done (2026-10-29).
-- 5d freeze, teacher vacation, the deactivation confirmation dialog — todo (upcoming lessons moved to 5f).
-- 5e remaining lessons on the students list tile — todo → DECISIONS: "Student card: balance and Schedule tab".
-- 5f "Schedule" tab in the student card (next 6 lessons) — todo → same section.
-- 5g base time zone Moscow (series, generator, forms) — todo → DECISIONS: "Base time zone: Moscow".
+- Split of 5d–5k 2026-10-29 → DECISIONS: "Absences, overlaps and manual changes (stage 5d design)".
+- 5d base time zone Moscow (series, generator, forms) — next → DECISIONS: "Base time zone: Moscow".
+- 5e `manuallyChanged` flag on lessons (backfill for existing data; series use it instead of comparing the time) — todo.
+- 5f overlap check: warning on manual create/move, the generator skips a busy slot and writes to the log and audit — todo.
+- 5g absences API: student freeze and teacher vacation, edit and restore rules — todo.
+- 5h absences UI and "Back to schedule" with confirmation — todo.
+- 5i student deactivation confirmation dialog — todo.
+- 5j remaining lessons on the students list tile — todo → DECISIONS: "Student card: balance and Schedule tab".
+- 5k "Schedule" tab in the student card (next 6 lessons) — todo → same section.
 - Settings: cancellation rules storage (school-wide thresholds, evaluated in the teacher's zone → DECISIONS: "Settings concept") and cancel reasons admin (`/settings/cancel-reasons`) — todo (after 5c, Anatoly, 2026-10-28).
 
-**Stage 6 — dashboard and reports** — **todo**: key figures for the admin, including students with few lessons left; a per-student report for a chosen period (lessons held, missed, cancelled and charged, payments, balance at the start and end), visible to the teacher for her students. The student web page is postponed (the bot replaces it in stage 7).
+**Stage 6 — notifications** — **todo** (added 2026-10-29, design session later): in-app notifications for the teacher and the admin (generator conflicts and other system events). Details are decided in its own design session.
+
+**Stage 7 — dashboard and reports** — **todo**: key figures for the admin, including students with few lessons left; a per-student report for a chosen period (lessons held, missed, cancelled and charged, payments, balance at the start and end), visible to the teacher for her students. The student web page is postponed (the bot replaces it in stage 8).
 *Done when:* the admin has a dashboard with figures and a "negative balance" list and a "few lessons left" list; the period report for a student shows the counts and the list of lesson dates.
 
-**Stage 7 — Telegram bot and notifications** — **todo**: a bot for students (remaining lessons; upcoming lessons: to confirm) and notifications to the teacher. When a lesson is charged and the balance drops to the threshold N, a message goes to the student and to the teacher; one message per threshold crossing (`Notification`). Linking is decided (`docs/DECISIONS.md`, "Linking a student to the bot"): a closed bot, the teacher generates a one-time invite link, the student presses Start, `telegramChatId` and `telegramUsername` are saved; unlinked chats are ignored. Rescheduling through the bot is not in the MVP. *Webhooks/long polling, an external API, idempotency.*
+**Stage 8 — Telegram bot and notifications** — **todo**: a bot for students (remaining lessons; upcoming lessons: to confirm) and notifications to the teacher. When a lesson is charged and the balance drops to the threshold N, a message goes to the student and to the teacher; one message per threshold crossing (`Notification`). Linking is decided (`docs/DECISIONS.md`, "Linking a student to the bot"): a closed bot, the teacher generates a one-time invite link, the student presses Start, `telegramChatId` and `telegramUsername` are saved; unlinked chats are ignored. Rescheduling through the bot is not in the MVP. *Webhooks/long polling, an external API, idempotency.*
 *Done when:* a student can get their balance in the bot; when the remaining lessons reach N, the student and the teacher get one message; a repeated charge does not duplicate it.
 
-**Stage 8 — audit** — **todo**: interceptor/service that records the audit, change history view.
+**Stage 9 — audit** — **todo**: interceptor/service that records the audit, change history view.
 *Done when:* balance, payment and lesson changes are written to AuditLog and visible in the view.
 
-**Stage 9 — packaging** — **todo**: Dockerfiles for api and web (web — standalone build), nginx only for HTTPS and proxying to web, prod `docker-compose`, a light image for 1 core / 2 GB, VPS deployment, reverse proxy + HTTPS, daily `pg_dump` in cron with rotation.
+**Stage 10 — packaging** — **todo**: Dockerfiles for api and web (web — standalone build), nginx only for HTTPS and proxying to web, prod `docker-compose`, a light image for 1 core / 2 GB, VPS deployment, reverse proxy + HTTPS, daily `pg_dump` in cron with rotation.
 *Done when:* the images build; the prod compose starts on the server over HTTPS; the backup is created on schedule and restores correctly (verified).
 
 
@@ -121,6 +128,6 @@ Principles: money is `Decimal`, not float; every balance and payment change happ
 - Rolling back a lesson status (completed → cancelled) writes `LESSON_REVERSAL`. The "one charge per lesson" rule is enforced in code for now. **Discuss in stage 3:** race protection (double click/retry). A simple `UNIQUE(lessonId) WHERE type='LESSON_CHARGE'` does not work: after a rollback the lesson can be charged again. Options — an index that accounts for the rollback (for example `reversedAt`) or locking the lesson row in the transaction (`SELECT … FOR UPDATE`).
 - Proof file storage: a local folder in dev; in production a Docker volume (cloud later).
 - ~~Scheduling time zone~~ — decided 2026-10-21: the teacher's time zone is the base (schedule and cancellation rules), changeable in settings; the student's zone is for display only; daylight saving time is not tracked separately. Open: what happens to existing recurring lessons if the teacher changes the zone.
-- **To discuss (separate chat):** monitoring is not in the plan yet: whether the app is up, whether the daily backup succeeded, whether Telegram notifications are delivered (a failed reminder must not pass silently). Decide before stage 7 and stage 9.
+- **To discuss (separate chat):** monitoring is not in the plan yet: whether the app is up, whether the daily backup succeeded, whether Telegram notifications are delivered (a failed reminder must not pass silently). Decide before stage 8 and stage 10.
 - **To confirm:** the low-balance threshold N (global or per student); ~~how a student is linked to a Telegram chat~~ (decided 2026-10-21, invite link with a token); ~~whether students need a web login~~ (decided 2026-10-21: no in the MVP, so stage 2 account creation with email passwords is postponed and `Student.userId` stays empty); the list of payment methods; whether the bot also shows upcoming lessons.
 - Money remainder: it should be added to the next payment's calculation (confirmed 2026-10-21), but this is a side case and is done after the MVP; in the MVP the remainder is only shown. Open: what happens to it if the student's currency changes.

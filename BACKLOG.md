@@ -13,18 +13,22 @@ Nothing here is planned. An item moves to `PLAN.md` only after Anatoly approves 
 - Replace string permission keys with constants (`permissions.ts`, `as const`, `PermissionKey`) used by the seed and `@RequirePermission` (Anatoly, 2026-10-22: last, when time allows).
 
 ## Notes for future stages
+- [stage 6] Generator conflicts (skipped busy slots) must go to notifications; until then only the log and audit.
+- [stage 6] A conflict notification appears once; later runs show only new conflicts.
 - [stage 5] FullCalendar needs dark theme styling.
 - [stage 5] Decide the double-charge protection (`PLAN.md`, section 5).
-- [stage 7] Telegram avatar for students (cards, rows, panel) — frozen by Anatoly (2026-10-25).
-- [stage 7] Incoming payments through the bot — see `docs/DECISIONS.md`, "Incoming payments through the Telegram bot" and "notes for stage 7".
-- [stage 7 / 9] Monitoring (app up, backup succeeded, Telegram delivered) — discuss in a separate chat before stages 7 and 9.
-- [stage 9] Production volume for `UPLOADS_DIR`.
+- [stage 8] Telegram avatar for students (cards, rows, panel) — frozen by Anatoly (2026-10-25).
+- [stage 8] Incoming payments through the bot — see `docs/DECISIONS.md`, "Incoming payments through the Telegram bot" and "notes for stage 7" (old numbering, now stage 8).
+- [stage 8 / 10] Monitoring (app up, backup succeeded, Telegram delivered) — discuss in a separate chat before stages 8 and 10.
+- [stage 10] Production volume for `UPLOADS_DIR`.
 - [Users module] Remove the temporary teacher seed (`TEACHER_*`), see `docs/DECISIONS.md`, "Teacher seed is temporary".
 - [Users module] Deactivating a user must revoke all their refresh tokens.
 - [Users module] `User.mustChangePassword` is in `PLAN.md` but not in the schema; add when the admin creates users with temporary passwords.
 - [after MVP] Money remainder added to the next payment's calculation.
 
 ## Ideas (idea only)
+- Where the teacher sets her vacation (her profile or a separate Settings section) and who else may — grill later.
+- Calendar toggle "show cancelled lessons" (cancelled stay visible for now).
 - Dashboard on `/` (today's lessons, week/month summary) instead of the `/students` redirect, after stage 5.
 - Roles section in Settings.
 - Settings (school): contacts and payment details, bot message templates, low-balance N, default time zone → DECISIONS: "Settings concept".
