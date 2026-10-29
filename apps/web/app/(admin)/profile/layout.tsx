@@ -26,7 +26,9 @@ export default function ProfileLayout({ children }: { children: React.ReactNode 
   return (
     <div className="-m-4 flex flex-1">
       <SectionNav sections={sections.map((s) => ({ ...s, label: t(s.key) }))} />
-      <div className="flex min-w-0 flex-1 flex-col p-4">{children}</div>
+      <div className="flex min-w-0 flex-1 flex-col p-4">
+        <div className="flex w-full max-w-2xl flex-1 flex-col">{children}</div>
+      </div>
     </div>
   );
 }

@@ -68,14 +68,17 @@ describe("AppSidebar settings item", () => {
     expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute("data-active", "false");
   });
 
-  it("orders the footer as theme toggle, Settings, Sign out", () => {
+  it("orders the footer as Settings, theme toggle, separator, Sign out", () => {
     withPermissions(["currencies.update"]);
-    renderSidebar();
-    const theme = screen.getByTestId("theme-toggle");
+    const { container } = renderSidebar();
     const settings = screen.getByRole("link", { name: "Settings" });
+    const theme = screen.getByTestId("theme-toggle");
+    const separator = container.querySelector('[data-sidebar="separator"]')!;
     const signOut = screen.getByRole("button", { name: "Sign out" });
-    expect(theme.compareDocumentPosition(settings) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(settings.compareDocumentPosition(signOut) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const follows = (a: Node, b: Node) => a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING;
+    expect(follows(settings, theme)).toBeTruthy();
+    expect(follows(theme, separator)).toBeTruthy();
+    expect(follows(separator, signOut)).toBeTruthy();
   });
 
   it("keeps Sign out and the theme toggle for a user without Settings", () => {
@@ -96,6 +99,16 @@ describe("AppSidebar My profile item", () => {
     useMe.mockReturnValue({ data: { id: "1", email: "a@b.c", role: "teacher", teacherId: "t1", permissions: ["absences.manage"] } });
     renderSidebar();
     expect(screen.getByRole("link", { name: "My profile" })).toHaveAttribute("href", "/profile");
+  });
+
+  it("places My profile above Settings", () => {
+    useMe.mockReturnValue({
+      data: { id: "1", email: "a@b.c", role: "admin", teacherId: "t1", permissions: ["absences.manage", "currencies.update"] },
+    });
+    renderSidebar();
+    const profile = screen.getByRole("link", { name: "My profile" });
+    const settings = screen.getByRole("link", { name: "Settings" });
+    expect(profile.compareDocumentPosition(settings) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("hides My profile without a teacher record", () => {

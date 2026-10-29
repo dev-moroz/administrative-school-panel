@@ -85,7 +85,7 @@ export function AbsenceList({ owner, variant = "embedded" }: Props) {
     if (absences.data.length === 0 && editing !== "new") {
       const empty = <p className="text-sm text-muted-foreground">{t("empty")}</p>;
       if (variant === "page") return <PageMessage>{empty}</PageMessage>;
-      return <div className="grid place-items-center rounded-md border border-dashed p-8">{empty}</div>;
+      return <div className="grid place-items-center py-8">{empty}</div>;
     }
 
     return (
@@ -185,7 +185,7 @@ export function AbsenceList({ owner, variant = "embedded" }: Props) {
   return (
     <section className="grid gap-3">
       {newForm || (
-        <Button variant="outline" size="sm" className="justify-self-start" onClick={() => setEditing("new")}>
+        <Button variant="outline" size="sm" className="justify-self-end" onClick={() => setEditing("new")}>
           {t("add")}
         </Button>
       )}

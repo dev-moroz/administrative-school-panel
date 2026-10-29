@@ -30,7 +30,6 @@ Nothing here is planned. An item moves to `PLAN.md` only after Anatoly approves 
 - [after MVP] Money remainder added to the next payment's calculation.
 
 ## Ideas (idea only)
-- [stage 5] Absences UI polish (profile page, student tab) — Anatoly, next chat.
 - My profile: personal data editing (name, time zone…).
 - Admin manages other teachers' absences.
 - Absence reasons dictionary (now the reason is in the comment).

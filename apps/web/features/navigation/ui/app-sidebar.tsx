@@ -17,6 +17,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -79,9 +80,6 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
-          <SidebarMenuItem>
-            <ThemeToggle />
-          </SidebarMenuItem>
           {showProfile && (
             <SidebarMenuItem>
               <SidebarMenuButton asChild size="lg" className="text-base [&_svg]:size-5" isActive={pathname.startsWith("/profile")}>
@@ -107,6 +105,12 @@ export function AppSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           )}
+          <SidebarMenuItem>
+            <ThemeToggle />
+          </SidebarMenuItem>
+        </SidebarMenu>
+        <SidebarSeparator className="my-2" />
+        <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               size="lg"

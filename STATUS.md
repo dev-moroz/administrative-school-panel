@@ -3,4 +3,4 @@
 Only the step in progress lives here. On commit the entry is cleared and the step is marked done in `PLAN.md`.
 History: git log and `docs/archive/STATUS-until-2026-10-28.md` (do not read unless Anatoly asks).
 
-No step is open. Next: 5i student deactivation confirmation dialog (`PLAN.md`). Absences UI polish is planned for the next chat (`BACKLOG.md`).
+No step is open. Next: 5i student deactivation confirmation dialog (`PLAN.md`).

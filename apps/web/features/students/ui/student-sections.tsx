@@ -26,7 +26,7 @@ export function StudentSections({ studentId, onDirtyChange }: Props) {
 
   // Balance stays mounted (hidden, not unmounted) so an unsaved adjustment survives switching; Payments mounts on first open.
   return (
-    <Tabs value={active} onValueChange={(next) => setSelected(next as Section)} className="gap-5 border-t pt-8">
+    <Tabs value={active} onValueChange={(next) => setSelected(next as Section)} className="gap-5 border-t pt-3">
       <TabsList className="w-full group-data-horizontal/tabs:h-10">
         {available.map((section) => (
           <TabsTrigger key={section} value={section}>
