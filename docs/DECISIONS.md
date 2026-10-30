@@ -346,3 +346,12 @@ Replaces the deactivation rule of "Lesson series (5b)" and the "delete only with
 - Student absences: not started ones are deleted, a running one ends today.
 - 409 `STUDENT_HAS_FUTURE_LESSONS` `{ futureLessons, keptLessons }` when there are lessons to delete; the web asks in a dialog and repeats with `deleteFutureLessons: true`, then refreshes lessons and absences.
 - Manual delete of a scheduled lesson follows the same sum rule.
+
+## Status and amount colors (stage 5k design, decided 2026-10-30, Anatoly)
+One color, one meaning across the whole system.
+- **Red** (`--destructive`): only debt, balance < 0. **Yellow** (`--warning`): 0 ≤ balance ≤ N (the school threshold), no gradation. **Grey** (muted): "Inactive" — the same badge for a student, a currency and a payment method. **Green** (`--success`): active and incoming entries.
+- Balance: "Low balance" (yellow) and "Debt" (red) badges on the students list tile and in the student card; the number itself stays uncolored. An inactive student never gets "Low balance", "Debt" stays.
+- Ledger history: "+" entries (payment, credit, returned lesson) green with the sign; "−" entries (charges) grey with the sign; no red or yellow there.
+- Calendar lesson statuses keep their own neutral Monarch palette.
+- `--success`/`--warning` (+ foreground) are added to `globals.css` for light and dark next to `--destructive`; `badge.tsx` drops the hardcoded emerald/amber. Yellow is based on the current amber-100/amber-800 "Inactive" look, contrast checked in both themes.
+- Open: whether payment history can have negative amounts (refunds); assumed no for now.
