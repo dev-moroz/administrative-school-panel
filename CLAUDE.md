@@ -8,7 +8,7 @@
 - Tokens are limited: work in stages, one session per stage, narrow requests, don't re-read unnecessarily.
 - Communication language: Russian.
 - **Code comments: keep them to a minimum, and write them in English only.**
-- Read and search files only with the built-in Read/Glob/Grep tools: never `cat`, `head`, `sed -n`, `grep`, `find` or `cd` in Bash, not even inside a chain of commands. Why: built-in tools run without permission prompts; Bash reads (especially after `cd`, with relative paths) make Anatoly approve every call. Bash is only for tests, git, pnpm, psql/docker.
+- Read files with the built-in Read tool (offset/limit for a part); never `cat`/`head`/`sed -n` in Bash. There is no Grep/Glob tool here, so search with `grep -rn` / `find` in Bash, always with absolute paths and never after `cd`. Why: Read needs no permission prompt, and a `cd` or a relative path makes the permission check ask Anatoly on every call. Otherwise Bash is for tests, git, pnpm, psql/docker.
 - Edit files only with the Edit/Write tools, never via python/sed/heredoc in Bash. Why: built-in tools run without permission prompts, Bash edits make Anatoly approve every call. This includes appends to BACKLOG/DECISIONS, PLAN marks and the commit message file (Write it into the scratchpad).
 
 ## Development workflow (applies to every task)
