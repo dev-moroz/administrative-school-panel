@@ -1,7 +1,6 @@
 "use client";
 
 import { useFormatter, useTranslations } from "next-intl";
-import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Payment } from "../model/types";
@@ -27,7 +26,7 @@ export function PaymentsTable({ payments }: { payments: Payment[] }) {
               <TableHead>{t("colDate")}</TableHead>
               <TableHead>{t("colStudent")}</TableHead>
               <TableHead className="text-right">{t("colAmount")}</TableHead>
-              <TableHead>{t("colLessons")}</TableHead>
+              <TableHead className="text-right">{t("colLessons")}</TableHead>
               <TableHead>{t("colMethod")}</TableHead>
               <TableHead>{t("colProof")}</TableHead>
               <TableHead>{t("colComment")}</TableHead>
@@ -45,9 +44,7 @@ export function PaymentsTable({ payments }: { payments: Payment[] }) {
                   <span className="font-semibold tabular-nums">{payment.amount}</span>{" "}
                   <span className="text-muted-foreground">{payment.currencyCode}</span>
                 </TableCell>
-                <TableCell>
-                  <Badge variant="success">{t("lessons", { count: payment.lessonsGranted })}</Badge>
-                </TableCell>
+                <TableCell className="whitespace-nowrap text-right">+{ payment.lessonsGranted }</TableCell>
                 <TableCell>
                   <PaymentMethodBadge method={payment.method} />
                 </TableCell>

@@ -303,6 +303,8 @@ These are the rules for every time-related change. They are not re-discussed; an
 - **Student page gets a "Schedule" tab** next to the existing tabs: the next 6 future lessons of any status (date and time, duration, teacher, status). Cancelled ones show the reason and the comment. Colors come from the same status scheme as the calendar through shared theme variables, so a calendar color change applies here too. Past lessons are not shown.
 - **Schedule tab (stage 5m, done 2026-10-30):** read-only, no actions (cancel and move stay in the calendar). `GET /lessons` takes an optional `limit` (1..20); `to` may be omitted only with `studentId` + `limit` (next N lessons from `from`, no 62-day limit). Tab after Balance with `lessons.read`. Status colors are shared with the calendar via `features/lessons/model/status-colors.ts`.
 
+- **Payments lessons (2026-10-30, Anatoly):** no badge for granted lessons in payments; the table shows "+N" (the column header names it), the feed "+N lessons" as plain text.
+
 ## Absences, overlaps and manual changes (stage 5d design, decided 2026-10-29, Anatoly)
 - **Stage renumbering:** a new stage 6 "notifications" is added; the former stages 6–9 are now 7–10 (older sections keep the old numbers). Stage 5 substeps re-split into 5d–5k (`PLAN.md`); the base time zone goes first because absences are counted in Moscow days.
 - **Absence** is one entity for a student freeze and a teacher vacation: a period in whole days, inclusive, in Moscow time; a lesson is inside it by its start. Already generated scheduled lessons in the period become cancelled (reason freeze/vacation) and keep a link to the absence; the generator skips dates inside any active absence.

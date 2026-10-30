@@ -41,14 +41,14 @@ describe("PaymentsTable", () => {
     expect(cells[CELL.student]).toHaveTextContent("Anna Petrova");
     expect(cells[CELL.amount]).toHaveTextContent("2400.00");
     expect(cells[CELL.amount]).toHaveTextContent("GBP");
-    expect(cells[CELL.lessons]).toHaveTextContent("+8 lessons");
+    expect(cells[CELL.lessons]).toHaveTextContent(/^\+8$/);
     expect(cells[CELL.method]).toHaveTextContent("Bank transfer");
     expect(cells[CELL.author]).toHaveTextContent("Olga Smirnova");
   });
 
-  it("uses the singular for one lesson", () => {
+  it("shows only the number of lessons, without a word", () => {
     renderWithProviders(<PaymentsTable payments={[makePayment({ lessonsGranted: 1 })]} />);
-    expect(screen.getByText("+1 lesson")).toBeInTheDocument();
+    expect(screen.getByText("+1")).toBeInTheDocument();
   });
 
   it("falls back to the author's email when there is no name", () => {

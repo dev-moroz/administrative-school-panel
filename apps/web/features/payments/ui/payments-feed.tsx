@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { getInitials } from "@/features/students/model/get-initials";
 import { groupPaymentsByDay } from "../model/group-payments-by-day";
 import type { Payment } from "../model/types";
@@ -46,7 +45,7 @@ export function PaymentsFeed({ payments, showStudent = true, now }: Props) {
                         </div>
                       )}
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <Badge variant="success">{t("lessons", { count: payment.lessonsGranted })}</Badge>
+                        <span className="text-sm">{t("lessons", { count: payment.lessonsGranted })}</span>
                         <PaymentMethodBadge method={payment.method} />
                         <ProofLink payment={payment} />
                       </div>
