@@ -336,3 +336,11 @@ These are the rules for every time-related change. They are not re-discussed; an
 - Edit rules mirror the API: a started absence keeps its start and cannot be deleted; the end not before today; only changed fields are sent. Not restored lessons → warning toast with reasons.
 - "Back to scheduled" on 409 `LESSON_RESTORE_CONFLICT` shows a dialog naming the absence and/or the overlaps; "Restore anyway" repeats with `force: true`.
 - `absences.manage` comes only from the seed: run `prisma db seed` after deploying 5g/5h.
+
+## Student deactivation (stage 5i, decided 2026-10-30, Anatoly)
+Replaces the deactivation rule of "Lesson series (5b)" and the "delete only without ledger entries" rule of "Lessons API (5a)".
+- **A lesson carries money only when the sum of its ledger entries is not 0.** A charge and its reversal (−1/+1) cancel out. `LedgerEntry.lesson` is `SetNull`: deleting such a lesson keeps its entries (amounts unchanged), only the link is nulled.
+- Deactivation, for future lessons (`startsAt > now`): a lesson where the student is the only participant is deleted in any status (scheduled, cancelled, freeze, changed manually); from a group lesson only the student is removed; a lesson with a non-zero sum is kept as is (deactivation does not touch money). Series end today.
+- Student absences: not started ones are deleted, a running one ends today.
+- 409 `STUDENT_HAS_FUTURE_LESSONS` `{ futureLessons, keptLessons }` when there are lessons to delete; the web asks in a dialog and repeats with `deleteFutureLessons: true`, then refreshes lessons and absences.
+- Manual delete of a scheduled lesson follows the same sum rule.

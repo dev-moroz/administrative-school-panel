@@ -104,6 +104,7 @@ describe('lesson series (e2e)', () => {
     const student = { fullName: { startsWith: TAG } };
     await prisma.ledgerEntry.deleteMany({ where: { student } });
     await prisma.lesson.deleteMany({ where: { participants: { some: { student } } } });
+    await prisma.absence.deleteMany({ where: { student } });
     await prisma.seriesSkip.deleteMany({ where: { series: { student } } });
     await prisma.lessonSeries.deleteMany({ where: { student } });
   }
@@ -540,11 +541,40 @@ describe('lesson series (e2e)', () => {
   });
 
   describe('student deactivation', () => {
-    it('returns 409 with the number of future lessons and keeps everything', async () => {
+    const inDays = (days: number) => new Date(Date.now() + days * DAY);
+
+    async function futureLesson(studentIds: string[], data: object = {}) {
+      return prisma.lesson.create({
+        data: {
+          teacherId: teacher.id,
+          startsAt: inDays(40),
+          durationMin: 60,
+          participants: { create: studentIds.map((studentId) => ({ studentId })) },
+          ...data,
+        },
+      });
+    }
+
+    async function freeze(studentId: string, startsOn: string, endsOn: string) {
+      const admin = await prisma.user.findUniqueOrThrow({ where: { email: 'series-admin@e2e.test' } });
+      return prisma.absence.create({
+        data: {
+          kind: 'STUDENT_FREEZE',
+          studentId,
+          startsOn: new Date(`${startsOn}T00:00:00Z`),
+          endsOn: new Date(`${endsOn}T00:00:00Z`),
+          createdById: admin.id,
+        },
+      });
+    }
+
+    it('returns 409 with a code and the number of future lessons and keeps everything', async () => {
       const { studentId } = await createSeries();
       const res = await call('admin', 'patch', `/students/${studentId}`, { isActive: false });
       expect(res.status).toBe(409);
+      expect(res.body.code).toBe('STUDENT_HAS_FUTURE_LESSONS');
       expect(res.body.futureLessons).toBe(HORIZON_WEEKS);
+      expect(res.body.keptLessons).toBe(0);
       expect((await prisma.student.findUniqueOrThrow({ where: { id: studentId } })).isActive).toBe(true);
       expect(await lessonsOfStudent(studentId)).toHaveLength(HORIZON_WEEKS);
     });
@@ -571,6 +601,92 @@ describe('lesson series (e2e)', () => {
 
       await seriesService.generateAll(new Date());
       expect((await lessonsOfStudent(studentId)).map((l) => l.id)).toEqual([past.id]);
+    });
+
+    it('deletes future solo lessons in any status', async () => {
+      const student = await seedStudent();
+      await futureLesson([student.id], { status: 'CANCELLED', cancelReasonCode: 'STUDENT_FREEZE', startsAt: inDays(41) });
+      await futureLesson([student.id], { status: 'SCHEDULED', startsAt: inDays(42) });
+
+      const res = await call('admin', 'patch', `/students/${student.id}`, { isActive: false });
+      expect(res.status).toBe(409);
+      expect(res.body.futureLessons).toBe(2);
+
+      await call('admin', 'patch', `/students/${student.id}`, { isActive: false, deleteFutureLessons: true }).expect(200);
+      expect(await lessonsOfStudent(student.id)).toHaveLength(0);
+    });
+
+    it('keeps a future group lesson for the others and removes only the student', async () => {
+      const [leaving, staying] = [await seedStudent(), await seedStudent()];
+      const group = await futureLesson([leaving.id, staying.id]);
+
+      const res = await call('admin', 'patch', `/students/${leaving.id}`, { isActive: false });
+      expect(res.body.futureLessons).toBe(1);
+
+      await call('admin', 'patch', `/students/${leaving.id}`, { isActive: false, deleteFutureLessons: true }).expect(200);
+      const participants = await prisma.lessonParticipant.findMany({ where: { lessonId: group.id } });
+      expect(participants.map((p) => p.studentId)).toEqual([staying.id]);
+    });
+
+    it('keeps a future lesson that already has ledger entries and counts it as kept', async () => {
+      const student = await seedStudent();
+      const charged = await futureLesson([student.id], { status: 'CANCELLED', charged: true, startsAt: inDays(1) });
+      await prisma.ledgerEntry.create({
+        data: { studentId: student.id, delta: -1, type: 'LESSON_CHARGE', lessonId: charged.id },
+      });
+      await futureLesson([student.id], { startsAt: inDays(43) });
+
+      const res = await call('admin', 'patch', `/students/${student.id}`, { isActive: false });
+      expect(res.body).toMatchObject({ futureLessons: 1, keptLessons: 1 });
+
+      await call('admin', 'patch', `/students/${student.id}`, { isActive: false, deleteFutureLessons: true }).expect(200);
+      expect((await lessonsOfStudent(student.id)).map((l) => l.id)).toEqual([charged.id]);
+    });
+
+    it('deletes a future lesson whose entries sum to 0, keeps the entries without a link and the balance', async () => {
+      const student = await seedStudent();
+      const restored = await futureLesson([student.id], { manuallyChanged: true });
+      await prisma.ledgerEntry.createMany({
+        data: [
+          { studentId: student.id, delta: -1, type: 'LESSON_CHARGE', lessonId: restored.id },
+          { studentId: student.id, delta: 1, type: 'LESSON_REVERSAL', lessonId: restored.id },
+        ],
+      });
+
+      const res = await call('admin', 'patch', `/students/${student.id}`, { isActive: false });
+      expect(res.body).toMatchObject({ futureLessons: 1, keptLessons: 0 });
+
+      await call('admin', 'patch', `/students/${student.id}`, { isActive: false, deleteFutureLessons: true }).expect(200);
+      expect(await lessonsOfStudent(student.id)).toHaveLength(0);
+      const entries = await prisma.ledgerEntry.findMany({ where: { studentId: student.id } });
+      expect(entries).toHaveLength(2);
+      expect(entries.every((e) => e.lessonId === null)).toBe(true);
+      expect(entries.reduce((sum, e) => sum + e.delta, 0)).toBe(0);
+    });
+
+    it('deactivates without a dialog when only charged lessons are in the future', async () => {
+      const student = await seedStudent();
+      const charged = await futureLesson([student.id], { status: 'CANCELLED', charged: true });
+      await prisma.ledgerEntry.create({
+        data: { studentId: student.id, delta: -1, type: 'LESSON_CHARGE', lessonId: charged.id },
+      });
+      await call('admin', 'patch', `/students/${student.id}`, { isActive: false }).expect(200);
+    });
+
+    it('deletes not started freezes and cuts a running one to today', async () => {
+      const student = await seedStudent();
+      const running = await freeze(student.id, today(), addDays(today(), 10));
+      const upcoming = await freeze(student.id, addDays(today(), 20), addDays(today(), 30));
+      const past = await freeze(student.id, addDays(today(), -10), addDays(today(), -5));
+
+      await call('admin', 'patch', `/students/${student.id}`, { isActive: false }).expect(200);
+
+      const left = await prisma.absence.findMany({ where: { studentId: student.id }, orderBy: { startsOn: 'asc' } });
+      expect(left.map((a) => [a.id, ymd(a.startsOn), ymd(a.endsOn)])).toEqual([
+        [past.id, addDays(today(), -10), addDays(today(), -5)],
+        [running.id, today(), today()],
+      ]);
+      expect(left.some((a) => a.id === upcoming.id)).toBe(false);
     });
 
     it('reactivation does not resume old series', async () => {

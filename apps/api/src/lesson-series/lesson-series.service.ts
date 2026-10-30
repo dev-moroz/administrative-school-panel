@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { BASE_TIME_ZONE } from '../common/base-time-zone.js';
 import type { Prisma } from '../generated/prisma/client.js';
+import { chargedLessonIds } from '../lessons/charged-lessons.js';
 import { findOverlaps } from '../lessons/overlaps.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateSeriesDto } from './dto/create-series.dto.js';
@@ -127,28 +128,45 @@ export class LessonSeriesService {
     });
   }
 
-  countFutureLessons(tx: Tx, studentId: string, now: Date) {
-    return tx.lesson.count({ where: this.futureWhere(studentId, now) });
+  // Charged lessons are money history: they are kept and counted separately.
+  async countFutureLessons(tx: Tx, studentId: string, now: Date) {
+    const { dropped, kept } = await this.splitFuture(tx, studentId, now);
+    return { futureLessons: dropped.length, keptLessons: kept.length };
   }
 
-  // Deactivation: every series of the student ends today, future scheduled lessons are deleted.
+  // Deactivation: series end today, future solo lessons are deleted, the student leaves future group lessons,
+  // not started absences are deleted and a running one ends today.
   async dropStudentFuture(tx: Tx, studentId: string, now: Date) {
+    const today = localDate(now, BASE_TIME_ZONE);
     const series = await tx.lessonSeries.findMany({ where: { studentId } });
     for (const s of series) {
-      const today = localDate(now, BASE_TIME_ZONE);
       if (!s.endsOn || toYmd(s.endsOn) > today) {
         await tx.lessonSeries.update({ where: { id: s.id }, data: { endsOn: fromYmd(today) } });
       }
     }
-    await tx.lesson.deleteMany({ where: this.futureWhere(studentId, now) });
+
+    const { dropped } = await this.splitFuture(tx, studentId, now);
+    const solo = dropped.filter((l) => l._count.participants === 1).map((l) => l.id);
+    const group = dropped.filter((l) => l._count.participants > 1).map((l) => l.id);
+    await tx.lesson.deleteMany({ where: { id: { in: solo } } });
+    await tx.lessonParticipant.deleteMany({ where: { studentId, lessonId: { in: group } } });
+
+    await tx.absence.deleteMany({ where: { studentId, startsOn: { gt: fromYmd(today) } } });
+    await tx.absence.updateMany({
+      where: { studentId, endsOn: { gt: fromYmd(today) } },
+      data: { endsOn: fromYmd(today) },
+    });
   }
 
-  private futureWhere(studentId: string, now: Date): Prisma.LessonWhereInput {
+  private async splitFuture(tx: Tx, studentId: string, now: Date) {
+    const lessons = await tx.lesson.findMany({
+      where: { startsAt: { gt: now }, participants: { some: { studentId } } },
+      select: { id: true, _count: { select: { participants: true } } },
+    });
+    const charged = await chargedLessonIds(tx, lessons.map((l) => l.id));
     return {
-      status: 'SCHEDULED',
-      startsAt: { gt: now },
-      participants: { some: { studentId } },
-      ledgerEntries: { none: {} },
+      dropped: lessons.filter((l) => !charged.has(l.id)),
+      kept: lessons.filter((l) => charged.has(l.id)),
     };
   }
 

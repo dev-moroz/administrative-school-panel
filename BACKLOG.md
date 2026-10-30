@@ -46,3 +46,4 @@ Nothing here is planned. An item moves to `PLAN.md` only after Anatoly approves 
 - Hint when the teacher list is empty in the admin student form — frozen (Anatoly, 2026-10-25).
 - A better list layout to replace the payments feed.
 - Per-lesson "restore or not" table for hand-changed lessons when an absence is shortened or deleted (5g: they stay cancelled with `MANUAL`; Anatoly: needs its own analysis).
+- To think about: store the lesson time in a lesson ledger entry and show it in the balance history, so a deleted lesson's −1/+1 pair still says which lesson it was (5i).

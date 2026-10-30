@@ -190,7 +190,8 @@ model LedgerEntry {
   paymentId   String?         @unique @map("payment_id") @db.Uuid
   payment     Payment?        @relation(fields: [paymentId], references: [id], onDelete: Restrict)
   lessonId    String?         @map("lesson_id") @db.Uuid
-  lesson      Lesson?         @relation(fields: [lessonId], references: [id], onDelete: Restrict)
+  // SetNull: deleting a lesson whose entries sum to 0 keeps the entries.
+  lesson      Lesson?         @relation(fields: [lessonId], references: [id], onDelete: SetNull)
   createdAt   DateTime        @default(now()) @map("created_at")
 
   @@index([studentId, createdAt])

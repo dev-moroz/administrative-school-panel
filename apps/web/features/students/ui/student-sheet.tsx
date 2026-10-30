@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMe } from "@/features/auth";
 import { ApiError } from "@/lib/api";
+import type { UpdateStudentPayload } from "../api/update-student";
 import { toPayload, type StudentFormValues } from "../model/student-schema";
 import { emptyFormValues, studentToFormValues } from "../model/student-to-form-values";
 import { useCreateStudent } from "../model/use-create-student";
@@ -17,6 +18,7 @@ import { useActivePaymentMethods, usePaymentMethods } from "@/features/payment-m
 import { useStudent } from "../model/use-student";
 import { useTeachers } from "../model/use-teachers";
 import { useUpdateStudent } from "../model/use-update-student";
+import { DeactivateStudentDialog, type FutureLessons } from "./deactivate-student-dialog";
 import { StudentDetails } from "./student-details";
 import { StudentForm } from "./student-form";
 import { StudentSections } from "./student-sections";
@@ -72,9 +74,11 @@ export function StudentSheet({ target, onTargetChange }: Props) {
   const teachers = useTeachers(formOpen && canAssignTeacher);
   const create = useCreateStudent();
   const update = useUpdateStudent(target.kind === "view" ? target.id : "");
+  // The 409 on deactivation keeps the payload so "Deactivate anyway" can repeat it.
+  const [deactivation, setDeactivation] = useState<{ payload: UpdateStudentPayload; counts: FutureLessons } | null>(null);
 
   function saveError(error: unknown) {
-    if (!error) return null;
+    if (!error || deactivation) return null;
     if (error instanceof ApiError && error.status === 400) return t("saveInvalid");
     if (error instanceof ApiError && error.status === 403) return t("saveForbidden");
     return t("saveFailed");
@@ -119,13 +123,29 @@ export function StudentSheet({ target, onTargetChange }: Props) {
     });
   }
 
-  function submitEdit(values: StudentFormValues) {
-    update.mutate(toPayload(values, "edit"), {
+  function saveEdit(payload: UpdateStudentPayload) {
+    update.mutate(payload, {
       onSuccess: () => {
+        setDeactivation(null);
         toast.success(t("toastSaved"));
         setEditing(false);
       },
+      onError: (err) => {
+        const body = err instanceof ApiError ? (err.body as ({ code?: string } & FutureLessons) | undefined) : undefined;
+        if (body?.code === "STUDENT_HAS_FUTURE_LESSONS")
+          setDeactivation({ payload, counts: { futureLessons: body.futureLessons, keptLessons: body.keptLessons ?? 0 } });
+        else setDeactivation(null);
+      },
     });
+  }
+
+  function submitEdit(values: StudentFormValues) {
+    saveEdit(toPayload(values, "edit"));
+  }
+
+  function cancelDeactivation() {
+    setDeactivation(null);
+    update.reset();
   }
 
   const skeleton = (
@@ -218,6 +238,12 @@ export function StudentSheet({ target, onTargetChange }: Props) {
         </SheetContent>
       </Sheet>
       <DiscardChangesDialog open={confirm !== null} onKeep={() => setConfirm(null)} onDiscard={discard} />
+      <DeactivateStudentDialog
+        counts={deactivation?.counts ?? null}
+        isPending={update.isPending}
+        onConfirm={() => deactivation && saveEdit({ ...deactivation.payload, deleteFutureLessons: true })}
+        onCancel={cancelDeactivation}
+      />
     </>
   );
 }

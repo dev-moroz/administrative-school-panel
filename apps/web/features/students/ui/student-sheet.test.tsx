@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ApiError, apiFetch } from "@/lib/api";
 import { renderWithProviders } from "@/test/render";
@@ -20,7 +21,7 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 const ADMIN = ["students.read.all", "students.create", "students.update", "students.assign-teacher", "currencies.read", "payment-methods.read"];
 const TEACHER = ["students.read.all", "students.create", "students.update", "currencies.read"];
 
-type Opts = { currencyList?: Currency[]; methodList?: PaymentMethod[]; permissions?: string[]; student?: ReturnType<typeof makeStudent>; getError?: ApiError; saveError?: ApiError; save?: Promise<unknown> };
+type Opts = { currencyList?: Currency[]; methodList?: PaymentMethod[]; permissions?: string[]; student?: ReturnType<typeof makeStudent>; getError?: ApiError; saveError?: ApiError; save?: Promise<unknown>; conflict?: object };
 
 let opts: Opts;
 
@@ -34,6 +35,7 @@ function mockApi(next: Opts = {}) {
     if (url.pathname === "/currencies") return opts.currencyList ?? currencies;
     if (url.pathname === "/payment-methods") return opts.methodList ?? paymentMethods;
     if (url.pathname === "/teachers") return teachers;
+    if (url.pathname === "/lessons" || url.pathname === "/absences") return [];
     if (url.pathname === "/students" && method === "GET")
       return { items: [], total: 0, page: 1, pageSize: 12 };
     if (url.pathname === "/students" && method === "POST") {
@@ -47,6 +49,8 @@ function mockApi(next: Opts = {}) {
     if (url.pathname === "/students/s1" && method === "PATCH") {
       if (opts.save) await opts.save;
       if (opts.saveError) throw opts.saveError;
+      if (opts.conflict && !JSON.parse(String(init?.body)).deleteFutureLessons)
+        throw new ApiError(409, undefined, { code: "STUDENT_HAS_FUTURE_LESSONS", message: "x", ...opts.conflict });
       return makeStudent({ ...(opts.student ?? {}), ...JSON.parse(String(init?.body)) });
     }
     throw new Error(`unexpected ${method} ${path}`);
@@ -430,5 +434,88 @@ describe("StudentSheet: default payment method", () => {
     await userEvent.click(select);
     expect(await screen.findByRole("option", { name: "OLD" })).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: /Gone method|GONE/ })).not.toBeInTheDocument();
+  });
+});
+
+describe("StudentSheet: deactivation with future lessons", () => {
+  async function deactivate() {
+    await openEdit();
+    await userEvent.click(screen.getByRole("switch", { name: "Active" }));
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    return screen.findByRole("alertdialog");
+  }
+
+  it("409 STUDENT_HAS_FUTURE_LESSONS opens a dialog with the number of lessons and no form error", async () => {
+    mockApi({ conflict: { futureLessons: 4, keptLessons: 0 } });
+    setup(VIEW);
+    const dialog = await deactivate();
+    expect(within(dialog).getByText(/4 future lessons will be deleted/)).toBeInTheDocument();
+    expect(within(dialog).queryByText(/charged/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Could not save. Try again")).not.toBeInTheDocument();
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it("shows the kept charged lessons line when there are any", async () => {
+    mockApi({ conflict: { futureLessons: 2, keptLessons: 1 } });
+    setup(VIEW);
+    const dialog = await deactivate();
+    expect(within(dialog).getByText(/1 charged lesson is kept/)).toBeInTheDocument();
+  });
+
+  it("Deactivate anyway repeats PATCH with deleteFutureLessons, toasts and returns to view", async () => {
+    mockApi({ conflict: { futureLessons: 4, keptLessons: 0 } });
+    setup(VIEW);
+    const dialog = await deactivate();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Deactivate anyway" }));
+
+    await waitFor(() => expect(calls("PATCH", "/students/s1")).toHaveLength(2));
+    const body = JSON.parse(String(calls("PATCH", "/students/s1")[1][1]?.body));
+    expect(body).toMatchObject({ isActive: false, deleteFutureLessons: true });
+    expect(toast.success).toHaveBeenCalledWith("Changes saved");
+    expect(await screen.findByRole("button", { name: "Edit" })).toBeInTheDocument();
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  });
+
+  it("a saved deactivation refreshes loaded lessons and absences", async () => {
+    function CacheProbe() {
+      useQuery({ queryKey: ["lessons", "range"], queryFn: () => apiFetch("/lessons") });
+      useQuery({ queryKey: ["absences", "owner"], queryFn: () => apiFetch("/absences") });
+      return null;
+    }
+    mockApi({ conflict: { futureLessons: 4, keptLessons: 0 } });
+    renderWithProviders(
+      <>
+        <CacheProbe />
+        <StudentSheet target={VIEW} onTargetChange={vi.fn()} />
+      </>,
+    );
+    await waitFor(() => expect(calls("GET", "/lessons")).toHaveLength(1));
+    const dialog = await deactivate();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Deactivate anyway" }));
+
+    await waitFor(() => expect(calls("GET", "/lessons")).toHaveLength(2));
+    await waitFor(() => expect(calls("GET", "/absences")).toHaveLength(2));
+  });
+
+  it("Cancel closes the dialog, keeps the form with its edits and sends nothing more", async () => {
+    mockApi({ conflict: { futureLessons: 4, keptLessons: 0 } });
+    setup(VIEW);
+    const dialog = await deactivate();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+    expect(screen.getByRole("switch", { name: "Active" })).not.toBeChecked();
+    expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
+    expect(calls("PATCH", "/students/s1")).toHaveLength(1);
+  });
+
+  it("another 409 shows the usual form error and no dialog", async () => {
+    mockApi({ saveError: new ApiError(409, undefined, { code: "OTHER" }) });
+    setup(VIEW);
+    await openEdit();
+    await userEvent.click(screen.getByRole("switch", { name: "Active" }));
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 });

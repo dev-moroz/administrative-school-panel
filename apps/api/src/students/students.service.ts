@@ -82,9 +82,13 @@ export class StudentsService {
       const student = await this.prisma.$transaction(async (tx) => {
         if (data.isActive === false) {
           const now = new Date();
-          const futureLessons = await this.series.countFutureLessons(tx, id, now);
-          if (futureLessons && !deleteFutureLessons) {
-            throw new ConflictException({ message: 'Student has future lessons', futureLessons });
+          const counts = await this.series.countFutureLessons(tx, id, now);
+          if (counts.futureLessons && !deleteFutureLessons) {
+            throw new ConflictException({
+              code: 'STUDENT_HAS_FUTURE_LESSONS',
+              message: 'Student has future lessons',
+              ...counts,
+            });
           }
           await this.series.dropStudentFuture(tx, id, now);
         }

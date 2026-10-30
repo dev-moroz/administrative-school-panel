@@ -6,6 +6,7 @@ import type { Prisma } from '../generated/prisma/client.js';
 import type { LessonStatus } from '../generated/prisma/enums.js';
 import { LedgerService } from '../ledger/ledger.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { chargedLessonIds } from './charged-lessons.js';
 import { ChangeStatusDto } from './dto/change-status.dto.js';
 import { CreateLessonDto } from './dto/create-lesson.dto.js';
 import { ListLessonsQueryDto } from './dto/list-lessons-query.dto.js';
@@ -164,7 +165,7 @@ export class LessonsService {
     await this.prisma.$transaction(async (tx) => {
       const lesson = await this.lock(tx, id);
       if (lesson.status !== 'SCHEDULED') throw new ConflictException('Only a scheduled lesson can be deleted');
-      if (await tx.ledgerEntry.count({ where: { lessonId: id } })) {
+      if ((await chargedLessonIds(tx, [id])).size) {
         throw new ConflictException('Lesson has balance entries');
       }
       await tx.lesson.delete({ where: { id } });

@@ -596,11 +596,18 @@ describe('lessons (e2e)', () => {
       await call('teacher', 'delete', `/lessons/${lesson.id}`).expect(409);
     });
 
-    it('409 for a scheduled lesson that has ledger entries (charged, then back to scheduled)', async () => {
+    it('deletes a scheduled lesson whose entries sum to 0 and keeps the entries without a link', async () => {
       const { lesson } = await seedLesson();
       await call('teacher', 'post', `/lessons/${lesson.id}/status`, { status: 'CANCELLED', reason: 'OTHER', charged: true }).expect(200);
       await call('teacher', 'post', `/lessons/${lesson.id}/status`, { status: 'SCHEDULED' }).expect(200);
-      await call('teacher', 'delete', `/lessons/${lesson.id}`).expect(409);
+      const entryIds = (await prisma.ledgerEntry.findMany({ where: { lessonId: lesson.id } })).map((e) => e.id);
+      expect(entryIds).toHaveLength(2);
+
+      await call('teacher', 'delete', `/lessons/${lesson.id}`).expect(204);
+
+      expect(await prisma.lesson.findUnique({ where: { id: lesson.id } })).toBeNull();
+      const entries = await prisma.ledgerEntry.findMany({ where: { id: { in: entryIds } } });
+      expect(entries.map((e) => [e.delta, e.lessonId]).sort()).toEqual([[-1, null], [1, null]]);
     });
 
     it('404 for an unknown lesson', async () => {
