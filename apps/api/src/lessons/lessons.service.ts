@@ -59,18 +59,19 @@ export class LessonsService {
 
   async list(query: ListLessonsQueryDto) {
     const from = new Date(query.from);
-    const to = new Date(query.to);
-    if (to <= from) throw new BadRequestException('to must be after from');
-    if (to.getTime() - from.getTime() > MAX_RANGE_DAYS * 86_400_000) {
+    const to = query.to === undefined ? undefined : new Date(query.to);
+    if (to && to <= from) throw new BadRequestException('to must be after from');
+    if (to && to.getTime() - from.getTime() > MAX_RANGE_DAYS * 86_400_000) {
       throw new BadRequestException(`Range must be at most ${MAX_RANGE_DAYS} days`);
     }
     const rows = await this.prisma.lesson.findMany({
       where: {
-        startsAt: { gte: from, lt: to },
+        startsAt: { gte: from, ...(to && { lt: to }) },
         ...(query.studentId && { participants: { some: { studentId: query.studentId } } }),
       },
       select: LESSON_SELECT,
       orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+      take: query.limit,
     });
     return rows.map(toLessonDto);
   }

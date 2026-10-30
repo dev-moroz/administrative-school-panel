@@ -6,10 +6,10 @@ import interactionPlugin from "@fullcalendar/react/interaction";
 import monarchThemePlugin from "@fullcalendar/react/themes/monarch";
 import timeGridPlugin from "@fullcalendar/react/timegrid";
 import { useTheme } from "next-themes";
-import type { CalendarEvent, DateRange, LessonStatus, TimeRange } from "../model/types";
+import { STATUS_COLORS } from "../model/status-colors";
+import type { CalendarEvent, DateRange, TimeRange } from "../model/types";
 import "@fullcalendar/react/skeleton.css";
 import "@fullcalendar/react/themes/monarch/theme.css";
-import "@fullcalendar/react/themes/monarch/palettes/green.css";
 
 export type CalendarViewProps = {
   events: CalendarEvent[];
@@ -25,14 +25,6 @@ type SelectInfo = Parameters<NonNullable<React.ComponentProps<typeof FullCalenda
 
 const DEFAULT_START_HOUR = 10;
 const DEFAULT_DURATION_MS = 60 * 60_000;
-
-// Monarch palette variables, so the colors follow the light and dark scheme.
-const STATUS_COLORS: Record<LessonStatus, { color: string; contrastColor: string }> = {
-  SCHEDULED: { color: "var(--fc-monarch-secondary)", contrastColor: "var(--fc-monarch-secondary-foreground)" },
-  COMPLETED: { color: "var(--fc-monarch-primary)", contrastColor: "var(--fc-monarch-primary-foreground)" },
-  CANCELLED: { color: "var(--fc-monarch-strong)", contrastColor: "var(--fc-monarch-muted-foreground)" },
-  NO_SHOW: { color: "var(--fc-monarch-strong)", contrastColor: "var(--fc-monarch-muted-foreground)" },
-};
 
 // The only place that knows FullCalendar: the rest of the app works with our types.
 export function CalendarView({ events, selectable, onRangeChange, onSlotSelect, onEventClick, onEventChange }: CalendarViewProps) {

@@ -20,6 +20,7 @@ function setup(permissions = BOTH) {
     const url = new URL(path, "http://x");
     if (url.pathname === "/auth/me") return { id: "u1", email: "a@b.c", role: "admin", permissions };
     if (url.pathname === "/absences") return [];
+    if (url.pathname === "/lessons") return [];
     if (url.pathname === "/payments") return { items: [makePayment()], total: 1, page: 1, pageSize: 10 };
     const result = handleLedger(ledger, path, init);
     if (result === undefined) throw new Error(`unexpected ${init?.method ?? "GET"} ${path}`);
@@ -98,6 +99,22 @@ describe("StudentSections", () => {
     setup();
     await screen.findByRole("tab", { name: "Balance" });
     expect(screen.queryByRole("tab", { name: "Absences" })).not.toBeInTheDocument();
+  });
+
+  it("offers the Schedule tab after Balance with lessons.read and loads the student's lessons", async () => {
+    setup([...BOTH, "lessons.read"]);
+    const tabs = await screen.findAllByRole("tab");
+    expect(tabs.map((t) => t.textContent)).toEqual(["Balance", "Schedule", "Payments"]);
+    await userEvent.click(screen.getByRole("tab", { name: "Schedule" }));
+    expect(await screen.findByText("No upcoming lessons")).toBeVisible();
+    const call = vi.mocked(apiFetch).mock.calls.map(([p]) => new URL(String(p), "http://x")).find((u) => u.pathname === "/lessons")!;
+    expect(call.searchParams.get("studentId")).toBe("s1");
+  });
+
+  it("hides the Schedule tab without lessons.read", async () => {
+    setup();
+    await screen.findByRole("tab", { name: "Balance" });
+    expect(screen.queryByRole("tab", { name: "Schedule" })).not.toBeInTheDocument();
   });
 
   it("renders nothing without balance.read and payments.read", async () => {

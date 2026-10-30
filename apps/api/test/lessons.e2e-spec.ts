@@ -103,6 +103,12 @@ describe('lessons (e2e)', () => {
         },
       },
       {
+        name: 'GET /lessons (upcoming, no to)',
+        expected: { anonymous: 401, student: 403, teacher: 200, admin: 200 },
+        run: async (actor) =>
+          call(actor, 'get', `/lessons?from=${new Date().toISOString()}&studentId=${(await seedStudent()).id}&limit=6`),
+      },
+      {
         name: 'GET /lessons/:id',
         expected: { anonymous: 401, student: 403, teacher: 200, admin: 200 },
         run: async (actor) => call(actor, 'get', `/lessons/${(await seedLesson()).lesson.id}`),
@@ -247,6 +253,49 @@ describe('lessons (e2e)', () => {
       ['to before from', `?from=2026-02-01T00:00:00Z&to=2026-01-01T00:00:00Z`],
     ])('400 on %s', async (_name, qs) => {
       await call('teacher', 'get', `/lessons${qs}`).expect(400);
+    });
+
+    describe('upcoming (limit without to)', () => {
+      it('returns the nearest lessons from `from` in any status, also beyond 62 days, only of the student', async () => {
+        const student = await seedStudent();
+        const base = Date.now() + 200 * DAY;
+        await seedLesson({ studentId: student.id, startsAt: new Date(base - DAY) });
+        const ids: string[] = [];
+        for (let i = 0; i < 7; i += 1) {
+          const status = i === 1 ? 'CANCELLED' : 'SCHEDULED';
+          ids.push((await seedLesson({ studentId: student.id, status, startsAt: new Date(base + i * 20 * DAY) })).lesson.id);
+        }
+        await seedLesson({ startsAt: new Date(base + HOUR) });
+
+        const from = new Date(base - HOUR).toISOString();
+        const res = await call('teacher', 'get', `/lessons?from=${from}&studentId=${student.id}&limit=6`).expect(200);
+        expect(res.body.map((l: { id: string }) => l.id)).toEqual(ids.slice(0, 6));
+        expect(res.body[1].status).toBe('CANCELLED');
+      });
+
+      it('applies limit together with to', async () => {
+        const student = await seedStudent();
+        const base = Date.now() + 300 * DAY;
+        const first = await seedLesson({ studentId: student.id, startsAt: new Date(base) });
+        await seedLesson({ studentId: student.id, startsAt: new Date(base + DAY) });
+
+        const from = new Date(base - HOUR).toISOString();
+        const to = new Date(base + 2 * DAY).toISOString();
+        const res = await call('teacher', 'get', `/lessons?from=${from}&to=${to}&studentId=${student.id}&limit=1`).expect(200);
+        expect(res.body.map((l: { id: string }) => l.id)).toEqual([first.lesson.id]);
+      });
+
+      it.each([
+        ['no to and no studentId', '&limit=6'],
+        ['no to and no limit', '&studentId=STUDENT'],
+        ['limit 0', '&studentId=STUDENT&limit=0'],
+        ['limit 21', '&studentId=STUDENT&limit=21'],
+        ['limit not an integer', '&studentId=STUDENT&limit=abc'],
+      ])('400 on %s', async (_name, qs) => {
+        const student = await seedStudent();
+        const from = new Date().toISOString();
+        await call('teacher', 'get', `/lessons?from=${from}${qs.replace('STUDENT', student.id)}`).expect(400);
+      });
     });
   });
 

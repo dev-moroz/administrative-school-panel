@@ -7,7 +7,7 @@ import { createSeries } from "../api/create-series";
 import { deleteLesson } from "../api/delete-lesson";
 import { getCancelPreview } from "../api/get-cancel-preview";
 import { listCancelReasons } from "../api/list-cancel-reasons";
-import { listLessons } from "../api/list-lessons";
+import { listLessons, listUpcomingLessons } from "../api/list-lessons";
 import { splitSeries } from "../api/split-series";
 import { updateLesson } from "../api/update-lesson";
 import type { DateRange, SplitSeriesPayload, StatusPayload, UpdateLessonPayload } from "./types";
@@ -20,6 +20,13 @@ export function useLessons(range: DateRange | null) {
     queryFn: () => listLessons(range!),
     enabled: range !== null,
     placeholderData: keepPreviousData,
+  });
+}
+
+export function useUpcomingLessons(studentId: string, limit = 6) {
+  return useQuery({
+    queryKey: [...lessonsKey, "upcoming", studentId, limit],
+    queryFn: () => listUpcomingLessons(studentId, limit),
   });
 }
 

@@ -6,9 +6,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AbsenceList } from "@/features/absences/ui/absence-list";
 import { useMe } from "@/features/auth";
 import { StudentBalance } from "@/features/ledger/ui/student-balance";
+import { StudentSchedule } from "@/features/lessons/ui/student-schedule";
 import { StudentPayments } from "@/features/payments/ui/student-payments";
 
-type Section = "balance" | "payments" | "absences";
+type Section = "balance" | "schedule" | "payments" | "absences";
 type Props = { studentId: string; isActive?: boolean; onDirtyChange: (dirty: boolean) => void };
 
 export function StudentSections({ studentId, isActive, onDirtyChange }: Props) {
@@ -18,6 +19,7 @@ export function StudentSections({ studentId, isActive, onDirtyChange }: Props) {
 
   const available: Section[] = [];
   if (me?.permissions.includes("balance.read")) available.push("balance");
+  if (me?.permissions.includes("lessons.read")) available.push("schedule");
   if (me?.permissions.includes("payments.read")) available.push("payments");
   if (me?.permissions.includes("absences.manage")) available.push("absences");
   if (available.length === 0) return null;
@@ -37,6 +39,11 @@ export function StudentSections({ studentId, isActive, onDirtyChange }: Props) {
       {available.includes("balance") && (
         <TabsContent value="balance" forceMount hidden={active !== "balance"} className="text-base">
           <StudentBalance studentId={studentId} isActive={isActive} onDirtyChange={onDirtyChange} />
+        </TabsContent>
+      )}
+      {available.includes("schedule") && (
+        <TabsContent value="schedule" className="text-base">
+          <StudentSchedule studentId={studentId} />
         </TabsContent>
       )}
       {available.includes("payments") && (

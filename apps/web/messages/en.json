@@ -169,6 +169,7 @@
     "toastCreated": "Student created",
     "section": {
       "balance": "Balance",
+      "schedule": "Schedule",
       "payments": "Payments",
       "absences": "Absences"
     }
@@ -287,6 +288,9 @@
     "fieldTime": "Time",
     "fieldDuration": "Duration (min)",
     "durationShort": "{value} min",
+    "scheduleEmpty": "No upcoming lessons",
+    "scheduleLoadError": "Could not load lessons",
+    "retry": "Retry",
     "repeatWeekly": "Repeat weekly",
     "errStudent": "Choose a student",
     "errDate": "Enter a date",

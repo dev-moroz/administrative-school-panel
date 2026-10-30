@@ -6,7 +6,7 @@ import { createSeries } from "./create-series";
 import { deleteLesson } from "./delete-lesson";
 import { getCancelPreview } from "./get-cancel-preview";
 import { listCancelReasons } from "./list-cancel-reasons";
-import { listLessons } from "./list-lessons";
+import { listLessons, listUpcomingLessons } from "./list-lessons";
 import { splitSeries } from "./split-series";
 import { updateLesson } from "./update-lesson";
 
@@ -30,6 +30,18 @@ describe("lessons api", () => {
     expect(url.pathname).toBe("/lessons");
     expect(url.searchParams.get("from")).toBe(from.toISOString());
     expect(url.searchParams.get("to")).toBe(to.toISOString());
+    expect(method()).toBe("GET");
+  });
+
+  it("listUpcomingLessons asks for the student's next lessons from now, without to", async () => {
+    const before = Date.now();
+    await listUpcomingLessons("s1", 6);
+    const url = new URL(first()[0] as string, "http://x");
+    expect(url.pathname).toBe("/lessons");
+    expect(url.searchParams.get("studentId")).toBe("s1");
+    expect(url.searchParams.get("limit")).toBe("6");
+    expect(url.searchParams.has("to")).toBe(false);
+    expect(new Date(url.searchParams.get("from")!).getTime()).toBeGreaterThanOrEqual(before);
     expect(method()).toBe("GET");
   });
 
