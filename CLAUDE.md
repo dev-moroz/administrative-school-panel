@@ -9,7 +9,7 @@
 - Communication language: Russian.
 - **Code comments: keep them to a minimum, and write them in English only.**
 - Read files with the built-in Read/Glob/Grep tools, not `cat` with globs, `cd` or `grep` in Bash; Bash is for running commands (tests, git, pnpm).
-- Edit files only with the Edit/Write tools, never via python/sed/heredoc in Bash.
+- Edit files only with the Edit/Write tools, never via python/sed/heredoc in Bash. Why: built-in tools run without permission prompts, Bash edits make Anatoly approve every call. This includes appends to BACKLOG/DECISIONS, PLAN marks and the commit message file (Write it into the scratchpad).
 
 ## Development workflow (applies to every task)
 Anatoly acts as the manager: he approves the plan and the tests, reviews the result and confirms. Claude writes the code. Goal: no wasted steps or rework, save context and tokens.
