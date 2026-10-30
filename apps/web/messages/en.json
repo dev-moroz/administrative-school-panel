@@ -24,7 +24,19 @@
   },
   "Settings": {
     "currencies": "Currencies",
-    "paymentMethods": "Payment methods"
+    "paymentMethods": "Payment methods",
+    "school": "School"
+  },
+  "SchoolSettings": {
+    "title": "School",
+    "loadError": "Failed to load school settings",
+    "retry": "Retry",
+    "fieldThreshold": "Low balance threshold",
+    "thresholdHint": "Students with this many lessons left or fewer are highlighted",
+    "errThreshold": "Enter a whole number from 0 to 100",
+    "save": "Save",
+    "toastSaved": "Settings saved",
+    "saveFailed": "Could not save the settings"
   },
   "Currencies": {
     "title": "Currencies",

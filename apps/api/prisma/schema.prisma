@@ -348,6 +348,15 @@ enum AbsenceKind {
   TEACHER_VACATION
 }
 
+// Single row (id = 1), inserted by the migration.
+model SchoolSettings {
+  id                  Int      @id @default(1)
+  lowBalanceThreshold Int      @default(2) @map("low_balance_threshold")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@map("school_settings")
+}
+
 // Whole Moscow days, both ends inclusive; exactly one owner (DB check).
 model Absence {
   id          String      @id @default(uuid()) @db.Uuid

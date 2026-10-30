@@ -46,6 +46,11 @@ const PAYMENT_METHODS = [
     "payment-methods.update"
 ]
 
+const SCHOOL_SETTINGS = [
+    "school-settings.read",
+    "school-settings.update"
+]
+
 const AUDIT = [
     "audit.read.business",
     "audit.read.system"
@@ -64,6 +69,7 @@ const PERMISSIONS = [
     ...BALANCE,
     ...CURRENCIES,
     ...PAYMENT_METHODS,
+    ...SCHOOL_SETTINGS,
     ...AUDIT,
     ...SYSTEM,
 ];
@@ -78,6 +84,7 @@ const ROLES: Record<string, string[]> = {
         "balance.read",
         "currencies.read",
         "payment-methods.read",
+        "school-settings.read",
         "audit.read.business",
     ],
 };

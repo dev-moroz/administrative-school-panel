@@ -87,8 +87,9 @@ Principles: money is `Decimal`, not float; every balance and payment change happ
 - 5g absences API: student freeze and teacher vacation, edit and restore rules — done (2026-10-29) → DECISIONS: "Absences API (stage 5g)".
 - 5h absences UI and "Back to schedule" with confirmation — done (2026-10-30) → DECISIONS: "Absences UI (stage 5h)".
 - 5i student deactivation confirmation dialog — done (2026-10-30) → DECISIONS: "Student deactivation (stage 5i)".
-- 5j remaining lessons on the students list tile — next → DECISIONS: "Student card: balance and Schedule tab".
-- 5k "Schedule" tab in the student card (next 6 lessons) — todo → same section.
+- 5j settings tab "School" with the low-balance threshold N (admin only) — done (2026-10-30) → DECISIONS: "Student card: balance and Schedule tab".
+- 5k remaining lessons on the students list tile — next → same section.
+- 5l "Schedule" tab in the student card (next 6 lessons) — todo → same section.
 - Settings: cancellation rules storage (school-wide thresholds, evaluated in the teacher's zone → DECISIONS: "Settings concept") and cancel reasons admin (`/settings/cancel-reasons`) — todo (after 5c, Anatoly, 2026-10-28).
 
 **Stage 6 — notifications** — **todo** (added 2026-10-29, design session later): in-app notifications for the teacher and the admin (generator conflicts and other system events). Details are decided in its own design session.

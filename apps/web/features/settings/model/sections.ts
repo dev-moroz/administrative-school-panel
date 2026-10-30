@@ -1,5 +1,5 @@
 export type SettingsSection = {
-  key: "currencies" | "paymentMethods";
+  key: "currencies" | "paymentMethods" | "school";
   href: string;
   permission: string;
 };
@@ -7,6 +7,7 @@ export type SettingsSection = {
 export const SETTINGS_SECTIONS: SettingsSection[] = [
   { key: "currencies", href: "/settings/currencies", permission: "currencies.update" },
   { key: "paymentMethods", href: "/settings/payment-methods", permission: "payment-methods.update" },
+  { key: "school", href: "/settings/school", permission: "school-settings.update" },
 ];
 
 export function getAvailableSections(

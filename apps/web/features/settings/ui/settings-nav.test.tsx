@@ -29,6 +29,15 @@ describe("SettingsNav", () => {
     expect(screen.getByRole("link", { name: "Currencies" })).not.toHaveAttribute("aria-current");
   });
 
+  it("shows School last when permitted", () => {
+    renderWithProviders(
+      <SettingsNav permissions={["school-settings.update", "payment-methods.update", "currencies.update"]} />,
+    );
+    const links = screen.getAllByRole("link").map((l) => l.textContent);
+    expect(links).toEqual(["Currencies", "Payment methods", "School"]);
+    expect(screen.getByRole("link", { name: "School" })).toHaveAttribute("href", "/settings/school");
+  });
+
   it("shows no section links without permissions", () => {
     renderWithProviders(<SettingsNav permissions={["students.read.all"]} />);
     expect(screen.queryByRole("link", { name: "Currencies" })).not.toBeInTheDocument();

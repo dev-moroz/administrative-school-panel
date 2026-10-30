@@ -32,6 +32,27 @@ describe("Payment methods section", () => {
   });
 });
 
+describe("School section", () => {
+  it("is registered behind school-settings.update, after Payment methods", () => {
+    expect(SETTINGS_SECTIONS).toContainEqual(
+      expect.objectContaining({ key: "school", href: "/settings/school", permission: "school-settings.update" }),
+    );
+    expect(SETTINGS_SECTIONS.map((s) => s.key)).toEqual(["currencies", "paymentMethods", "school"]);
+  });
+
+  it("read access alone does not open it (the teacher has school-settings.read)", () => {
+    expect(getAvailableSections(["school-settings.read"])).toEqual([]);
+    expect(resolveSettingsAccess("/settings/school", ["school-settings.read", "currencies.update"])).toEqual({
+      type: "redirect",
+      to: "/settings",
+    });
+  });
+
+  it("is allowed with school-settings.update", () => {
+    expect(resolveSettingsAccess("/settings/school", ["school-settings.update"])).toEqual({ type: "allow" });
+  });
+});
+
 describe("getAvailableSections", () => {
   it("returns Currencies for a user with currencies.update", () => {
     const result = getAvailableSections(["currencies.update"]);

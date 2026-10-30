@@ -13,6 +13,7 @@ import { OriginGuard } from './origin.guard.js';
 import { PaymentMethodsModule } from './payment-methods/payment-methods.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { SchoolSettingsModule } from './school-settings/school-settings.module.js';
 import { StudentsModule } from './students/students.module.js';
 import { TeachersModule } from './teachers/teachers.module.js';
 
@@ -40,6 +41,7 @@ import { TeachersModule } from './teachers/teachers.module.js';
     LessonsModule,
     LessonSeriesModule,
     AbsencesModule,
+    SchoolSettingsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: OriginGuard },

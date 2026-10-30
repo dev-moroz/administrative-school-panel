@@ -297,6 +297,8 @@ These are the rules for every time-related change. They are not re-discussed; an
 
 ## Student card: balance and Schedule tab (design session, decided 2026-10-29, Anatoly)
 - **Students list tile** shows the remaining paid lessons = the ledger balance (paid minus charged); scheduled lessons do not reduce it. Negative is red, at or below the school low-balance threshold N is yellow, otherwise no highlight. The money remainder is not shown on the tile.
+- **Low-balance threshold N** (2026-10-30, Anatoly) is a school setting in the DB, edited on a settings tab "School"; only admin can change it. Its own substep before the tile; the tab may move elsewhere later.
+- **School settings (stage 5j, done 2026-10-30):** single-row table `school_settings` (DB check `id = 1`, row inserted by the migration, default N = 2). `GET /settings/school` needs `school-settings.read` (admin, teacher), `PATCH` needs `school-settings.update` (admin); integer 0..100. The form validates while typing; Save is disabled while the value is invalid or unchanged, and the saved value becomes the new baseline. No audit yet (no audit module exists).
 - **Student page gets a "Schedule" tab** next to the existing tabs: the next 6 future lessons of any status (date and time, duration, teacher, status). Cancelled ones show the reason and the comment. Colors come from the same status scheme as the calendar through shared theme variables, so a calendar color change applies here too. Past lessons are not shown.
 - Open: the stage 5 design said the teacher can cancel upcoming lessons from this block; whether the tab is read-only or has actions is decided in its substep plan.
 
