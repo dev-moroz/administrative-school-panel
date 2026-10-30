@@ -355,3 +355,4 @@ One color, one meaning across the whole system.
 - Calendar lesson statuses keep their own neutral Monarch palette.
 - `--success`/`--warning` (+ foreground) are added to `globals.css` for light and dark next to `--destructive`; `badge.tsx` drops the hardcoded emerald/amber. Yellow is based on the current amber-100/amber-800 "Inactive" look, contrast checked in both themes.
 - Open: whether payment history can have negative amounts (refunds); assumed no for now.
+- **Revised in implementation (2026-10-30, Anatoly):** yellow means "attention": "Inactive" (student, currency, payment method) and "Low balance" (5l) are both yellow, told apart by text. Grey (`neutral` badge variant) is only "−" entries in ledger history. Green is grass green (green-300); "N lessons" in payments is green too. Ledger "+"/"−" are badges. `success`/`warning` badges are solid (`bg-x text-x-foreground`) with the same token values in light and dark themes.

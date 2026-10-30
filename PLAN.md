@@ -88,8 +88,8 @@ Principles: money is `Decimal`, not float; every balance and payment change happ
 - 5h absences UI and "Back to schedule" with confirmation — done (2026-10-30) → DECISIONS: "Absences UI (stage 5h)".
 - 5i student deactivation confirmation dialog — done (2026-10-30) → DECISIONS: "Student deactivation (stage 5i)".
 - 5j settings tab "School" with the low-balance threshold N (admin only) — done (2026-10-30) → DECISIONS: "Student card: balance and Schedule tab".
-- 5k status colors: `--success`/`--warning` theme tokens, "Inactive" badges grey, ledger history "+" green and "−" grey — next → DECISIONS: "Status and amount colors (5k)".
-- 5l remaining lessons on the students list tile, with "Low balance"/"Debt" badges — todo → DECISIONS: "Student card: balance and Schedule tab", "Status and amount colors (5k)".
+- 5k status colors: `--success`/`--warning` theme tokens, "Inactive" badges yellow, ledger history "+" green and "−" grey badges — done → DECISIONS: "Status and amount colors (5k)".
+- 5l remaining lessons on the students list tile, with "Low balance"/"Debt" badges — next → DECISIONS: "Student card: balance and Schedule tab", "Status and amount colors (5k)".
 - 5m "Schedule" tab in the student card (next 6 lessons) — todo → DECISIONS: "Student card: balance and Schedule tab".
 - Settings: cancellation rules storage (school-wide thresholds, evaluated in the teacher's zone → DECISIONS: "Settings concept") and cancel reasons admin (`/settings/cancel-reasons`) — todo (after 5c, Anatoly, 2026-10-28).
 

@@ -1,4 +1,5 @@
 import { useFormatter, useTranslations } from "next-intl";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { LedgerEntry } from "../model/types";
@@ -43,9 +44,7 @@ export function LedgerHistory({ items, isPending, isError, hasMore, isFetchingMo
       <ul className="grid gap-3">
         {items.map((entry) => (
           <li key={entry.id} className="grid grid-cols-[3rem_1fr] gap-x-3 text-sm">
-            <span className={entry.delta < 0 ? "font-medium text-destructive" : "font-medium"}>
-              {formatDelta(entry.delta)}
-            </span>
+            <Badge variant={entry.delta < 0 ? "neutral" : "success"}>{formatDelta(entry.delta)}</Badge>
             <div className="grid gap-0.5">
               <div className="flex items-baseline justify-between gap-2">
                 <span>{t(`type.${entry.type}`)}</span>

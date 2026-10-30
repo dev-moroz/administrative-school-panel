@@ -46,7 +46,7 @@ export function PaymentsFeed({ payments, showStudent = true, now }: Props) {
                         </div>
                       )}
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <Badge variant="secondary">{t("lessons", { count: payment.lessonsGranted })}</Badge>
+                        <Badge variant="success">{t("lessons", { count: payment.lessonsGranted })}</Badge>
                         <PaymentMethodBadge method={payment.method} />
                         <ProofLink payment={payment} />
                       </div>

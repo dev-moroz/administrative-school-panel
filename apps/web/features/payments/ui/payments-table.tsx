@@ -46,7 +46,7 @@ export function PaymentsTable({ payments }: { payments: Payment[] }) {
                   <span className="text-muted-foreground">{payment.currencyCode}</span>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="secondary">{t("lessons", { count: payment.lessonsGranted })}</Badge>
+                  <Badge variant="success">{t("lessons", { count: payment.lessonsGranted })}</Badge>
                 </TableCell>
                 <TableCell>
                   <PaymentMethodBadge method={payment.method} />
