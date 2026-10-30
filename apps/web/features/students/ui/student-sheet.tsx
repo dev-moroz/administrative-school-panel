@@ -86,7 +86,15 @@ export function StudentSheet({ target, onTargetChange }: Props) {
 
   function requestClose() {
     if (dirty) setConfirm("close");
-    else onTargetChange({ kind: "closed" });
+    else close();
+  }
+
+  // The sheet stays mounted while closed, so reopening the same student would otherwise restore edit mode.
+  function close() {
+    update.reset();
+    setUi({ key, editing: false, dirty: false });
+    setAdjust({ key, dirty: false });
+    onTargetChange({ kind: "closed" });
   }
 
   function handleCancel() {
@@ -110,7 +118,7 @@ export function StudentSheet({ target, onTargetChange }: Props) {
     setConfirm(null);
     setAdjustDirty(false);
     if (action === "edit") setEditing(true);
-    if (action === "close") onTargetChange({ kind: "closed" });
+    if (action === "close") close();
     if (action === "cancel") leaveEdit();
   }
 

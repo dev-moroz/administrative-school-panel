@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -341,6 +342,41 @@ describe("StudentSheet: discard changes", () => {
     expect(onTargetChange).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole("button", { name: "Discard" }));
     expect(onTargetChange).toHaveBeenCalledWith({ kind: "closed" });
+  });
+});
+
+function Reopenable() {
+  const [target, setTarget] = useState<SheetTarget>(VIEW);
+  return (
+    <>
+      <button onClick={() => setTarget(VIEW)}>Reopen</button>
+      <StudentSheet target={target} onTargetChange={setTarget} />
+    </>
+  );
+}
+
+describe("StudentSheet: reopening", () => {
+  it("closing in edit mode and reopening the same student shows view mode", async () => {
+    mockApi();
+    renderWithProviders(<Reopenable />);
+    await openEdit();
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: "Reopen" }));
+    expect(await screen.findByRole("button", { name: "Edit" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Full name")).not.toBeInTheDocument();
+  });
+
+  it("discarding a dirty edit form on close and reopening shows view mode", async () => {
+    mockApi();
+    renderWithProviders(<Reopenable />);
+    await userEvent.type(await openEdit(), "x");
+    await userEvent.keyboard("{Escape}");
+    await userEvent.click(await screen.findByRole("button", { name: "Discard" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: "Reopen" }));
+    expect(await screen.findByRole("button", { name: "Edit" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Full name")).not.toBeInTheDocument();
   });
 });
 
