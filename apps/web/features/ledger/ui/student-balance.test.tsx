@@ -20,7 +20,7 @@ const ADMIN = ["balance.read", "balance.adjust"];
 let mock: LedgerMock;
 let permissions: string[];
 
-function setup(perms = ADMIN, patch: Partial<LedgerMock> = {}) {
+function setup(perms = ADMIN, patch: Partial<LedgerMock> = {}, isActive?: boolean) {
   permissions = perms;
   mock = { balance: 5, entries: [], ...patch };
   vi.mocked(apiFetch).mockImplementation(async (path: string, init?: RequestInit) => {
@@ -31,7 +31,7 @@ function setup(perms = ADMIN, patch: Partial<LedgerMock> = {}) {
     return result;
   });
   const onDirtyChange = vi.fn();
-  renderWithProviders(<StudentBalance studentId="s1" onDirtyChange={onDirtyChange} />);
+  renderWithProviders(<StudentBalance studentId="s1" isActive={isActive} onDirtyChange={onDirtyChange} />);
   return { onDirtyChange };
 }
 
@@ -70,6 +70,24 @@ describe("balance value", () => {
     setup(ADMIN, { balance: -3 });
     expect(await screen.findByText("-3")).toBeInTheDocument();
     expect(screen.getByText("Debt")).toBeInTheDocument();
+  });
+
+  it("marks a balance at or below the school threshold as Low balance", async () => {
+    setup(ADMIN, { balance: 2, lowBalanceThreshold: 2 });
+    expect(await screen.findByText("Low balance")).toBeInTheDocument();
+    expect(screen.queryByText("Debt")).not.toBeInTheDocument();
+  });
+
+  it("shows no Low balance above the threshold", async () => {
+    setup(ADMIN, { balance: 3, lowBalanceThreshold: 2 });
+    expect(await screen.findByText("3")).toBeInTheDocument();
+    expect(screen.queryByText("Low balance")).not.toBeInTheDocument();
+  });
+
+  it("shows no Low balance for an inactive student", async () => {
+    setup(ADMIN, { balance: 1, lowBalanceThreshold: 2 }, false);
+    expect(await screen.findByText("1")).toBeInTheDocument();
+    expect(screen.queryByText("Low balance")).not.toBeInTheDocument();
   });
 
   it("shows an error with Retry that reloads the balance", async () => {

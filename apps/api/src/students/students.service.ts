@@ -6,9 +6,10 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateStudentDto } from './dto/create-student.dto.js';
 import { ListStudentsQueryDto } from './dto/list-students-query.dto.js';
 import { UpdateStudentDto } from './dto/update-student.dto.js';
-import { STUDENT_INCLUDE, STUDENT_LIST_SELECT, toStudentDto } from './student.mapper.js';
+import { STUDENT_INCLUDE, STUDENT_LIST_SELECT, toStudentDto, type StudentListItem } from './student.mapper.js';
 
 const ASSIGN_TEACHER = 'students.assign-teacher';
+const BALANCE_READ = 'balance.read';
 
 function isRecordNotFound(error: unknown) {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025';
@@ -25,7 +26,7 @@ export class StudentsService {
     private readonly series: LessonSeriesService,
   ) {}
 
-  async list(query: ListStudentsQueryDto) {
+  async list(user: AuthUser, query: ListStudentsQueryDto) {
     const where: Prisma.StudentWhereInput = {};
     if (query.q) {
       where.OR = [
@@ -46,7 +47,19 @@ export class StudentsService {
       this.prisma.student.count({ where }),
     ]);
 
-    return { items: students, total, page: query.page, pageSize: query.pageSize };
+    const items = user.permissions.has(BALANCE_READ) ? await this.withBalances(students) : students;
+    return { items, total, page: query.page, pageSize: query.pageSize };
+  }
+
+  // One grouped query for the whole page instead of a balance request per student.
+  private async withBalances(students: StudentListItem[]) {
+    const sums = await this.prisma.ledgerEntry.groupBy({
+      by: ['studentId'],
+      where: { studentId: { in: students.map((s) => s.id) } },
+      _sum: { delta: true },
+    });
+    const byId = new Map(sums.map((row) => [row.studentId, row._sum.delta ?? 0]));
+    return students.map((s) => ({ ...s, balance: byId.get(s.id) ?? 0 }));
   }
 
   async get(id: string) {

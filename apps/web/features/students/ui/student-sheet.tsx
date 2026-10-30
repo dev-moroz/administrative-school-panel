@@ -224,7 +224,7 @@ export function StudentSheet({ target, onTargetChange }: Props) {
     return (
       <div className="grid gap-4">
         <StudentDetails student={student.data} paymentMethods={allMethods.data ?? []} canEdit={canEdit} onEdit={requestEdit} />
-        <StudentSections studentId={student.data.id} onDirtyChange={setAdjustDirty} />
+        <StudentSections studentId={student.data.id} isActive={student.data.isActive} onDirtyChange={setAdjustDirty} />
       </div>
     );
   }

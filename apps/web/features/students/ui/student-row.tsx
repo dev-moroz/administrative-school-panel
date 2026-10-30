@@ -2,10 +2,11 @@ import { useTranslations } from "next-intl";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getInitials } from "../model/get-initials";
 import type { StudentListItem } from "../model/types";
+import { StudentListBalance } from "./student-list-balance";
 
-type Props = { student: StudentListItem; onSelect: (id: string) => void };
+type Props = { student: StudentListItem; lowBalanceThreshold?: number; onSelect: (id: string) => void };
 
-export function StudentRow({ student, onSelect }: Props) {
+export function StudentRow({ student, lowBalanceThreshold, onSelect }: Props) {
   const t = useTranslations("Students");
   return (
     <button
@@ -24,6 +25,7 @@ export function StudentRow({ student, onSelect }: Props) {
       {student.telegramUsername && (
         <span className="truncate text-sm text-muted-foreground">@{student.telegramUsername}</span>
       )}
+      <StudentListBalance student={student} threshold={lowBalanceThreshold} />
       {!student.isActive && <span className="sr-only">{t("statusInactive")}</span>}
     </button>
   );

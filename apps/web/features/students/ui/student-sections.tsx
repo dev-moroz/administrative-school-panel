@@ -9,9 +9,9 @@ import { StudentBalance } from "@/features/ledger/ui/student-balance";
 import { StudentPayments } from "@/features/payments/ui/student-payments";
 
 type Section = "balance" | "payments" | "absences";
-type Props = { studentId: string; onDirtyChange: (dirty: boolean) => void };
+type Props = { studentId: string; isActive?: boolean; onDirtyChange: (dirty: boolean) => void };
 
-export function StudentSections({ studentId, onDirtyChange }: Props) {
+export function StudentSections({ studentId, isActive, onDirtyChange }: Props) {
   const t = useTranslations("Students");
   const { data: me } = useMe();
   const [selected, setSelected] = useState<Section>("balance");
@@ -36,7 +36,7 @@ export function StudentSections({ studentId, onDirtyChange }: Props) {
       </TabsList>
       {available.includes("balance") && (
         <TabsContent value="balance" forceMount hidden={active !== "balance"} className="text-base">
-          <StudentBalance studentId={studentId} onDirtyChange={onDirtyChange} />
+          <StudentBalance studentId={studentId} isActive={isActive} onDirtyChange={onDirtyChange} />
         </TabsContent>
       )}
       {available.includes("payments") && (

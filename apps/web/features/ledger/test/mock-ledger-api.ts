@@ -8,12 +8,16 @@ export type LedgerMock = {
   balanceError?: ApiError;
   ledgerError?: ApiError;
   adjustError?: ApiError;
+  lowBalanceThreshold?: number;
 };
 
 // Returns undefined for paths that are not ledger endpoints, so callers can chain handlers.
 export function handleLedger(mock: LedgerMock, path: string, init?: RequestInit): unknown {
   const url = new URL(path, "http://x");
   const method = init?.method ?? "GET";
+  if (url.pathname === "/settings/school" && method === "GET") {
+    return { lowBalanceThreshold: mock.lowBalanceThreshold ?? 2 };
+  }
   const match = url.pathname.match(/^\/students\/([^/]+)\/(balance|ledger|ledger\/adjustments)$/);
   if (!match) return undefined;
 

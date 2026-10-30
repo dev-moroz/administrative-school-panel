@@ -4,21 +4,23 @@ import { useCallback, useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { DiscardChangesDialog } from "@/components/discard-changes-dialog";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMe } from "@/features/auth";
+import { useSchoolSettings } from "@/features/school-settings/model/use-school-settings";
 import { ApiError } from "@/lib/api";
 import { toAdjustPayload, type AdjustFormValues } from "../model/adjust-schema";
+import { getBalanceBadge } from "../model/get-balance-badge";
 import { useAdjustBalance } from "../model/use-adjust-balance";
 import { useBalance } from "../model/use-balance";
 import { useLedger } from "../model/use-ledger";
 import { AdjustBalanceForm } from "./adjust-balance-form";
+import { BalanceStatusBadge } from "./balance-status-badge";
 import { LedgerHistory } from "./ledger-history";
 
-type Props = { studentId: string; onDirtyChange?: (dirty: boolean) => void };
+type Props = { studentId: string; isActive?: boolean; onDirtyChange?: (dirty: boolean) => void };
 
-export function StudentBalance({ studentId, onDirtyChange }: Props) {
+export function StudentBalance({ studentId, isActive = true, onDirtyChange }: Props) {
   const t = useTranslations("Ledger");
   const { data: me } = useMe();
   const canRead = !!me?.permissions.includes("balance.read");
@@ -27,6 +29,7 @@ export function StudentBalance({ studentId, onDirtyChange }: Props) {
   const balance = useBalance(studentId, canRead);
   const ledger = useLedger(studentId, canRead);
   const adjust = useAdjustBalance(studentId);
+  const settings = useSchoolSettings();
 
   const [formOpen, setFormOpen] = useState(false);
   const [formDirty, setFormDirty] = useState(false);
@@ -90,7 +93,9 @@ export function StudentBalance({ studentId, onDirtyChange }: Props) {
             {balance.data.balance}
           </span>
           <span className="text-muted-foreground">{t("lessonsLeft")}</span>
-          {balance.data.isDebt && <Badge variant="destructive">{t("debt")}</Badge>}
+          <BalanceStatusBadge
+            badge={getBalanceBadge(balance.data.balance, settings.data?.lowBalanceThreshold, isActive)}
+          />
           {canAdjust && !formOpen && (
             <Button variant="outline" size="sm" className="ml-auto" onClick={() => setFormOpen(true)}>
               {t("adjust")}

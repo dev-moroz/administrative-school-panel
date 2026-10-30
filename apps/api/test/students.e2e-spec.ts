@@ -27,7 +27,11 @@ const RESPONSE_KEYS = [
   'updatedAt',
 ];
 
-const LIST_ITEM_KEYS = ['id', 'fullName', 'telegramUsername', 'isActive'];
+const LIST_ITEM_KEYS = ['id', 'fullName', 'telegramUsername', 'isActive', 'balance'];
+
+// A role that may list students but not read balances.
+const NO_BALANCE_ROLE = 'e2e-students-no-balance';
+const NO_BALANCE_EMAIL = 'students-no-balance@e2e.test';
 
 describe('students (e2e)', () => {
   let app: INestApplication;
@@ -83,7 +87,10 @@ describe('students (e2e)', () => {
   });
 
   afterAll(async () => {
+    await prisma.ledgerEntry.deleteMany({ where: { student: { fullName: { startsWith: TAG } } } });
     await prisma.student.deleteMany({ where: { fullName: { startsWith: TAG } } });
+    await prisma.user.deleteMany({ where: { email: NO_BALANCE_EMAIL } });
+    await prisma.role.deleteMany({ where: { name: NO_BALANCE_ROLE } });
     await prisma.currency.deleteMany({ where: { code: 'TST' } });
     await prisma.paymentMethod.deleteMany({ where: { code: 'ZSTUDPM' } });
     await app.close();
@@ -396,6 +403,67 @@ describe('students (e2e)', () => {
       it('accepts pageSize 100', async () => {
         await call('teacher', 'get', `/students?q=${TAG}pg&pageSize=100`).expect(200);
       });
+    });
+  });
+
+  describe('list: balance', () => {
+    function addEntries(studentId: string, deltas: number[]) {
+      return prisma.ledgerEntry.createMany({
+        data: deltas.map((delta) => ({
+          studentId,
+          delta,
+          type: delta > 0 ? 'MANUAL_ADJUSTMENT' : 'LESSON_CHARGE',
+        })) as never,
+      });
+    }
+
+    function balances(body: { items: { fullName: string; balance: number }[] }) {
+      return Object.fromEntries(body.items.map((s) => [s.fullName, s.balance]));
+    }
+
+    it('returns the ledger sum per student: 0 without entries, negative as is', async () => {
+      const paid = await seedStudent({ fullName: `${TAG}bal A` });
+      await seedStudent({ fullName: `${TAG}bal B` });
+      const debtor = await seedStudent({ fullName: `${TAG}bal C` });
+      await addEntries(paid.id, [8, -1]);
+      await addEntries(debtor.id, [-1, -1]);
+
+      const res = await call('teacher', 'get', `/students?q=${TAG}bal`).expect(200);
+
+      expect(balances(res.body)).toEqual({ [`${TAG}bal A`]: 7, [`${TAG}bal B`]: 0, [`${TAG}bal C`]: -2 });
+    });
+
+    it('computes the balance for the requested page only, matching each student', async () => {
+      for (let i = 1; i <= 3; i += 1) {
+        const student = await seedStudent({ fullName: `${TAG}balpg ${i}` });
+        await addEntries(student.id, [i * 10]);
+      }
+
+      const res = await call('admin', 'get', `/students?q=${TAG}balpg&page=2&pageSize=2`).expect(200);
+
+      expect(balances(res.body)).toEqual({ [`${TAG}balpg 3`]: 30 });
+    });
+
+    it('omits balance for a role without balance.read', async () => {
+      const read = await prisma.permission.findUniqueOrThrow({ where: { key: 'students.read.all' } });
+      await prisma.role.upsert({
+        where: { name: NO_BALANCE_ROLE },
+        update: {},
+        create: { name: NO_BALANCE_ROLE, rolePermissions: { create: { permissionId: read.id } } },
+      });
+      await ensureUser(app, NO_BALANCE_EMAIL, NO_BALANCE_ROLE);
+      const cookie = await loginAs(app, NO_BALANCE_EMAIL);
+      const student = await seedStudent({ fullName: `${TAG}balhid A` });
+      await addEntries(student.id, [5]);
+
+      const res = await request(server)
+        .get(`/students?q=${TAG}balhid`)
+        .set('Origin', TEST_ORIGIN)
+        .set('Cookie', cookie)
+        .expect(200);
+
+      expect(res.body.items).toHaveLength(1);
+      expect(res.body.items[0]).not.toHaveProperty('balance');
     });
   });
 

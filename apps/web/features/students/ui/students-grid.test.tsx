@@ -82,6 +82,57 @@ describe.each(["cards", "list"] as const)("StudentsGrid (%s view)", (view) => {
   });
 });
 
+describe.each(["cards", "list"] as const)("StudentsGrid balance (%s view)", (view) => {
+  // null stands for "threshold not loaded yet".
+  const one = (patch: object, threshold: number | null = 2) =>
+    renderWithProviders(
+      <StudentsGrid
+        {...props}
+        view={view}
+        lowBalanceThreshold={threshold ?? undefined}
+        students={[{ ...students[0], balance: 5, ...patch }]}
+      />,
+    );
+
+  it("shows the remaining lessons without a badge above the threshold", () => {
+    one({ balance: 5 });
+    expect(screen.getByText("5")).toBeInTheDocument();
+    expect(screen.getByText("lessons left")).toBeInTheDocument();
+    expect(screen.queryByText("Low balance")).not.toBeInTheDocument();
+    expect(screen.queryByText("Debt")).not.toBeInTheDocument();
+  });
+
+  it("marks a balance at the threshold as Low balance", () => {
+    one({ balance: 2 });
+    expect(screen.getByText("Low balance")).toBeInTheDocument();
+  });
+
+  it("marks a negative balance as Debt, not Low balance", () => {
+    one({ balance: -1 });
+    expect(screen.getByText("-1")).toBeInTheDocument();
+    expect(screen.getByText("Debt")).toBeInTheDocument();
+    expect(screen.queryByText("Low balance")).not.toBeInTheDocument();
+  });
+
+  it("an inactive student gets no Low balance but keeps Debt", () => {
+    one({ balance: 1, isActive: false });
+    expect(screen.queryByText("Low balance")).not.toBeInTheDocument();
+    one({ balance: -1, isActive: false });
+    expect(screen.getByText("Debt")).toBeInTheDocument();
+  });
+
+  it("shows no Low balance while the threshold is not loaded", () => {
+    one({ balance: 1 }, null);
+    expect(screen.getByText("1")).toBeInTheDocument();
+    expect(screen.queryByText("Low balance")).not.toBeInTheDocument();
+  });
+
+  it("shows no balance block when the item has no balance", () => {
+    renderWithProviders(<StudentsGrid {...props} view={view} lowBalanceThreshold={2} students={[students[0]]} />);
+    expect(screen.queryByText("lessons left")).not.toBeInTheDocument();
+  });
+});
+
 describe("StudentsGrid layout", () => {
   it("cards use a responsive 1/2/3/4 column grid", () => {
     const { container } = renderWithProviders(

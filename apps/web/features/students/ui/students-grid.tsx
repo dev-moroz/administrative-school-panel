@@ -9,6 +9,7 @@ import { StudentRow } from "./student-row";
 type Props = {
   view: ViewMode;
   students: StudentListItem[] | undefined;
+  lowBalanceThreshold?: number;
   isLoading: boolean;
   isError: boolean;
   onRetry: () => void;
@@ -26,7 +27,7 @@ const containerClass: Record<ViewMode, string> = {
   list: `${AREA} flex flex-col gap-2`,
 };
 
-export function StudentsGrid({ view, students, isLoading, isError, onRetry, onSelect }: Props) {
+export function StudentsGrid({ view, students, lowBalanceThreshold, isLoading, isError, onRetry, onSelect }: Props) {
   const t = useTranslations("Students");
 
   if (isError && !students) {
@@ -62,7 +63,7 @@ export function StudentsGrid({ view, students, isLoading, isError, onRetry, onSe
   return (
     <div data-view={view} className={containerClass[view]}>
       {students.map((student) => (
-        <Item key={student.id} student={student} onSelect={onSelect} />
+        <Item key={student.id} student={student} lowBalanceThreshold={lowBalanceThreshold} onSelect={onSelect} />
       ))}
     </div>
   );

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { ListPage } from "@/components/list-page";
 import { useMe } from "@/features/auth";
+import { useSchoolSettings } from "@/features/school-settings/model/use-school-settings";
 import { useViewMode } from "@/hooks/use-view-mode";
 import { useDebouncedValue } from "@/features/students/model/use-debounced-value";
 import { useStudents } from "@/features/students/model/use-students";
@@ -30,7 +31,8 @@ export default function StudentsPage() {
   const page = pageState.filterKey === filterKey ? pageState.page : 1;
 
   const students = useStudents({ q: search, page, pageSize: PAGE_SIZE, isActive: IS_ACTIVE[status] });
-  const totalPages = Math.max(1, Math.ceil((students.data?.total ?? 0) / PAGE_SIZE));
+  const settings = useSchoolSettings();
+  const totalPages =Math.max(1, Math.ceil((students.data?.total ?? 0) / PAGE_SIZE));
 
   return (
     <>
@@ -53,6 +55,7 @@ export default function StudentsPage() {
         <StudentsGrid
           view={view}
           students={students.data?.items}
+          lowBalanceThreshold={settings.data?.lowBalanceThreshold}
           isLoading={students.isLoading}
           isError={students.isError}
           onRetry={() => students.refetch()}

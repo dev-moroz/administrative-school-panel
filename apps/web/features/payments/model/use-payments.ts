@@ -2,6 +2,7 @@
 
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ledgerKey } from "@/features/ledger/model/use-balance";
+import { studentsListKey } from "@/features/students/model/use-students";
 import { createPayment } from "../api/create-payment";
 import { listPayments } from "../api/list-payments";
 import { uploadProof } from "../api/upload-proof";
@@ -36,6 +37,7 @@ export function useCreatePayment() {
     onSuccess: (_payment, payload) => {
       void client.invalidateQueries({ queryKey: paymentsKey });
       void client.invalidateQueries({ queryKey: ledgerKey(payload.studentId) });
+      void client.invalidateQueries({ queryKey: studentsListKey });
     },
   });
 }

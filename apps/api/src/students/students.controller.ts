@@ -23,8 +23,8 @@ export class StudentsController {
 
   @RequirePermission('students.read.all')
   @Get()
-  list(@Query() query: ListStudentsQueryDto) {
-    return this.students.list(query);
+  list(@CurrentUser() user: AuthUser, @Query() query: ListStudentsQueryDto) {
+    return this.students.list(user, query);
   }
 
   @RequirePermission('students.read.all')

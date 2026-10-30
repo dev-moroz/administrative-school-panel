@@ -5,6 +5,8 @@ export type StudentListItem = {
   fullName: string;
   telegramUsername: string | null;
   isActive: boolean;
+  // Absent without the balance.read permission.
+  balance?: number;
 };
 
 export type StudentListResponse = {
