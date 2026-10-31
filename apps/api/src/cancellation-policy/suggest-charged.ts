@@ -1,13 +1,14 @@
 export interface CancellationRules {
-  // Local "HH:MM"; lessons starting before it are morning lessons.
-  morningEndsAt: string;
-  sameDayMorningCharged: boolean;
+  // Local "HH:MM": lessons before dayStartsAt are morning, from eveningStartsAt evening.
+  dayStartsAt: string;
+  eveningStartsAt: string;
+  // Free cancellation of a day/evening lesson ends this long before its slot starts.
   lateWindowMin: number;
 }
 
 export const DEFAULT_CANCELLATION_RULES: CancellationRules = {
-  morningEndsAt: '12:00',
-  sameDayMorningCharged: true,
+  dayStartsAt: '12:00',
+  eveningStartsAt: '17:00',
   lateWindowMin: 60,
 };
 
@@ -30,17 +31,28 @@ function toMinutes(hhmm: string) {
   return h * 60 + m;
 }
 
+// The instant of a local wall time `minutes` after midnight of `day` in `timeZone`.
+function zonedTime(day: string, minutes: number, timeZone: string) {
+  const guess = Date.parse(`${day}T00:00:00Z`) + minutes * 60_000;
+  const local = localParts(new Date(guess), timeZone);
+  const offset = Date.parse(`${local.day}T00:00:00Z`) + local.minutes * 60_000 - guess;
+  return guess - offset;
+}
+
 export function suggestCharged(
   lesson: { startsAt: Date; durationMin: number },
   cancelledAt: Date,
   timeZone: string,
   rules: CancellationRules,
 ): boolean {
-  const msBefore = lesson.startsAt.getTime() - cancelledAt.getTime();
-  if (msBefore < rules.lateWindowMin * 60_000) return true;
-
-  if (!rules.sameDayMorningCharged) return false;
   const start = localParts(lesson.startsAt, timeZone);
-  if (start.minutes >= toMinutes(rules.morningEndsAt)) return false;
-  return localParts(cancelledAt, timeZone).day === start.day;
+  const day = toMinutes(rules.dayStartsAt);
+  const evening = toMinutes(rules.eveningStartsAt);
+
+  let deadline: number;
+  if (start.minutes < day) deadline = zonedTime(start.day, 0, timeZone);
+  else if (start.minutes < evening) deadline = zonedTime(start.day, day - rules.lateWindowMin, timeZone);
+  else deadline = zonedTime(start.day, evening - rules.lateWindowMin, timeZone);
+
+  return cancelledAt.getTime() >= Math.min(deadline, lesson.startsAt.getTime());
 }

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
 import { ApiError, apiFetch } from "@/lib/api";
@@ -9,7 +9,9 @@ import SchoolSettingsPage from "./page";
 vi.mock("@/lib/api", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/lib/api")>()), apiFetch: vi.fn() }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
-type Opts = { threshold?: number; loadError?: ApiError; saveError?: ApiError };
+const RULES = { dayStartsAt: "12:00", eveningStartsAt: "17:00", lateWindowMin: 60 };
+
+type Opts ={ threshold?: number; loadError?: ApiError; saveError?: ApiError };
 
 function mockApi({ threshold = 2, loadError, saveError }: Opts = {}) {
   vi.mocked(apiFetch).mockImplementation(async (path: string, init?: RequestInit) => {
@@ -17,7 +19,7 @@ function mockApi({ threshold = 2, loadError, saveError }: Opts = {}) {
     if (path === "/auth/me") return { id: "u1", email: "a@b.c", role: "admin", permissions: ["school-settings.update"] };
     if (path === "/settings/school" && method === "GET") {
       if (loadError) throw loadError;
-      return { lowBalanceThreshold: threshold };
+      return { ...RULES, lowBalanceThreshold: threshold };
     }
     if (path === "/settings/school" && method === "PATCH") {
       if (saveError) throw saveError;
@@ -73,7 +75,75 @@ describe("SchoolSettingsPage", () => {
     await user.type(field(), "5");
     await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Settings saved"));
-    expect(patches()).toEqual([{ path: "/settings/school", body: { lowBalanceThreshold: 5 } }]);
+    expect(patches()).toEqual([{ path: "/settings/school", body: { ...RULES, lowBalanceThreshold: 5 } }]);
+  });
+
+  describe("cancellation rules", () => {
+    const day = () => screen.getByLabelText("Day starts at");
+    const evening = () => screen.getByLabelText("Evening starts at");
+    const window = () => screen.getByLabelText("Free cancellation ends before the slot, minutes");
+
+    it("shows the current rules", async () => {
+      mockApi();
+      renderWithProviders(<SchoolSettingsPage />);
+      expect(await screen.findByRole("heading", { name: "Cancellation rules" })).toBeInTheDocument();
+      expect(day()).toHaveValue("12:00");
+      expect(evening()).toHaveValue("17:00");
+      expect(window()).toHaveValue(60);
+    });
+
+    it("rejects an evening that does not start after the day", async () => {
+      mockApi();
+      renderWithProviders(<SchoolSettingsPage />);
+      await waitFor(() => expect(evening()).toHaveValue("17:00"));
+      fireEvent.change(evening(), { target: { value: "12:00" } });
+      expect(await screen.findByText("The evening must start after the day")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+    });
+
+    it("sends the changed rules together with the threshold", async () => {
+      mockApi();
+      const user = userEvent.setup();
+      renderWithProviders(<SchoolSettingsPage />);
+      await waitFor(() => expect(window()).toHaveValue(60));
+      fireEvent.change(day(), { target: { value: "11:30" } });
+      fireEvent.change(evening(), { target: { value: "18:00" } });
+      await user.clear(window());
+      await user.type(window(), "120");
+      await user.click(screen.getByRole("button", { name: "Save" }));
+      await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Settings saved"));
+      expect(patches()).toEqual([
+        {
+          path: "/settings/school",
+          body: { lowBalanceThreshold: 2, dayStartsAt: "11:30", eveningStartsAt: "18:00", lateWindowMin: 120 },
+        },
+      ]);
+    });
+
+    it.each([
+      ["empty", ""],
+      ["negative", "-1"],
+      ["fractional", "30.5"],
+      ["above a day", "1441"],
+    ])("rejects the late window: %s", async (_label, value) => {
+      mockApi();
+      const user = userEvent.setup();
+      renderWithProviders(<SchoolSettingsPage />);
+      await waitFor(() => expect(window()).toHaveValue(60));
+      await user.clear(window());
+      if (value) await user.type(window(), value);
+      expect(await screen.findByText("Enter a whole number from 0 to 1440")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+    });
+
+    it("rejects an empty time", async () => {
+      mockApi();
+      renderWithProviders(<SchoolSettingsPage />);
+      await waitFor(() => expect(day()).toHaveValue("12:00"));
+      fireEvent.change(day(), { target: { value: "" } });
+      expect(await screen.findByText("Enter a time")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+    });
   });
 
   it("disables Save while the value equals the stored one", async () => {

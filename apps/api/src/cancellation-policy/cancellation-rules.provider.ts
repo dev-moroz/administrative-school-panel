@@ -1,10 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { DEFAULT_CANCELLATION_RULES, type CancellationRules } from './suggest-charged.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import type { CancellationRules } from './suggest-charged.js';
 
-// Defaults for now; later read from settings (per teacher or school).
+// School-wide rules; the teacher only contributes the time zone.
 @Injectable()
 export class CancellationRulesProvider {
+  constructor(private readonly prisma: PrismaService) {}
+
   getRules(_teacherId: string): Promise<CancellationRules> {
-    return Promise.resolve(DEFAULT_CANCELLATION_RULES);
+    return this.prisma.schoolSettings.findUniqueOrThrow({
+      where: { id: 1 },
+      select: { dayStartsAt: true, eveningStartsAt: true, lateWindowMin: true },
+    });
   }
 }

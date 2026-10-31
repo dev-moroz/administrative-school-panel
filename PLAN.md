@@ -91,7 +91,8 @@ Principles: money is `Decimal`, not float; every balance and payment change happ
 - 5k status colors: `--success`/`--warning` theme tokens, "Inactive" badges yellow, ledger history "+" green and "−" grey badges — done → DECISIONS: "Status and amount colors (5k)".
 - 5l remaining lessons on the students list tile, with "Low balance"/"Debt" badges — done (2026-10-30) → DECISIONS: "Student card: balance and Schedule tab", "Status and amount colors (5k)".
 - 5m "Schedule" tab in the student card (next 6 lessons) — done (2026-10-30) → DECISIONS: "Student card: balance and Schedule tab".
-- Settings: cancellation rules storage (school-wide thresholds, evaluated in the teacher's zone → DECISIONS: "Settings concept") and cancel reasons admin (`/settings/cancel-reasons`) — todo (after 5c, Anatoly, 2026-10-28).
+- Settings A: cancellation rules in school settings, slot-based rule — done (2026-10-31) → DECISIONS: "Cancellation rules by slot".
+- Settings B: cancel reasons admin (`/settings/cancel-reasons`) — next.
 
 **Stage 6 — notifications** — **todo** (added 2026-10-29, design session later): in-app notifications for the teacher and the admin (generator conflicts and other system events). Details are decided in its own design session.
 

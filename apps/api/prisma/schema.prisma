@@ -352,6 +352,10 @@ enum AbsenceKind {
 model SchoolSettings {
   id                  Int      @id @default(1)
   lowBalanceThreshold Int      @default(2) @map("low_balance_threshold")
+  // Cancellation rules, "HH:MM" in the teacher's zone.
+  dayStartsAt         String   @default("12:00") @map("day_starts_at")
+  eveningStartsAt     String   @default("17:00") @map("evening_starts_at")
+  lateWindowMin       Int      @default(60) @map("late_window_min")
   updatedAt           DateTime @updatedAt @map("updated_at")
 
   @@map("school_settings")

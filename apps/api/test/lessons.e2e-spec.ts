@@ -475,6 +475,37 @@ describe('lessons (e2e)', () => {
       const res = await call('teacher', 'get', `/lessons/${lesson.id}/cancel-preview`).expect(200);
       expect(res.body).toEqual({ suggestedCharged: false });
     });
+
+    describe('follows the school cancellation rules', () => {
+      const preview = async (id: string) =>
+        (await call('teacher', 'get', `/lessons/${id}/cancel-preview`).expect(200)).body.suggestedCharged;
+      const setRules = (data: { dayStartsAt?: string; lateWindowMin?: number }) =>
+        prisma.schoolSettings.update({ where: { id: 1 }, data });
+      // Tomorrow 00:30 in Moscow (the e2e teacher's zone, UTC+3, no DST).
+      const tomorrowMoscow0030 = () => {
+        const moscowToday = new Date(Date.now() + 3 * HOUR).toISOString().slice(0, 10);
+        return new Date(Date.parse(`${moscowToday}T00:30:00+03:00`) + DAY);
+      };
+
+      afterEach(async () => {
+        await setRules({ dayStartsAt: '12:00', lateWindowMin: 60 });
+      });
+
+      it('a morning lesson tomorrow is free; once the day starts at 00:00 with a one-day window it is charged', async () => {
+        const { lesson } = await seedLesson({ startsAt: tomorrowMoscow0030() });
+        expect(await preview(lesson.id)).toBe(false);
+
+        await setRules({ dayStartsAt: '00:00', lateWindowMin: 1440 });
+        expect(await preview(lesson.id)).toBe(true);
+      });
+
+      it('the cancel status uses the same rules', async () => {
+        await setRules({ dayStartsAt: '00:00', lateWindowMin: 1440 });
+        const { lesson } = await seedLesson({ startsAt: tomorrowMoscow0030() });
+        const res = await call('teacher', 'post', `/lessons/${lesson.id}/status`, { status: 'CANCELLED', reason: 'STUDENT_REQUEST' }).expect(200);
+        expect(res.body.charged).toBe(true);
+      });
+    });
   });
 
   describe('manuallyChanged flag', () => {

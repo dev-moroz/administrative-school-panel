@@ -284,6 +284,13 @@ Deliberate simplifications of the MVP (confirmed by Anatoly, 2026-10-23, stage 2
 - Working hours and days off belong to the teacher (an online school has no global days off). The calendar highlights the working hours; a lesson outside them asks for confirmation and is not blocked.
 - Open: whether the base zone is changed only by hand in the profile (display zone follows the browser) or the app offers "switch to the current zone" on login; Claude recommends the former.
 
+## Cancellation rules by slot (confirmed by the teacher, 2026-10-31, Anatoly)
+Replaces "a daytime/evening lesson cancelled less than an hour before is charged" (stage 5 design, 5a). A lesson belongs to a slot by its start time in the teacher's zone: morning before 12:00, day from 12:00, evening from 17:00. Free cancellation ends:
+- morning lesson: when the morning starts, i.e. local midnight of the lesson day (only the day before is free);
+- daytime lesson: an hour before the day slot starts (11:00);
+- evening lesson: an hour before the evening slot starts (16:00).
+Cancelling at or after that moment is charged (so is cancelling after the start); the "charged" checkbox still has the final say. The boundaries and the window are school settings (`dayStartsAt`, `eveningStartsAt`, `lateWindowMin`).
+
 ## Base time zone: Moscow (design session, decided 2026-10-29, Anatoly) — MANDATORY
 These are the rules for every time-related change. They are not re-discussed; any code that breaks them is a bug.
 - **One system base time zone: `Europe/Moscow`.** Every lesson time is built relative to it: one-off lessons, series, the series generator, splits. Moscow has no daylight saving time, so the base never shifts.
