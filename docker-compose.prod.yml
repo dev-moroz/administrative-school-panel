@@ -1,0 +1,72 @@
+# Production: the whole stack in Docker. Variables come from the root .env (see .env.example).
+#   docker compose -f docker-compose.prod.yml up --build -d
+x-api-env: &api-env
+  DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+  NODE_ENV: production
+  PORT: "4000"
+  WEB_ORIGIN: ${WEB_ORIGIN:?}
+  JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?}
+  JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
+  JWT_REFRESH_TTL_DAYS: ${JWT_REFRESH_TTL_DAYS:-14}
+  REFRESH_COOKIE_PATH: /api/auth
+  UPLOADS_DIR: /data/uploads
+  ADMIN_EMAIL: ${ADMIN_EMAIL:?}
+  ADMIN_PASSWORD: ${ADMIN_PASSWORD:?}
+  TEACHER_EMAIL: ${TEACHER_EMAIL:-}
+  TEACHER_PASSWORD: ${TEACHER_PASSWORD:-}
+  TEACHER_NAME: ${TEACHER_NAME:-}
+
+services:
+  postgres:
+    image: postgres:16-alpine   # keep in sync with docker-compose.yml
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_DB: ${POSTGRES_DB:?}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: migrate
+    environment: *api-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: runtime
+    restart: unless-stopped
+    environment: *api-env
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        API_URL: http://api:4000
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "127.0.0.1:3000:3000"
+
+volumes:
+  pgdata:
+  uploads:

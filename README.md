@@ -23,3 +23,12 @@ After steps 1–8, tell Claude: he will add `output: 'standalone'`, rewrites `/a
 
 ## Stopping
 `docker compose down` (data is kept in the `pgdata` volume; `docker compose down -v` also deletes the data).
+
+## Production with Docker
+The whole stack (Postgres, migrations + seed, api, web) runs in Docker; no Mailpit/SMTP.
+1. `cp .env.example .env` and fill in the production block (strong `POSTGRES_PASSWORD`, `JWT_ACCESS_SECRET`, `ADMIN_*`, `WEB_ORIGIN`).
+2. `docker compose -f docker-compose.prod.yml up --build -d`
+3. The site listens on `127.0.0.1:3000`; Postgres and the api are not published.
+
+The one-shot `migrate` service applies migrations and the idempotent seed before the api starts.
+Payment proofs are kept in the `uploads` volume.
