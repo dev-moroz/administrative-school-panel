@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { connection } from "next/server";
 import { useTranslations } from "next-intl";
 import { LoginForm } from "@/features/auth";
 import {
@@ -7,6 +9,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
+// Reads the env at request time, so the demo credentials are not baked into the build.
+async function LoginFormWithDemo() {
+  await connection();
+  const email = process.env.DEMO_EMAIL;
+  const password = process.env.DEMO_PASSWORD;
+  return <LoginForm demo={email && password ? { email, password } : undefined} />;
+}
 
 export default function LoginPage() {
   const t = useTranslations("Login");
@@ -19,7 +29,9 @@ export default function LoginPage() {
           <CardDescription>{t("description")}</CardDescription>
         </CardHeader>
         <CardContent>
-          <LoginForm />
+          <Suspense>
+            <LoginFormWithDemo />
+          </Suspense>
         </CardContent>
       </Card>
     </main>

@@ -1,0 +1,38 @@
+# Public demo: the production stack with disposable data, recreated on deploy and nightly.
+#   docker compose -f docker-compose.prod.yml -f docker-compose.demo.yml up --build -d
+# TEACHER_* in the root .env is the demo account shown on the login page; it is public.
+services:
+  migrate:
+    command: ["sh", "scripts/demo-reset.sh"]
+    environment:
+      DEMO_MODE: "true"
+    volumes:
+      - uploads:/data/uploads
+
+  # Resets at 01:00 UTC (04:00 Moscow).
+  demo-reset:
+    extends:
+      file: docker-compose.prod.yml
+      service: migrate
+    restart: unless-stopped
+    command:
+      - sh
+      - -c
+      - |
+        while :; do
+          sleep $$(( (90000 - $$(date +%s) % 86400) % 86400 ))
+          sh scripts/demo-reset.sh || echo "demo-reset failed"
+          sleep 60
+        done
+    environment:
+      DEMO_MODE: "true"
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  web:
+    environment:
+      DEMO_EMAIL: ${TEACHER_EMAIL:?}
+      DEMO_PASSWORD: ${TEACHER_PASSWORD:?}

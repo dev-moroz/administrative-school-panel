@@ -32,3 +32,8 @@ The whole stack (Postgres, migrations + seed, api, web) runs in Docker; no Mailp
 
 The one-shot `migrate` service applies migrations and the idempotent seed before the api starts.
 Payment proofs are kept in the `uploads` volume.
+
+## Demo with Docker
+`docker compose -f docker-compose.prod.yml -f docker-compose.demo.yml up --build -d`
+
+Same stack with fictional data. **Every deploy and every night at 04:00 Moscow time the database and uploads are wiped and recreated**, so never point it at real data. `TEACHER_*` is required: it is the public demo account, prefilled on the login page, so keep `ADMIN_PASSWORD` strong and secret.

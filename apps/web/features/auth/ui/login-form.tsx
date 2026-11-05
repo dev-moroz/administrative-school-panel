@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { loginSchema, type LoginValues } from "../model/login-schema";
 
-export function LoginForm() {
+export function LoginForm({ demo }: { demo?: LoginValues }) {
   const t = useTranslations("Login");
   const router = useRouter();
 
@@ -18,7 +18,10 @@ export function LoginForm() {
     handleSubmit,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm<LoginValues>({ resolver: zodResolver(loginSchema) });
+  } = useForm<LoginValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: demo ?? { email: "", password: "" },
+  });
 
   async function onSubmit(values: LoginValues) {
     try {
@@ -44,6 +47,7 @@ export function LoginForm() {
 
   return (
     <form className="grid gap-4" noValidate onSubmit={handleSubmit(onSubmit)}>
+      {demo && <p className="text-sm text-muted-foreground">{t("demoNote")}</p>}
       <div className="grid gap-2">
         <Label htmlFor="email">{t("email")}</Label>
         <Input

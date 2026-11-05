@@ -12,7 +12,8 @@
     "invalidCredentials": "Invalid email or password.",
     "emailInvalid": "Enter a valid email.",
     "passwordRequired": "Enter your password.",
-    "genericError": "Something went wrong. Try again."
+    "genericError": "Something went wrong. Try again.",
+    "demoNote": "This is a demo account: just press Sign in. All data is fictional and resets every night."
   },
   "Nav": {
     "students": "Students",
