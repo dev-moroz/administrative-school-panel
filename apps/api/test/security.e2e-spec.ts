@@ -30,6 +30,28 @@ describe('security (e2e)', () => {
     expect(statuses).toEqual([401, 401, 401, 401, 401, 429]);
   });
 
+  describe('login limit by CF-Connecting-IP', () => {
+    const login = (ip: string) =>
+      request(app.getHttpServer())
+        .post('/auth/login')
+        .set('Origin', TEST_ORIGIN)
+        .set('CF-Connecting-IP', ip)
+        .send({ email: EMAIL, password: 'wrong-password' });
+
+    it('counts each client IP separately', async () => {
+      const statuses: number[] = [];
+      for (let i = 0; i < 6; i++) statuses.push((await login('203.0.113.10')).status);
+      expect(statuses).toEqual([401, 401, 401, 401, 401, 429]);
+
+      expect((await login('203.0.113.20')).status).toBe(401);
+    });
+
+    it('a client IP is not blocked by requests without the header', async () => {
+      // The no-header counter is already exhausted by the first test.
+      expect((await login('203.0.113.30')).status).toBe(401);
+    });
+  });
+
   describe('Origin check', () => {
     it('rejects a mutation with a foreign Origin', async () => {
       await request(app.getHttpServer())

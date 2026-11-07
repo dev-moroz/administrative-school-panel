@@ -2,8 +2,9 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module.js';
+import { ClientIpThrottlerGuard } from './client-ip-throttler.guard.js';
 import { CurrenciesModule } from './currencies/currencies.module.js';
 import { LedgerModule } from './ledger/ledger.module.js';
 import { AbsencesModule } from './absences/absences.module.js';
@@ -45,7 +46,7 @@ import { TeachersModule } from './teachers/teachers.module.js';
   ],
   providers: [
     { provide: APP_GUARD, useClass: OriginGuard },
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: ClientIpThrottlerGuard },
   ],
 })
 export class AppModule {}
