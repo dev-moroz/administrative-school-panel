@@ -10,7 +10,7 @@ english-school-admin/
   apps/
     api/          # NestJS
     web/          # Next.js (App Router)
-  docker-compose.yml     # postgres + mailpit (dev)
+  docker-compose.yml     # postgres (dev)
   pnpm-workspace.yaml
   CLAUDE.md, PLAN.md
 ```

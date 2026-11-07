@@ -37,8 +37,8 @@ Admin panel for an English school (one-on-one lessons): students, lessons and ca
 ## Stack
 - pnpm monorepo: `apps/api` (NestJS + Prisma + PostgreSQL 16), `apps/web` (Next.js App Router, `output: 'standalone'`, Tailwind, shadcn/ui, next-intl, TanStack Query).
 - Auth: email + password, JWT in an httpOnly cookie. **Role and permissions live only in the DB**, not in the token; the guard reads them on every request.
-- Calendar: FullCalendar. Email: Mailpit in dev, SMTP in production.
-- Dev: Postgres and Mailpit via `docker compose up -d`; api and web run directly, not in Docker. Check the images once after stage 1.
+- Calendar: FullCalendar.
+- Dev: Postgres via `docker compose up -d`; api and web run directly, not in Docker. Check the images once after stage 1.
 
 ## Key decisions
 - Roles in the MVP: `admin` (Anatoly's account: settings, currencies, roles, everything), `teacher` (the teacher's daily account) and `student` (no web login for now, the bot replaces it). **High priority, part of stage 1:** the `teacher` role (split — `docs/DECISIONS.md`, "Roles and access"). Permissions are configurable (role = a set of permissions, like in Strapi); `manager` later, without schema changes.

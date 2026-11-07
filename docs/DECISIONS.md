@@ -131,7 +131,7 @@ Calendar (**in the MVP**, decided 2026-10-17): the only library mentioned in the
 0. **`teacher` role — HIGH PRIORITY, part of stage 1** (decided 2026-10-21; see "Roles and access").
 1. Choose the visual base: pick 2–3 options (shadcn/ui blocks — dashboard/sidebar, Tailwind templates), show Anatoly, he chooses the "skin".
 2. Draw up the final development plan: monorepo and Nest module structure, data model (Prisma schema), API, Next.js pages, stages and the React + Nest learning route.
-3. ~~Calendar and emails~~ — closed 2026-10-17: calendar on **FullCalendar**; emails with login/password — **Mailpit** in dev, plain SMTP in production.
+3. ~~Calendar and emails~~ — closed 2026-10-17: calendar on **FullCalendar**; emails with login/password — **Mailpit** in dev, plain SMTP in production. Mailpit removed 2026-11-07: the app sends no email.
 4. Initialize the monorepo (pnpm workspaces), docker-compose with PostgreSQL, base Next.js and NestJS.
 5. Implement in stages: auth + roles → students → packages/balance ledger → lessons (+freeze, rescheduling) → payments with proofs → dashboard, search, filters → Telegram bot and notifications → audit log.
 6. Later: Docker packaging and deployment to a weak server, extended schedule/calendar, filtering data by teacher, groups and courses, exchange rates.

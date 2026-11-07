@@ -4,9 +4,6 @@ services:
   postgres:
     ports: !reset []   # do not clash with the dev database on 5432
 
-  mailpit:
-    ports: !reset []   # unused in the check, avoid clashing with the dev one
-
   api:
     build:
       context: .

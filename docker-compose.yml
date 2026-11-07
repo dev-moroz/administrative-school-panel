@@ -17,12 +17,5 @@ services:
       timeout: 3s
       retries: 10
 
-  mailpit:
-    image: axllent/mailpit:v1.31.6
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:1025:1025"   # SMTP: the api sends mail here
-      - "127.0.0.1:8025:8025"   # web UI: http://localhost:8025
-
 volumes:
   pgdata:
