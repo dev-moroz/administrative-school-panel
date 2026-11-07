@@ -1,8 +1,14 @@
 # Public demo: the production stack with disposable data, recreated on deploy and nightly.
-#   docker compose -f docker-compose.prod.yml -f docker-compose.demo.yml up --build -d
+#   docker compose -p demo -f docker-compose.prod.yml -f docker-compose.demo.yml up --build -d
 # TEACHER_* in the root .env is the demo account shown on the login page; it is public.
+# web has no host port: the tunnel container reaches it as demo-web:3000 on ${TUNNEL_NETWORK}.
 services:
+  postgres:
+    mem_limit: 256m
+
   migrate:
+    image: school-admin-api:migrate
+    mem_limit: 256m
     command: ["sh", "scripts/demo-reset.sh"]
     environment:
       DEMO_MODE: "true"
@@ -14,6 +20,8 @@ services:
     extends:
       file: docker-compose.prod.yml
       service: migrate
+    image: school-admin-api:migrate
+    mem_limit: 256m
     restart: unless-stopped
     command:
       - sh
@@ -32,7 +40,24 @@ services:
       migrate:
         condition: service_completed_successfully
 
+  api:
+    image: school-admin-api:runtime
+    mem_limit: 256m
+
   web:
+    image: school-admin-web
+    mem_limit: 256m
+    ports: !reset []
     environment:
       DEMO_EMAIL: ${TEACHER_EMAIL:?}
       DEMO_PASSWORD: ${TEACHER_PASSWORD:?}
+    networks:
+      default:
+      tunnel:
+        aliases:
+          - demo-web
+
+networks:
+  tunnel:
+    external: true
+    name: ${TUNNEL_NETWORK:?}
