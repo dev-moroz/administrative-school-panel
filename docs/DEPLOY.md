@@ -25,12 +25,38 @@ Only `web` is published, on `127.0.0.1:3000`; put a reverse proxy or a tunnel wi
 
 The demo is the production stack with disposable data: on each deploy and nightly at 01:00 UTC the database is reset and filled with fictional students, lessons and payments.
 
+It runs as its own compose project, `-p demo`, so it can share a host with other stacks.
+`web` has no host port: it joins an existing external Docker network, named by `TUNNEL_NETWORK` in the root `.env`, under the alias `demo-web`. Run the tunnel container (e.g. `cloudflared`) on that network.
+
 ```sh
-docker compose -f docker-compose.prod.yml -f docker-compose.demo.yml up --build -d
+docker network create tunnel   # once, if it does not exist; then TUNNEL_NETWORK=tunnel
+docker compose -p demo -f docker-compose.prod.yml -f docker-compose.demo.yml up --build -d
 ```
+
+Tunnel ingress, e.g. in the `cloudflared` config:
+```yaml
+ingress:
+  - hostname: demo.example.com
+    service: http://demo-web:3000
+  - service: http_status:404
+```
+`WEB_ORIGIN` is then `https://demo.example.com`.
 
 `TEACHER_EMAIL` and `TEACHER_PASSWORD` are required: this is the public demo account, prefilled on the login page.
 `scripts/demo-reset.sh` refuses to run without `DEMO_MODE=true`, which only the demo compose sets.
+
+### Build elsewhere, ship the images
+
+For a small host, build on another machine and copy the images over. The host needs only the two compose files and `.env`.
+```sh
+DOCKER_DEFAULT_PLATFORM=linux/amd64 docker compose -p demo -f docker-compose.prod.yml -f docker-compose.demo.yml build
+docker save school-admin-api:migrate school-admin-api:runtime school-admin-web | gzip | ssh <host> 'gunzip | docker load'
+ssh <host> 'cd <dir> && docker compose -p demo -f docker-compose.prod.yml -f docker-compose.demo.yml up -d --no-build'
+```
+
+### Client IP
+
+Behind Cloudflare every request reaches the API from the tunnel, so the login throttle keys on the `CF-Connecting-IP` header and falls back to the socket address. Without Cloudflare in front, anyone can set this header: strip or overwrite it at your proxy.
 
 ## Check after deploy
 
@@ -38,6 +64,8 @@ docker compose -f docker-compose.prod.yml -f docker-compose.demo.yml up --build 
 - In DevTools `access_token` and `refresh_token` are `HttpOnly` + `Secure`; the refresh cookie path is `/api/auth`.
 - Delete `access_token` and reload: the session is restored via refresh.
 - Upload a payment proof, restart `api`: the file still opens.
+- Demo: six wrong logins from one IP get 429; another IP can still log in.
+- Demo: after 01:00 UTC `docker compose -p demo logs demo-reset` shows the reset, and the data is back to the seed.
 
 ## Update
 
